@@ -1,5 +1,11 @@
 # dwkim
 
+## 0.1.0
+
+### Minor Changes
+
+- 4ae2f63: feature: bio 찍기
+
 ## 0.0.21
 
 ### Patch Changes
