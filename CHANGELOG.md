@@ -1,5 +1,11 @@
 # dwkim
 
+## 0.0.18
+
+### Patch Changes
+
+- e026520: chore: 배포 파이프라인 수정
+
 ## 0.0.3
 
 ### Patch Changes
