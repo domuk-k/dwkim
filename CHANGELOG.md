@@ -1,5 +1,11 @@
 # dwkim
 
+## 0.0.20
+
+### Patch Changes
+
+- b8a1977: chore: rm shell script for release
+
 ## 0.0.19
 
 ### Patch Changes
