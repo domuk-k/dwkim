@@ -249,6 +249,64 @@ jobs:
 
 ---
 
+## 11. NPM 배포 시 꼭 알아야 할 실무 팁
+
+### 1. dist만 NPM에 포함시키기
+
+- `package.json`에 아래처럼 **files 필드**를 추가하면, NPM 배포 시 dist 폴더만 포함됩니다.
+
+```json
+"files": [
+  "dist"
+]
+```
+
+- 또는, `.npmignore` 파일을 만들어 불필요한 파일/폴더를 명시적으로 제외할 수 있습니다.
+  (단, files 필드가 있으면 files가 우선 적용됨)
+
+예시:
+
+```
+src/
+test/
+.github/
+.vscode/
+*.ts
+*.md
+!dist/
+```
+
+### 2. bin 필드와 shebang
+
+- CLI로 실행하려면 `package.json`에 아래처럼 **bin 필드**를 추가해야 합니다.
+
+```json
+"bin": {
+  "dwkim": "dist/index.js"
+}
+```
+
+- 그리고 `src/index.ts`의 맨 위에 아래와 같이 **shebang**을 추가해야 합니다.
+
+```typescript
+#!/usr/bin/env node
+```
+
+- 빌드 후(`dist/index.js`)에도 이 줄이 남아 있어야 하며, 실행 권한도 확인하세요.
+
+### 3. 빌드 후 배포
+
+- 반드시 `pnpm run build`로 dist 폴더가 생성된 후에 배포해야 합니다.
+- release 스크립트에 build가 포함되어 있는지 확인하세요.
+
+### 4. .gitignore vs .npmignore
+
+- `.gitignore`: git에 포함하지 않을 파일
+- `.npmignore`: npm publish 시 포함하지 않을 파일 (없으면 .gitignore를 참고)
+- **files 필드가 있으면 files가 최우선 적용**
+
+---
+
 ## 참고
 
 - [예제 저장소 ↗]

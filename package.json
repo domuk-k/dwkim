@@ -12,7 +12,8 @@
     "dwkim": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "package.json"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
