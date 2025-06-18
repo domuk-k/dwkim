@@ -1,0 +1,10 @@
+# for pnpm node project
+node_modules
+dist
+.changeset
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

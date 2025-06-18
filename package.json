@@ -1,0 +1,22 @@
+{
+  "name": "dwkim",
+  "version": "0.0.1",
+  "description": "this",
+  "license": "MIT",
+  "author": "dannyworks102@gmail.com",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "lint": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0"
+  }
+}
