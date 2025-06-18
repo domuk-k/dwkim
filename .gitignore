@@ -1,7 +1,7 @@
 # for pnpm node project
 node_modules
 dist
-.changeset
+
 .DS_Store
 .env
 .env.local
