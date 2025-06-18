@@ -1,5 +1,11 @@
 # dwkim
 
+## 0.1.1
+
+### Patch Changes
+
+- f9ef8d0: docs: README.md
+
 ## 0.1.0
 
 ### Minor Changes
