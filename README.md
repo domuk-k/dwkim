@@ -144,20 +144,37 @@ pnpm run lint
 
 ---
 
-## 8. Changesets로 버전/릴리즈 노트 관리
+## 8. Changesets로 버전/릴리즈 노트 관리 (실무 워크플로우)
 
 ```bash
 pnpm add -D @changesets/cli
 pnpm exec changeset init
 ```
 
-변경사항이 있을 때마다:
+- `.changeset/` 폴더는 반드시 **git에 커밋**해야 합니다. (gitignore에 추가하면 안 됨)
+- 변경사항이 있을 때마다 아래 명령어로 변경점(md 파일)을 기록합니다 (e.g. PR 할때마다)
 
 ```bash
-pnpm exec changeset # 변경을 기록하는 마크다운 파일 생성
+pnpm exec changeset # 변경점 기록(md 파일 생성)
 ```
 
-- 변경 타입/설명 입력 → 마크다운 파일 생성
+- 릴리즈(버전 업데이트) 준비 시 (c.f. main 브랜치에서)
+
+```bash
+pnpm exec changeset version # package.json, CHANGELOG.md 자동 업데이트
+```
+
+- 배포(수동) (c.f. main 브랜치에서)
+
+```bash
+pnpm exec changeset publish
+```
+
+> **실무 워크플로우 요약**
+>
+> - PR마다 `pnpm exec changeset`으로 변경점만 기록
+> - main 브랜치에서 `changeset version` & `changeset publish`를 실행하거나,
+> - GitHub Actions에서 자동화(merge → version/publish)하는 것이 일반적입니다.
 
 ---
 
@@ -217,10 +234,18 @@ jobs:
 
 ---
 
-## 10. NPM 배포
+## 10. NPM 배포 (자동화/수동 워크플로우)
 
-1. 변경사항 발생 시 `pnpm exec changeset`으로 변경점 기록
-2. PR 머지 → GitHub Actions가 자동으로 NPM에 배포
+- **자동화:**
+
+  1. PR마다 `pnpm exec changeset`으로 변경점 기록
+  2. main 브랜치 머지 → GitHub Actions가 자동으로 `changeset version` & `changeset publish` 실행
+  3. NPM에 자동 배포
+
+- **수동:**
+  1. 변경점 기록 후,
+  2. `pnpm exec changeset version`
+  3. `pnpm exec changeset publish`
 
 ---
 
