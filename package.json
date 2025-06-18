@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "release": "pnpm run build && changeset publish",
+    "release": "bash ./scripts/create-github-release.sh",
     "dev": "tsx watch src/index.ts",
     "lint": "tsc"
   },
