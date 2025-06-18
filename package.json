@@ -1,6 +1,6 @@
 {
   "name": "dwkim",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "this",
   "license": "MIT",
   "author": "dannyworks102@gmail.com",
@@ -11,6 +11,7 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
+    "release": "pnpm run build && changeset publish",
     "dev": "tsx watch src/index.ts",
     "lint": "tsc"
   },

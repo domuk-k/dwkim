@@ -1,5 +1,11 @@
 # dwkim
 
+## 0.0.3
+
+### Patch Changes
+
+- e433534: docs: README.md 및 .changeset/config.json 업데이트
+
 ## 0.0.2
 
 ### Patch Changes
