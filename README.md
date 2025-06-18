@@ -151,12 +151,10 @@ pnpm add -D @changesets/cli
 pnpm exec changeset init
 ```
 
-- `.changeset/` 폴더 생성
-
 변경사항이 있을 때마다:
 
 ```bash
-pnpm exec changeset
+pnpm exec changeset # 변경을 기록하는 마크다운 파일 생성
 ```
 
 - 변경 타입/설명 입력 → 마크다운 파일 생성
