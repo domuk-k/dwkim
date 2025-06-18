@@ -8,7 +8,12 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "packageManager": "pnpm@9.15.0",
+  "bin": {
+    "dwkim": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "release": "pnpm run build && changeset publish",
@@ -22,5 +27,6 @@
     "@changesets/cli": "^2.29.4",
     "tsup": "^8.5.0",
     "tsx": "^4.20.3"
-  }
+  },
+  "packageManager": "pnpm@9.15.0"
 }
