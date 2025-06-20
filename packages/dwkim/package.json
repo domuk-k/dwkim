@@ -4,10 +4,8 @@
   "description": "this",
   "license": "MIT",
   "author": "dannyworks102@gmail.com",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
   "bin": {
     "dwkim": "dist/index.js"
   },
@@ -16,7 +14,7 @@
     "package.json"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "node script/build.js",
     "dev": "tsx watch src/index.ts",
     "lint": "tsc"
   },
@@ -26,7 +24,7 @@
   "devDependencies": {
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
-    "tsup": "^8.5.0",
+    "esbuild": "^0.20.0",
     "tsx": "^4.20.3"
   }
 }
