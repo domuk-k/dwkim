@@ -7,14 +7,17 @@ settings:
 importers:
 
   .:
+    devDependencies:
+      '@changesets/cli':
+        specifier: ^2.29.4
+        version: 2.29.4
+
+  apps/dwkim:
     dependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
     devDependencies:
-      '@changesets/cli':
-        specifier: ^2.29.4
-        version: 2.29.4
       boxen:
         specifier: ^8.0.1
         version: 8.0.1
