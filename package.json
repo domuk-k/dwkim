@@ -5,12 +5,12 @@
   "description": "dwkim workspace",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "build": "pnpm --filter dwkim build",
-    "dev": "pnpm --filter dwkim dev",
-    "lint": "pnpm --filter dwkim lint",
+    "build:dwkim": "pnpm --filter dwkim build",
+    "dev:dwkim": "pnpm --filter dwkim dev",
+    "lint:dwkim": "pnpm --filter dwkim lint",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset publish"
+    "release:dwkim": "pnpm run build:dwkim && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.4"

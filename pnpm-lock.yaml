@@ -12,7 +12,7 @@ importers:
         specifier: ^2.29.4
         version: 2.29.4
 
-  apps/dwkim:
+  packages/dwkim:
     dependencies:
       typescript:
         specifier: ^5.8.3
