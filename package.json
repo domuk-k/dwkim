@@ -5,6 +5,9 @@
   "description": "dwkim workspace",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "lint": "pnpm -r lint",
     "build:dwkim": "pnpm --filter dwkim build",
     "dev:dwkim": "pnpm --filter dwkim dev",
     "lint:dwkim": "pnpm --filter dwkim lint",
