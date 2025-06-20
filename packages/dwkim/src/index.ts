@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { printBio } from './printBio';
 import profile from './profile.json';
 
