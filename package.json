@@ -9,7 +9,6 @@
     "dev": "pnpm --filter dwkim dev",
     "lint": "pnpm --filter dwkim lint",
     "changeset": "changeset",
-    "changeset:add": "changeset add",
     "version": "changeset version",
     "release": "changeset publish"
   },
