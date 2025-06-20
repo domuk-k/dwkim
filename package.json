@@ -1,35 +1,19 @@
 {
-  "name": "dwkim",
-  "version": "0.1.1",
-  "description": "this",
-  "license": "MIT",
-  "author": "dannyworks102@gmail.com",
-  "type": "commonjs",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "dwkim": "dist/index.js"
-  },
-  "files": [
-    "dist",
-    "package.json"
-  ],
+  "name": "dwkim-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "dwkim workspace",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "release": "pnpm run build && changeset publish",
-    "dev": "tsx watch src/index.ts",
-    "lint": "tsc"
-  },
-  "dependencies": {
-    "typescript": "^5.8.3"
+    "build": "pnpm --filter dwkim build",
+    "dev": "pnpm --filter dwkim dev",
+    "lint": "pnpm --filter dwkim lint",
+    "changeset": "changeset",
+    "changeset:add": "changeset add",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.4",
-    "boxen": "^8.0.1",
-    "chalk": "^5.4.1",
-    "tsup": "^8.5.0",
-    "tsx": "^4.20.3"
-  },
-  "packageManager": "pnpm@9.15.0"
+    "@changesets/cli": "^2.29.4"
+  }
 }
