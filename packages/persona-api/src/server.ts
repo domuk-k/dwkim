@@ -10,20 +10,24 @@ import chatRoutes from './routes/chat';
 // 환경변수 로드
 dotenv.config();
 
-// Fastify 인스턴스 생성
-const fastify = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
+// Fastify 인스턴스 생성 함수
+export function createServer() {
+  const fastify = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL || 'info',
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname',
+        },
       },
     },
-  },
-});
+  });
+
+  return fastify;
+}
 
 // Swagger 설정
 const swaggerOptions = {
@@ -54,7 +58,7 @@ const swaggerUiOptions = {
 };
 
 // 플러그인 등록
-async function registerPlugins() {
+async function registerPlugins(fastify: any) {
   await fastify.register(cors, {
     origin: true,
     credentials: true,
@@ -67,16 +71,25 @@ async function registerPlugins() {
 }
 
 // 라우트 등록
-async function registerRoutes() {
+async function registerRoutes(fastify: any) {
   await fastify.register(healthRoutes);
   await fastify.register(chatRoutes);
+}
+
+// 서버 빌드 함수 (테스트용)
+export async function build() {
+  const fastify = createServer();
+
+  await registerPlugins(fastify);
+  await registerRoutes(fastify);
+
+  return fastify;
 }
 
 // 서버 시작
 async function start() {
   try {
-    await registerPlugins();
-    await registerRoutes();
+    const fastify = await build();
 
     await fastify.listen({
       port: parseInt(process.env.PORT || '3000'),
@@ -89,7 +102,7 @@ async function start() {
       `📚 API 문서: http://localhost:${process.env.PORT || '3000'}/docs`
     );
   } catch (err) {
-    fastify.log.error(err);
+    console.error(err);
     process.exit(1);
   }
 }
