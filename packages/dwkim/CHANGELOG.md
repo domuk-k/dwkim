@@ -1,5 +1,12 @@
 # dwkim
 
+## 0.1.3
+
+### Patch Changes
+
+- e5dd4c0: refactor: printProfile 함수 개선 및 프로필 정보 상수화
+- a10fb76: fix: bio update
+
 ## 0.1.2
 
 ### Patch Changes
