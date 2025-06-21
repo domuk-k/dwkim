@@ -1,4 +1,3 @@
-import { printBio } from './printBio';
-import profile from './profile.json';
+import { printProfile } from './printBio';
 
-printBio(profile);
+printProfile();
