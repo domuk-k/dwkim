@@ -6,6 +6,8 @@ import swaggerUi from '@fastify/swagger-ui';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/health';
 import chatRoutes from './routes/chat';
+import { rateLimitPlugin } from './middleware/rateLimit';
+import { abuseDetectionPlugin } from './middleware/abuseDetection';
 
 // 환경변수 로드
 dotenv.config();
@@ -68,6 +70,10 @@ async function registerPlugins(fastify: any) {
 
   await fastify.register(swagger, swaggerOptions);
   await fastify.register(swaggerUi, swaggerUiOptions);
+
+  // 보안 미들웨어 등록
+  await fastify.register(rateLimitPlugin);
+  await fastify.register(abuseDetectionPlugin);
 }
 
 // 라우트 등록
