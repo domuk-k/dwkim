@@ -7,11 +7,12 @@ RUN apk add --no-cache git
 
 # 패키지 파일 복사
 COPY package*.json ./
-COPY pnpm-lock.yaml ./
 
 # pnpm 설치
 RUN npm install -g pnpm
-RUN pnpm install
+
+# workspace 환경에서는 루트 lock 파일 사용
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # 소스 코드 복사
 COPY . .

@@ -15,4 +15,5 @@ coverage.json
 dist
 build
 .cache
-.parcel-cache 
+.parcel-cache
+# pnpm-lock.yaml은 포함 (workspace에서는 루트에 있음) 
