@@ -34,11 +34,29 @@ const FORBIDDEN_WORDS = [
   'create',
 ];
 
-export class AbuseDetector {
-  private redis: Redis;
+interface AbuseDetectionOptions {
+  suspiciousPatterns: RegExp[];
+  maxConsecutiveErrors: number;
+  blockDuration: number; // 밀리초
+  errorThreshold?: number;
+}
 
-  constructor(redis: Redis) {
+interface AbuseResult {
+  blocked: boolean;
+  reason?: string;
+  blockExpiry?: number;
+}
+
+export class AbuseDetection {
+  private redis: Redis;
+  private options: Required<AbuseDetectionOptions>;
+
+  constructor(redis: Redis, options: AbuseDetectionOptions) {
     this.redis = redis;
+    this.options = {
+      errorThreshold: 10,
+      ...options,
+    };
   }
 
   private getClientIP(request: FastifyRequest): string {
@@ -178,12 +196,136 @@ export class AbuseDetector {
       return true; // 오류 시 요청 허용 (서비스 가용성 우선)
     }
   }
+
+  async recordViolation(identifier: string, reason: string): Promise<void> {
+    try {
+      const errorKey = `abuse_errors:${identifier}`;
+      const totalErrorKey = `abuse_total_errors:${identifier}`;
+
+      // 연속 오류 수 증가
+      await this.redis.incr(errorKey);
+      await this.redis.expire(errorKey, 3600); // 1시간 만료
+
+      // 전체 오류 수 증가
+      await this.redis.incr(totalErrorKey);
+      await this.redis.expire(totalErrorKey, 86400); // 24시간 만료
+
+      // 위반 기록
+      const violationKey = `abuse_violations:${identifier}`;
+      await this.redis.lpush(
+        violationKey,
+        JSON.stringify({
+          timestamp: Date.now(),
+          reason,
+        })
+      );
+      await this.redis.ltrim(violationKey, 0, 99); // 최근 100개만 유지
+      await this.redis.expire(violationKey, 86400); // 24시간 만료
+    } catch (error) {
+      console.error('Failed to record violation:', error);
+    }
+  }
+
+  async blockIdentifier(identifier: string, reason: string): Promise<void> {
+    try {
+      const blockKey = `abuse_block:${identifier}`;
+      await this.redis.setex(
+        blockKey,
+        Math.ceil(this.options.blockDuration / 1000),
+        reason
+      );
+
+      console.log(
+        `Blocked identifier ${identifier} for ${this.options.blockDuration}ms: ${reason}`
+      );
+    } catch (error) {
+      console.error('Failed to block identifier:', error);
+    }
+  }
+
+  async unblockIdentifier(identifier: string): Promise<void> {
+    try {
+      const blockKey = `abuse_block:${identifier}`;
+      await this.redis.del(blockKey);
+
+      console.log(`Unblocked identifier: ${identifier}`);
+    } catch (error) {
+      console.error('Failed to unblock identifier:', error);
+    }
+  }
+
+  async getAbuseInfo(identifier: string): Promise<{
+    isBlocked: boolean;
+    blockExpiry?: number;
+    consecutiveErrors: number;
+    totalErrors: number;
+    recentViolations: any[];
+  }> {
+    try {
+      const blockKey = `abuse_block:${identifier}`;
+      const errorKey = `abuse_errors:${identifier}`;
+      const totalErrorKey = `abuse_total_errors:${identifier}`;
+      const violationKey = `abuse_violations:${identifier}`;
+
+      const [
+        isBlocked,
+        blockExpiry,
+        consecutiveErrors,
+        totalErrors,
+        violations,
+      ] = await Promise.all([
+        this.redis.get(blockKey),
+        this.redis.ttl(blockKey),
+        this.redis.get(errorKey),
+        this.redis.get(totalErrorKey),
+        this.redis.lrange(violationKey, 0, 9), // 최근 10개 위반
+      ]);
+
+      return {
+        isBlocked: !!isBlocked,
+        blockExpiry:
+          isBlocked && blockExpiry > 0
+            ? Date.now() + blockExpiry * 1000
+            : undefined,
+        consecutiveErrors: consecutiveErrors ? parseInt(consecutiveErrors) : 0,
+        totalErrors: totalErrors ? parseInt(totalErrors) : 0,
+        recentViolations: violations.map((v) => JSON.parse(v)),
+      };
+    } catch (error) {
+      console.error('Failed to get abuse info:', error);
+      return {
+        isBlocked: false,
+        consecutiveErrors: 0,
+        totalErrors: 0,
+        recentViolations: [],
+      };
+    }
+  }
+
+  async resetAbuseCounters(identifier: string): Promise<void> {
+    try {
+      const errorKey = `abuse_errors:${identifier}`;
+      const totalErrorKey = `abuse_total_errors:${identifier}`;
+
+      await this.redis.del(errorKey);
+      await this.redis.del(totalErrorKey);
+
+      console.log(`Reset abuse counters for identifier: ${identifier}`);
+    } catch (error) {
+      console.error('Failed to reset abuse counters:', error);
+    }
+  }
 }
 
 // Fastify 플러그인으로 등록
 export async function abuseDetectionPlugin(fastify: FastifyInstance) {
   const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-  const abuseDetector = new AbuseDetector(redis);
+  const abuseDetector = new AbuseDetection(redis, {
+    suspiciousPatterns: FORBIDDEN_PATTERNS,
+    maxConsecutiveErrors: 10,
+    blockDuration: 3600000, // 1 hour
+    errorThreshold: 10,
+  });
 
   fastify.addHook('preHandler', async (request, reply) => {
     const isAllowed = await abuseDetector.checkAbuse(request, reply);

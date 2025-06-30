@@ -1,19 +1,17 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import dotenv from 'dotenv';
+import rateLimit from '@fastify/rate-limit';
+import fastifyRedis from '@fastify/redis';
+import Redis from 'ioredis';
+
 import healthRoutes from './routes/health';
 import chatRoutes from './routes/chat';
-import { rateLimitPlugin } from './middleware/rateLimit';
-import { abuseDetectionPlugin } from './middleware/abuseDetection';
+import { RateLimiter } from './middleware/rateLimit';
+import { AbuseDetection } from './middleware/abuseDetection';
 
-// 환경변수 로드
-dotenv.config();
-
-// Fastify 인스턴스 생성 함수
-export function createServer() {
+export async function createServer() {
   const fastify = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || 'info',
@@ -28,90 +26,160 @@ export function createServer() {
     },
   });
 
-  return fastify;
-}
-
-// Swagger 설정
-const swaggerOptions = {
-  swagger: {
-    info: {
-      title: 'Persona API',
-      description: 'Personal chatbot API with RAG for dwkim persona',
-      version: '1.0.0',
-    },
-    host: 'localhost:3000',
-    schemes: ['http'],
-    consumes: ['application/json'],
-    produces: ['application/json'],
-    tags: [
-      { name: 'Health', description: 'Health check endpoints' },
-      { name: 'Chat', description: 'Chat endpoints' },
-    ],
-  },
-};
-
-const swaggerUiOptions = {
-  routePrefix: '/docs',
-  uiConfig: {
-    docExpansion: 'full' as const,
-    deepLinking: false,
-  },
-  staticCSP: true,
-};
-
-// 플러그인 등록
-async function registerPlugins(fastify: any) {
+  // CORS 설정
   await fastify.register(cors, {
-    origin: true,
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+    ],
     credentials: true,
   });
 
-  await fastify.register(helmet);
+  // Redis 연결
+  const redis = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+  });
 
-  await fastify.register(swagger, swaggerOptions);
-  await fastify.register(swaggerUi, swaggerUiOptions);
+  await fastify.register(fastifyRedis, { client: redis });
 
-  // 보안 미들웨어 등록
-  await fastify.register(rateLimitPlugin);
-  await fastify.register(abuseDetectionPlugin);
-}
+  // Rate Limiting
+  await fastify.register(rateLimit, {
+    redis,
+    max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
+    timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '60000'),
+    errorResponseBuilder: (request, context) => ({
+      code: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit exceeded, retry in ${context.after}`,
+      expiresIn: context.after,
+    }),
+  });
 
-// 라우트 등록
-async function registerRoutes(fastify: any) {
-  await fastify.register(healthRoutes);
-  await fastify.register(chatRoutes);
-}
+  // 커스텀 미들웨어 등록
+  const rateLimiter = new RateLimiter(redis, {
+    windowMs: 15 * 60 * 1000, // 15분
+    max: 100, // 최대 100개 요청
+  });
 
-// 서버 빌드 함수 (테스트용)
-export async function build() {
-  const fastify = createServer();
+  const abuseDetection = new AbuseDetection(redis, {
+    suspiciousPatterns: [/script/i, /<.*>/, /javascript:/i, /on\w+\s*=/i],
+    maxConsecutiveErrors: 5,
+    blockDuration: 30 * 60 * 1000, // 30분
+  });
 
-  await registerPlugins(fastify);
-  await registerRoutes(fastify);
+  // 미들웨어 적용
+  fastify.addHook('preHandler', async (request, reply) => {
+    const clientIp = request.ip;
+
+    // Rate limiting 체크
+    const rateLimitResult = await rateLimiter.checkLimit(clientIp);
+    if (!rateLimitResult.allowed) {
+      return reply.status(429).send({
+        error: 'Rate limit exceeded',
+        retryAfter: rateLimitResult.retryAfter,
+      });
+    }
+
+    // Abuse detection 체크
+    const abuseResult = await abuseDetection.checkAbuse(clientIp, request.body);
+    if (abuseResult.blocked) {
+      return reply.status(403).send({
+        error: 'Request blocked due to suspicious activity',
+        reason: abuseResult.reason,
+      });
+    }
+  });
+
+  // Swagger 설정
+  await fastify.register(swagger, {
+    swagger: {
+      info: {
+        title: 'Persona API',
+        description: '개인화된 RAG+LLM 기반 챗봇 API',
+        version: '1.0.0',
+        contact: {
+          name: 'dwkim',
+          email: 'dwkim@example.com',
+        },
+      },
+      host: process.env.API_HOST || 'localhost:3000',
+      schemes: ['http', 'https'],
+      consumes: ['application/json'],
+      produces: ['application/json'],
+      tags: [
+        { name: 'Health', description: '헬스체크 관련 엔드포인트' },
+        { name: 'Chat', description: '채팅 관련 엔드포인트' },
+        { name: 'Search', description: '문서 검색 엔드포인트' },
+        { name: 'System', description: '시스템 관리 엔드포인트' },
+      ],
+      securityDefinitions: {
+        apiKey: {
+          type: 'apiKey',
+          name: 'X-API-Key',
+          in: 'header',
+        },
+      },
+    },
+  });
+
+  await fastify.register(swaggerUi, {
+    routePrefix: '/documentation',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: true,
+    },
+    uiHooks: {
+      onRequest: function (request, reply, next) {
+        next();
+      },
+      preHandler: function (request, reply, next) {
+        next();
+      },
+    },
+    staticCSP: true,
+    transformStaticCSP: (header) => header,
+  });
+
+  // 라우트 등록
+  await fastify.register(healthRoutes, { prefix: '/health' });
+  await fastify.register(chatRoutes, { prefix: '/api/v1' });
+
+  // 전역 에러 핸들러
+  fastify.setErrorHandler((error, request, reply) => {
+    fastify.log.error(error);
+
+    if (error.validation) {
+      return reply.status(400).send({
+        error: 'Validation Error',
+        message: '입력 데이터 검증에 실패했습니다.',
+        details: error.validation,
+      });
+    }
+
+    if (error.statusCode) {
+      return reply.status(error.statusCode).send({
+        error: error.name,
+        message: error.message,
+      });
+    }
+
+    return reply.status(500).send({
+      error: 'Internal Server Error',
+      message: '서버 내부 오류가 발생했습니다.',
+    });
+  });
+
+  // 404 핸들러
+  fastify.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      error: 'Not Found',
+      message: '요청한 리소스를 찾을 수 없습니다.',
+      path: request.url,
+    });
+  });
 
   return fastify;
 }
-
-// 서버 시작
-async function start() {
-  try {
-    const fastify = await build();
-
-    await fastify.listen({
-      port: parseInt(process.env.PORT || '3000'),
-      host: '0.0.0.0',
-    });
-
-    console.log('🚀 Persona API 서버가 시작되었습니다!');
-    console.log(`📍 서버 주소: http://localhost:${process.env.PORT || '3000'}`);
-    console.log(
-      `📚 API 문서: http://localhost:${process.env.PORT || '3000'}/docs`
-    );
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
-  }
-}
-
-// 서버 시작
-start();
