@@ -5,7 +5,11 @@
       "Bash(curl:*)",
       "Bash(ls:*)",
       "Bash(npm test)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm changeset:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }

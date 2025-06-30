@@ -183,3 +183,6 @@ export async function createServer() {
 
   return fastify;
 }
+
+// Export build function for testing
+export { createServer as build };
