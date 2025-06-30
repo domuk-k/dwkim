@@ -15,14 +15,6 @@ export async function createServer() {
   const fastify = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || 'info',
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-        },
-      },
     },
   });
 
@@ -39,8 +31,6 @@ export async function createServer() {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD,
-    retryDelayOnFailover: 100,
-    maxRetriesPerRequest: 3,
   });
 
   await fastify.register(fastifyRedis, { client: redis });
@@ -84,12 +74,10 @@ export async function createServer() {
     }
 
     // Abuse detection 체크
-    const abuseResult = await abuseDetection.checkAbuse(clientIp, request.body);
-    if (abuseResult.blocked) {
-      return reply.status(403).send({
-        error: 'Request blocked due to suspicious activity',
-        reason: abuseResult.reason,
-      });
+    const abuseResult = await abuseDetection.checkAbuse(request, reply);
+    if (!abuseResult) {
+      // checkAbuse에서 이미 응답을 보냈으므로 여기서는 return만
+      return;
     }
   });
 

@@ -29,13 +29,13 @@ export class VectorStore {
       // 컬렉션이 존재하는지 확인
       const collections = await this.client.listCollections();
       const exists = collections.some(
-        (col) => col.name === this.collectionName
+        (col: any) => col.name === this.collectionName
       );
 
       if (exists) {
         this.collection = await this.client.getCollection({
           name: this.collectionName,
-        });
+        } as any);
       } else {
         // 새 컬렉션 생성
         this.collection = await this.client.createCollection({
@@ -96,7 +96,7 @@ export class VectorStore {
       for (let i = 0; i < results.ids[0].length; i++) {
         documents.push({
           id: results.ids[0][i],
-          content: results.documents[0][i],
+          content: results.documents[0][i] || '',
           metadata: results.metadatas[0][i] as Document['metadata'],
         });
       }
