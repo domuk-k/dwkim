@@ -13,6 +13,9 @@ interface RateLimitResult {
   remaining: number;
   resetTime: number;
   retryAfter?: number;
+  statusCode?: number;
+  message?: string;
+  limit?: number;
 }
 
 export class RateLimiter {
@@ -50,6 +53,8 @@ export class RateLimiter {
           remaining: 0,
           resetTime,
           retryAfter: Math.ceil((resetTime - now) / 1000),
+          statusCode: this.options.statusCode,
+          message: this.options.message,
         };
       }
 
@@ -61,6 +66,7 @@ export class RateLimiter {
         allowed: true,
         remaining: this.options.max - requests.length - 1,
         resetTime: now + this.options.windowMs,
+        limit: this.options.max,
       };
     } catch (error) {
       console.error('Rate limiting error:', error);
@@ -69,6 +75,7 @@ export class RateLimiter {
         allowed: true,
         remaining: this.options.max,
         resetTime: now + this.options.windowMs,
+        limit: this.options.max,
       };
     }
   }
