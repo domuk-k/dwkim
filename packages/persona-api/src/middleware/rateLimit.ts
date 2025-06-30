@@ -1,11 +1,18 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Redis } from 'ioredis';
 
-export interface RateLimitOptions {
+interface RateLimitOptions {
   windowMs: number; // 시간 윈도우 (밀리초)
   max: number; // 최대 요청 수
   message?: string; // 차단 메시지
-  keyGenerator?: (request: FastifyRequest) => string; // 키 생성 함수
+  statusCode?: number; // HTTP 상태 코드
+}
+
+interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetTime: number;
+  retryAfter?: number;
 }
 
 export class RateLimiter {
@@ -15,65 +22,94 @@ export class RateLimiter {
   constructor(redis: Redis, options: RateLimitOptions) {
     this.redis = redis;
     this.options = {
-      message: 'Rate limit exceeded. Please try again later.',
-      keyGenerator: (request: FastifyRequest) => {
-        const ip =
-          request.ip || request.headers['x-forwarded-for'] || 'unknown';
-        return Array.isArray(ip) ? ip[0] : ip;
-      },
+      message: 'Too many requests, please try again later.',
+      statusCode: 429,
       ...options,
     };
   }
 
-  async checkLimit(
-    request: FastifyRequest,
-    reply: FastifyReply
-  ): Promise<boolean> {
+  async checkLimit(identifier: string): Promise<RateLimitResult> {
+    const key = `rate_limit:${identifier}`;
+    const now = Date.now();
+    const windowStart = now - this.options.windowMs;
+
     try {
-      const key = this.options.keyGenerator!(request);
-      const windowKey = `rate_limit:${key}:${Math.floor(Date.now() / this.options.windowMs)}`;
+      // Redis에서 현재 윈도우의 요청 수 가져오기
+      const requests = await this.redis.zrangebyscore(key, windowStart, '+inf');
 
-      // 현재 요청 수 확인
-      const currentCount = await this.redis.incr(windowKey);
+      if (requests.length >= this.options.max) {
+        // 윈도우의 첫 번째 요청 시간 확인
+        const firstRequest = await this.redis.zrange(key, 0, 0, 'WITHSCORES');
+        const resetTime =
+          firstRequest.length > 0
+            ? parseInt(firstRequest[1]) + this.options.windowMs
+            : now + this.options.windowMs;
 
-      // 첫 번째 요청이면 만료 시간 설정
-      if (currentCount === 1) {
-        await this.redis.expire(
-          windowKey,
-          Math.ceil(this.options.windowMs / 1000)
-        );
+        return {
+          allowed: false,
+          remaining: 0,
+          resetTime,
+          retryAfter: Math.ceil((resetTime - now) / 1000),
+        };
       }
 
-      // 제한 초과 체크
-      if (currentCount > this.options.max) {
-        const ttl = await this.redis.ttl(windowKey);
+      // 새 요청 추가
+      await this.redis.zadd(key, now, now.toString());
+      await this.redis.expire(key, Math.ceil(this.options.windowMs / 1000));
 
-        reply.status(429).send({
-          error: 'Too Many Requests',
-          message: this.options.message,
-          retryAfter: ttl,
-        });
-
-        return false;
-      }
-
-      // 헤더에 남은 요청 수 정보 추가
-      reply.header('X-RateLimit-Limit', this.options.max);
-      reply.header(
-        'X-RateLimit-Remaining',
-        Math.max(0, this.options.max - currentCount)
-      );
-      reply.header(
-        'X-RateLimit-Reset',
-        Math.floor(Date.now() / this.options.windowMs) * this.options.windowMs +
-          this.options.windowMs
-      );
-
-      return true;
+      return {
+        allowed: true,
+        remaining: this.options.max - requests.length - 1,
+        resetTime: now + this.options.windowMs,
+      };
     } catch (error) {
-      // Redis 오류 시 rate limit 우회 (서비스 가용성 우선)
-      console.error('Rate limit check failed:', error);
-      return true;
+      console.error('Rate limiting error:', error);
+      // Redis 오류 시 기본적으로 허용
+      return {
+        allowed: true,
+        remaining: this.options.max,
+        resetTime: now + this.options.windowMs,
+      };
+    }
+  }
+
+  async resetLimit(identifier: string): Promise<void> {
+    const key = `rate_limit:${identifier}`;
+    try {
+      await this.redis.del(key);
+    } catch (error) {
+      console.error('Failed to reset rate limit:', error);
+    }
+  }
+
+  async getLimitInfo(identifier: string): Promise<{
+    current: number;
+    limit: number;
+    remaining: number;
+    resetTime: number;
+  }> {
+    const key = `rate_limit:${identifier}`;
+    const now = Date.now();
+    const windowStart = now - this.options.windowMs;
+
+    try {
+      const requests = await this.redis.zrangebyscore(key, windowStart, '+inf');
+      const resetTime = now + this.options.windowMs;
+
+      return {
+        current: requests.length,
+        limit: this.options.max,
+        remaining: Math.max(0, this.options.max - requests.length),
+        resetTime,
+      };
+    } catch (error) {
+      console.error('Failed to get rate limit info:', error);
+      return {
+        current: 0,
+        limit: this.options.max,
+        remaining: this.options.max,
+        resetTime: now + this.options.windowMs,
+      };
     }
   }
 }
@@ -99,11 +135,32 @@ export async function rateLimitPlugin(fastify: FastifyInstance) {
   // 미들웨어 등록
   fastify.addHook('preHandler', async (request, reply) => {
     // 분당 제한 체크
-    const minuteCheck = await perMinuteLimiter.checkLimit(request, reply);
-    if (!minuteCheck) return;
+    const minuteCheck = await perMinuteLimiter.checkLimit(
+      request.ip || 'unknown'
+    );
+    if (!minuteCheck.allowed) {
+      reply.status(minuteCheck.statusCode || 429).send({
+        error: 'Too Many Requests',
+        message: minuteCheck.message,
+        retryAfter: minuteCheck.retryAfter,
+      });
+      return;
+    }
 
     // 시간당 제한 체크
-    const hourCheck = await perHourLimiter.checkLimit(request, reply);
-    if (!hourCheck) return;
+    const hourCheck = await perHourLimiter.checkLimit(request.ip || 'unknown');
+    if (!hourCheck.allowed) {
+      reply.status(hourCheck.statusCode || 429).send({
+        error: 'Too Many Requests',
+        message: hourCheck.message,
+        retryAfter: hourCheck.retryAfter,
+      });
+      return;
+    }
+
+    // 헤더에 남은 요청 수 정보 추가
+    reply.header('X-RateLimit-Limit', hourCheck.limit);
+    reply.header('X-RateLimit-Remaining', hourCheck.remaining);
+    reply.header('X-RateLimit-Reset', hourCheck.resetTime);
   });
 }
