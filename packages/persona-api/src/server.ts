@@ -26,14 +26,39 @@ export async function createServer() {
     credentials: true,
   });
 
-  // Redis 연결
-  const redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-  });
+  // Redis 연결 (타임아웃 처리)
+  const redis = process.env.REDIS_URL 
+    ? new Redis(process.env.REDIS_URL, {
+        connectTimeout: 10000,
+        lazyConnect: true,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 3,
+      })
+    : new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD,
+        connectTimeout: 10000,
+        lazyConnect: true,
+      });
 
-  await fastify.register(fastifyRedis, { client: redis });
+  // Redis 연결 상태 확인
+  try {
+    await redis.ping();
+    console.log('Redis connected successfully');
+    await fastify.register(fastifyRedis, { client: redis });
+  } catch (error) {
+    console.warn('Redis connection failed, running without Redis:', error);
+    // Redis 없이도 작동하도록 Mock Redis 사용
+    const mockRedis = {
+      get: async () => null,
+      set: async () => 'OK',
+      del: async () => 1,
+      incr: async () => 1,
+      expire: async () => 1,
+    };
+    await fastify.register(fastifyRedis, { client: mockRedis as any });
+  }
 
   // Rate Limiting
   await fastify.register(rateLimit, {
