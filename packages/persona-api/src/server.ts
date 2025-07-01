@@ -58,7 +58,7 @@ export async function createServer() {
 
   // Rate Limiting (Redis 선택적)
   const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
-    max: parseInt(process.env.RATE_LIMIT_MAX || '8'),
+    max: parseInt(process.env.RATE_LIMIT_MAX || '50'),
     timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
     errorResponseBuilder: (request: FastifyRequest, context: { after: string }) => ({
       code: 429,
@@ -81,13 +81,13 @@ export async function createServer() {
   // 커스텀 미들웨어 등록 (Redis 선택적)
   const rateLimiter = redisClient ? new RateLimiter(redisClient, {
     windowMs: 15 * 60 * 1000, // 15분
-    max: 100, // 최대 100개 요청
+    max: 200, // 최대 200개 요청
   }) : null;
 
   const abuseDetection = redisClient ? new AbuseDetection(redisClient, {
-    suspiciousPatterns: [/script/i, /<.*>/, /javascript:/i, /on\w+\s*=/i],
-    maxConsecutiveErrors: 5,
-    blockDuration: 30 * 60 * 1000, // 30분
+    suspiciousPatterns: [/<script/i, /javascript:/i, /on\w+\s*=/i, /eval\(/i],
+    maxConsecutiveErrors: 10,
+    blockDuration: 10 * 60 * 1000, // 10분
   }) : null;
 
   // 미들웨어 적용 (Redis가 있을 때만)

@@ -14,24 +14,17 @@ const FORBIDDEN_PATTERNS = [
   /window\./gi,
 ];
 
-// 금지된 단어들
+// 금지된 단어들 (실제 악의적인 것만)
 const FORBIDDEN_WORDS = [
   'hack',
-  'exploit',
-  'inject',
-  'sql',
-  'xss',
-  'csrf',
-  'admin',
-  'root',
-  'password',
-  'token',
-  'key',
-  'delete',
-  'drop',
-  'truncate',
-  'alter',
-  'create',
+  'exploit', 
+  'sql injection',
+  'xss attack',
+  'csrf token',
+  'drop table',
+  'delete from',
+  'truncate table',
+  'union select',
 ];
 
 interface AbuseDetectionOptions {
@@ -134,12 +127,12 @@ export class AbuseDetection {
       }
     }
 
-    // 특수 문자 비율 검증 (스팸 방지)
-    const specialCharRatio =
-      (input.match(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g) || []).length /
+    // 특수 문자 비율 검증 (실제 스팸성 문자만)
+    const spamCharRatio =
+      (input.match(/[!@#$%^&*]{3,}|[<>]{2,}|[=]{3,}/g) || []).length /
       input.length;
-    if (specialCharRatio > 0.3) {
-      return { isValid: false, reason: '특수 문자가 너무 많습니다' };
+    if (spamCharRatio > 0.1) {
+      return { isValid: false, reason: '스팸성 문자가 감지되었습니다' };
     }
 
     return { isValid: true };
