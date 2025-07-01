@@ -167,6 +167,8 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
+        console.log('Chat request received:', JSON.stringify(request.body, null, 2));
+
         // 입력 검증
         const validatedData = ChatRequestSchema.parse(request.body);
         const {
@@ -175,8 +177,13 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           options = {},
         } = validatedData;
 
+        console.log('Validated data:', { message, historyLength: conversationHistory.length });
+
+        // 실제 RAG 엔진 사용
+
         // RAG 엔진이 초기화되지 않은 경우 Mock 응답
         if (!ragEngine) {
+          console.log('RAG engine is null, returning mock response');
           return reply.send({
             success: true,
             data: {
@@ -202,11 +209,18 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           content: msg.content,
         }));
 
+        console.log('Processing query with RAG engine...');
+        
         // RAG 엔진으로 쿼리 처리
         const response: RAGResponse = await ragEngine.processQuery(
           message,
           history
         );
+        
+        console.log('RAG response received:', { 
+          answerLength: response.answer.length, 
+          sourcesCount: response.sources.length 
+        });
 
         // 응답 구성
         const result = {

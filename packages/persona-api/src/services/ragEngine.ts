@@ -46,22 +46,30 @@ export class RAGEngine {
     const startTime = Date.now();
 
     try {
+      console.log('RAG Engine processing query:', query);
+      
       // 1. 벡터 검색으로 관련 문서 찾기
+      console.log('Searching for relevant documents...');
       const searchResults = await this.vectorStore.search(
         query,
         this.maxSearchResults
       );
+      console.log(`Found ${searchResults.length} relevant documents`);
 
       // 2. 컨텍스트 생성
+      console.log('Building context...');
       const context = this.buildContext(searchResults, query);
+      console.log('Context built, length:', context.length);
 
       // 3. LLM으로 답변 생성
+      console.log('Generating response with LLM...');
       const messages: ChatMessage[] = [
         ...conversationHistory,
         { role: 'user', content: query },
       ];
 
       const llmResponse = await this.llmService.chat(messages, context);
+      console.log('LLM response received, content length:', llmResponse.content.length);
 
       // 4. 응답 구성
       const processingTime = Date.now() - startTime;
