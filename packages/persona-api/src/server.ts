@@ -31,13 +31,7 @@ export async function createServer() {
   
   if (process.env.REDIS_URL) {
     try {
-      redisClient = new Redis(process.env.REDIS_URL, {
-        connectTimeout: 5000,
-        commandTimeout: 5000,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-        retryDelayOnFailover: 100,
-      });
+      redisClient = new Redis(process.env.REDIS_URL);
       
       // 연결 테스트
       await redisClient.ping();
