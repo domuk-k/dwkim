@@ -21,6 +21,7 @@
     "docker:rebuild": "docker-compose down && docker-compose up -d --build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0",
     "@changesets/cli": "^2.29.4",
     "@fastify/cors": "^8.4.0",
     "@fastify/rate-limit": "^8.0.0",

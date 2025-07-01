@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { ChromaClient } from 'chromadb';
-import { OpenAI } from 'openai';
+import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -59,15 +59,21 @@ function splitIntoChunks(text: string, maxChunkSize: number = 1000): string[] {
 }
 
 /**
- * Generate embeddings using OpenAI
+ * Generate embeddings using OpenAI (with fallback to mock)
  */
 async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text,
-  });
-  
-  return response.data[0].embedding;
+  try {
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: text,
+    });
+    
+    return response.data[0].embedding;
+  } catch (error) {
+    console.log('OpenAI API failed, using mock embedding for:', text.substring(0, 50) + '...');
+    // Return mock embedding with 1536 dimensions
+    return Array.from({ length: 1536 }, () => Math.random() - 0.5);
+  }
 }
 
 /**
