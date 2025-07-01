@@ -37,13 +37,24 @@ export class VectorStore {
           name: this.collectionName,
         } as any);
       } else {
-        // 새 컬렉션 생성
-        this.collection = await this.client.createCollection({
-          name: this.collectionName,
-          metadata: {
-            description: 'Personal documents for dwkim persona chatbot',
-          },
-        });
+        try {
+          // 새 컬렉션 생성
+          this.collection = await this.client.createCollection({
+            name: this.collectionName,
+            metadata: {
+              description: 'Personal documents for dwkim persona chatbot',
+            },
+          });
+        } catch (error: any) {
+          if (error.message?.includes('already exists')) {
+            // 컬렉션이 이미 존재하면 가져오기
+            this.collection = await this.client.getCollection({
+              name: this.collectionName,
+            } as any);
+          } else {
+            throw error;
+          }
+        }
       }
 
       console.log(`Vector store initialized: ${this.collectionName}`);

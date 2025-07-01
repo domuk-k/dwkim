@@ -1,7 +1,7 @@
 import { createReadlineInterface } from './utils/readline';
 import { PersonaApiClient } from './utils/personaApiClient';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:8080';
 
 export async function startChat() {
   console.log(`
@@ -25,7 +25,7 @@ Press Ctrl+C to exit
   }
 
   const askQuestion = () => {
-    rl.question('💬 You: ', async (input) => {
+    rl.question('💬 You: ', async (input: string) => {
       const question = input.trim();
 
       if (!question) {
