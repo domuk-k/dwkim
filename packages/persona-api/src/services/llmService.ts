@@ -16,31 +16,35 @@ export interface ChatResponse {
 }
 
 export class LLMService {
-  private client: Anthropic;
+  private client?: Anthropic;
   private openaiClient?: OpenAI;
-  private model: string;
-  private systemPrompt: string;
+  private model: string = 'gpt-4o-mini';
+  private systemPrompt: string = '';
+  private llmProvider: 'openai' | 'anthropic' | 'mock';
 
   constructor() {
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     
-    if (!anthropicKey) {
-      console.warn('ANTHROPIC_API_KEY not set, using mock mode');
-    } else {
-      this.client = new Anthropic({
-        apiKey: anthropicKey,
-      });
-    }
-
-    // OpenAI는 임베딩용으로만 사용
+    // LLM 제공자 우선순위: OpenAI > Anthropic > Mock
     if (openaiKey) {
       this.openaiClient = new OpenAI({
         apiKey: openaiKey,
       });
+      this.llmProvider = 'openai';
+      console.log('LLM Service: Using OpenAI');
+    } else if (anthropicKey) {
+      this.client = new Anthropic({
+        apiKey: anthropicKey,
+      });
+      this.llmProvider = 'anthropic';
+      console.log('LLM Service: Using Anthropic Claude');
+    } else {
+      this.llmProvider = 'mock';
+      console.log('LLM Service: Using Mock mode');
     }
 
-    this.model = process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
+    this.model = process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || 'gpt-4o-mini';
     this.systemPrompt =
       process.env.SYSTEM_PROMPT ||
       `당신은 dwkim의 개인화된 AI 어시스턴트입니다. 
@@ -57,53 +61,92 @@ export class LLMService {
 
   async chat(messages: ChatMessage[], context?: string): Promise<ChatResponse> {
     try {
-      // Mock mode if no client available
-      if (!this.client) {
-        console.log('Using mock mode for chat');
-        const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+      console.log(`LLM Service: Processing chat with ${this.llmProvider} provider`);
+
+      // OpenAI 사용
+      if (this.llmProvider === 'openai' && this.openaiClient) {
+        const systemMessage = context
+          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+          : this.systemPrompt;
+
+        const chatMessages = [
+          { role: 'system' as const, content: systemMessage },
+          ...messages.filter(msg => msg.role !== 'system')
+        ];
+
+        const response = await this.openaiClient.chat.completions.create({
+          model: this.model,
+          messages: chatMessages,
+          max_tokens: 1000,
+          temperature: 0.7,
+        });
+
+        const content = response.choices[0]?.message?.content || '';
+        const usage = response.usage || {
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: 0,
+        };
+
         return {
-          content: `안녕하세요! 현재 Mock 모드로 실행 중입니다. 실제 API 키를 설정하면 정상적으로 작동합니다. 질문: "${userMessage}"에 대한 답변을 준비 중입니다.`,
+          content,
           usage: {
-            promptTokens: 100,
-            completionTokens: 50,
-            totalTokens: 150,
+            promptTokens: usage.prompt_tokens,
+            completionTokens: usage.completion_tokens,
+            totalTokens: usage.total_tokens,
           },
         };
       }
 
-      // Claude API는 system 메시지를 별도로 처리
-      const systemMessage = context
-        ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
-        : this.systemPrompt;
+      // Anthropic Claude 사용
+      if (this.llmProvider === 'anthropic' && this.client) {
+        // Claude API는 system 메시지를 별도로 처리
+        const systemMessage = context
+          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+          : this.systemPrompt;
 
-      // system 메시지를 제외한 사용자/어시스턴트 메시지만 추출
-      const conversationMessages = messages.filter(msg => msg.role !== 'system');
+        // system 메시지를 제외한 사용자/어시스턴트 메시지만 추출
+        const conversationMessages = messages.filter(msg => msg.role !== 'system');
 
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 1000,
-        temperature: 0.7,
-        system: systemMessage,
-        messages: conversationMessages.map(msg => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })),
-      });
+        const response = await this.client.messages.create({
+          model: this.model,
+          max_tokens: 1000,
+          temperature: 0.7,
+          system: systemMessage,
+          messages: conversationMessages.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+          })),
+        });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
-      const usage = response.usage || {
-        input_tokens: 0,
-        output_tokens: 0,
-      };
+        const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+        const usage = response.usage || {
+          input_tokens: 0,
+          output_tokens: 0,
+        };
 
+        return {
+          content,
+          usage: {
+            promptTokens: usage.input_tokens,
+            completionTokens: usage.output_tokens,
+            totalTokens: usage.input_tokens + usage.output_tokens,
+          },
+        };
+      }
+
+      // Mock 모드
+      console.log('Using mock mode for chat');
+      const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
       return {
-        content,
+        content: `안녕하세요! 현재 Mock 모드로 실행 중입니다. API 키를 설정하면 정상적으로 작동합니다.\n\n질문: "${userMessage}"\n\n설정 방법:\n- OpenAI: OPENAI_API_KEY 설정\n- Claude: ANTHROPIC_API_KEY 설정`,
         usage: {
-          promptTokens: usage.input_tokens,
-          completionTokens: usage.output_tokens,
-          totalTokens: usage.input_tokens + usage.output_tokens,
+          promptTokens: 100,
+          completionTokens: 50,
+          totalTokens: 150,
         },
       };
+
     } catch (error) {
       console.error('LLM API call failed:', error);
       throw new Error('Failed to generate response from LLM');

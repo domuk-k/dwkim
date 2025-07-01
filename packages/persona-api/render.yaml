@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: persona-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: OPENAI_API_KEY
+        fromDatabase:
+          name: persona-secrets
+          property: OPENAI_API_KEY
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: RATE_LIMIT_MAX
+        value: 20
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: persona-redis
+          property: connectionString
+
+databases:
+  - name: persona-redis
+    plan: free
+    type: redis

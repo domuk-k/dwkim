@@ -26,6 +26,12 @@ export class VectorStore {
 
   async initialize(): Promise<void> {
     try {
+      // Mock 모드 체크
+      if (process.env.USE_VECTOR_STORE === 'false' || process.env.MOCK_MODE === 'true') {
+        console.log('Vector store disabled - using mock mode');
+        return;
+      }
+      
       // 컬렉션이 존재하는지 확인
       const collections = await this.client.listCollections();
       const exists = collections.some(
