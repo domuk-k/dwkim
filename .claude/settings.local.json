@@ -21,7 +21,8 @@
       "Bash(npm run init-data:*)",
       "Bash(PORT=3001 npm run dev)",
       "Bash(pnpm add:*)",
-      "Bash(PORT=3001 dwkim:*)"
+      "Bash(PORT=3001 dwkim:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

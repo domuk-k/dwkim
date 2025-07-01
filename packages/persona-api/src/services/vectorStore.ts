@@ -93,10 +93,23 @@ export class VectorStore {
     }
 
     try {
+      console.log('VectorStore: Generating embedding for query:', query);
+      
+      // 쿼리를 임베딩으로 변환
+      const llmService = new (await import('./llmService')).LLMService();
+      const queryEmbedding = await llmService.generateEmbedding(query);
+      
+      console.log('VectorStore: Query embedding generated, length:', queryEmbedding.length);
+      
       const results = await this.collection.query({
-        queryTexts: [query],
+        queryEmbeddings: [queryEmbedding],
         nResults: topK,
         where: filter,
+      });
+      
+      console.log('VectorStore: Query results received:', {
+        documentsCount: results.documents?.[0]?.length || 0,
+        idsCount: results.ids?.[0]?.length || 0
       });
 
       if (!results.documents || !results.metadatas || !results.ids) {
