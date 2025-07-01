@@ -57,7 +57,7 @@ export async function createServer() {
   }
 
   // Rate Limiting (Redis 선택적)
-  const rateLimitConfig: RateLimitOptions = {
+  const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
     max: parseInt(process.env.RATE_LIMIT_MAX || '8'),
     timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
     errorResponseBuilder: (request: FastifyRequest, context: { after: string }) => ({
