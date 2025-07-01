@@ -1,8 +1,8 @@
-import Fastify from 'fastify';
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import rateLimit from '@fastify/rate-limit';
+import rateLimit, { RateLimitOptions } from '@fastify/rate-limit';
 import fastifyRedis from '@fastify/redis';
 import Redis from 'ioredis';
 
@@ -57,10 +57,10 @@ export async function createServer() {
   }
 
   // Rate Limiting (Redis 선택적)
-  const rateLimitConfig = {
+  const rateLimitConfig: RateLimitOptions = {
     max: parseInt(process.env.RATE_LIMIT_MAX || '8'),
     timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
-    errorResponseBuilder: (request, context) => ({
+    errorResponseBuilder: (request: FastifyRequest, context: { after: string }) => ({
       code: 429,
       error: 'Too Many Requests',
       message: `Rate limit exceeded, retry in ${context.after}`,
