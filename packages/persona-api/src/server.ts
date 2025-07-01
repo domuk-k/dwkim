@@ -26,85 +26,92 @@ export async function createServer() {
     credentials: true,
   });
 
-  // Redis 연결 (타임아웃 처리)
-  const redis = process.env.REDIS_URL 
-    ? new Redis(process.env.REDIS_URL, {
-        connectTimeout: 10000,
+  // Redis 설정 (선택적)
+  let redisClient = null;
+  
+  if (process.env.REDIS_URL) {
+    try {
+      redisClient = new Redis(process.env.REDIS_URL, {
+        connectTimeout: 5000,
+        commandTimeout: 5000,
         lazyConnect: true,
+        maxRetriesPerRequest: 1,
         retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3,
-      })
-    : new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-        connectTimeout: 10000,
-        lazyConnect: true,
       });
-
-  // Redis 연결 상태 확인
-  try {
-    await redis.ping();
-    console.log('Redis connected successfully');
-    await fastify.register(fastifyRedis, { client: redis });
-  } catch (error) {
-    console.warn('Redis connection failed, running without Redis:', error);
-    // Redis 없이도 작동하도록 Mock Redis 사용
-    const mockRedis = {
-      get: async () => null,
-      set: async () => 'OK',
-      del: async () => 1,
-      incr: async () => 1,
-      expire: async () => 1,
-    };
-    await fastify.register(fastifyRedis, { client: mockRedis as any });
+      
+      // 연결 테스트
+      await redisClient.ping();
+      console.log('✅ Redis connected successfully');
+      
+      // Redis 플러그인 등록
+      await fastify.register(fastifyRedis, { client: redisClient });
+      
+    } catch (error) {
+      console.warn('⚠️  Redis connection failed, running without cache:', error);
+      redisClient = null;
+    }
+  } else {
+    console.log('ℹ️  No REDIS_URL provided, running without cache');
   }
 
-  // Rate Limiting
-  await fastify.register(rateLimit, {
-    redis,
-    max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
-    timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '60000'),
+  // Rate Limiting (Redis 선택적)
+  const rateLimitConfig = {
+    max: parseInt(process.env.RATE_LIMIT_MAX || '8'),
+    timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
     errorResponseBuilder: (request, context) => ({
       code: 429,
       error: 'Too Many Requests',
       message: `Rate limit exceeded, retry in ${context.after}`,
       expiresIn: context.after,
     }),
-  });
+  };
 
-  // 커스텀 미들웨어 등록
-  const rateLimiter = new RateLimiter(redis, {
+  // Redis가 있으면 Redis 기반, 없으면 메모리 기반 Rate Limiting
+  if (redisClient) {
+    rateLimitConfig.redis = redisClient;
+    console.log('🚦 Rate limiting with Redis');
+  } else {
+    console.log('🚦 Rate limiting with memory store');
+  }
+
+  await fastify.register(rateLimit, rateLimitConfig);
+
+  // 커스텀 미들웨어 등록 (Redis 선택적)
+  const rateLimiter = redisClient ? new RateLimiter(redisClient, {
     windowMs: 15 * 60 * 1000, // 15분
     max: 100, // 최대 100개 요청
-  });
+  }) : null;
 
-  const abuseDetection = new AbuseDetection(redis, {
+  const abuseDetection = redisClient ? new AbuseDetection(redisClient, {
     suspiciousPatterns: [/script/i, /<.*>/, /javascript:/i, /on\w+\s*=/i],
     maxConsecutiveErrors: 5,
     blockDuration: 30 * 60 * 1000, // 30분
-  });
+  }) : null;
 
-  // 미들웨어 적용
-  fastify.addHook('preHandler', async (request, reply) => {
-    const clientIp = request.ip;
+  // 미들웨어 적용 (Redis가 있을 때만)
+  if (rateLimiter && abuseDetection) {
+    fastify.addHook('preHandler', async (request, reply) => {
+      const clientIp = request.ip;
 
-    // Rate limiting 체크
-    const rateLimitResult = await rateLimiter.checkLimit(clientIp);
-    if (!rateLimitResult.allowed) {
-      return reply.status(429).send({
-        error: 'Rate limit exceeded',
-        retryAfter: rateLimitResult.retryAfter,
-      });
-    }
+      // Rate limiting 체크
+      const rateLimitResult = await rateLimiter.checkLimit(clientIp);
+      if (!rateLimitResult.allowed) {
+        return reply.status(429).send({
+          error: 'Rate limit exceeded',
+          retryAfter: rateLimitResult.retryAfter,
+        });
+      }
 
-    // Abuse detection 체크
-    const abuseResult = await abuseDetection.checkAbuse(request, reply);
-    if (!abuseResult) {
-      // checkAbuse에서 이미 응답을 보냈으므로 여기서는 return만
-      return;
-    }
-  });
+      // Abuse detection 체크
+      const abuseResult = await abuseDetection.checkAbuse(request, reply);
+      if (!abuseResult) {
+        return;
+      }
+    });
+    console.log('🛡️  Custom middleware enabled');
+  } else {
+    console.log('ℹ️  Custom middleware disabled (no Redis)');
+  }
 
   // Swagger 설정
   await fastify.register(swagger, {
