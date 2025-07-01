@@ -114,7 +114,7 @@ export async function createServer() {
   });
 
   await fastify.register(swaggerUi, {
-    routePrefix: '/documentation',
+    routePrefix: '/docs',
     uiConfig: {
       docExpansion: 'list',
       deepLinking: true,
