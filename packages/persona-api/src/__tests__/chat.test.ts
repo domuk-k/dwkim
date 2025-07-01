@@ -1,11 +1,12 @@
 import request from 'supertest';
-import { build } from '../server';
+import { createServer } from '../server';
 
 describe('Chat API', () => {
   let app: any;
 
   beforeAll(async () => {
-    app = await build();
+    app = await createServer();
+    await app.ready();
   });
 
   afterAll(async () => {
@@ -14,8 +15,8 @@ describe('Chat API', () => {
 
   describe('POST /chat', () => {
     it('should return valid response for valid request', async () => {
-      const response = await request(app)
-        .post('/chat')
+      const response = await request(app.server)
+        .post('/api/v1/chat')
         .send({
           message: '안녕하세요',
         })
@@ -31,8 +32,8 @@ describe('Chat API', () => {
     });
 
     it('should return 400 for empty message', async () => {
-      const response = await request(app)
-        .post('/chat')
+      const response = await request(app.server)
+        .post('/api/v1/chat')
         .send({
           message: '',
         })
@@ -46,8 +47,8 @@ describe('Chat API', () => {
 
     it('should return 400 for message too long', async () => {
       const longMessage = 'a'.repeat(1001);
-      const response = await request(app)
-        .post('/chat')
+      const response = await request(app.server)
+        .post('/api/v1/chat')
         .send({
           message: longMessage,
         })
@@ -60,8 +61,8 @@ describe('Chat API', () => {
     });
 
     it('should return 400 for malicious script', async () => {
-      const response = await request(app)
-        .post('/chat')
+      const response = await request(app.server)
+        .post('/api/v1/chat')
         .send({
           message: '<script>alert("xss")</script>',
         })
@@ -74,7 +75,7 @@ describe('Chat API', () => {
     });
 
     it('should return 400 for missing message', async () => {
-      const response = await request(app).post('/chat').send({}).expect(400);
+      const response = await request(app.server).post('/api/v1/chat').send({}).expect(400);
 
       expect(response.body).toMatchObject({
         error: 'Invalid input',
