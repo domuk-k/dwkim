@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { ChromaClient } from 'chromadb';
-import { OpenAI } from 'openai';
+import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
 import dotenv from 'dotenv';

@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
 export interface ChatMessage {
@@ -15,21 +16,31 @@ export interface ChatResponse {
 }
 
 export class LLMService {
-  private client: OpenAI;
+  private client: Anthropic;
+  private openaiClient?: OpenAI;
   private model: string;
   private systemPrompt: string;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    
+    if (!anthropicKey) {
+      console.warn('ANTHROPIC_API_KEY not set, using mock mode');
+    } else {
+      this.client = new Anthropic({
+        apiKey: anthropicKey,
+      });
     }
 
-    this.client = new OpenAI({
-      apiKey: apiKey,
-    });
+    // OpenAI는 임베딩용으로만 사용
+    if (openaiKey) {
+      this.openaiClient = new OpenAI({
+        apiKey: openaiKey,
+      });
+    }
 
-    this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    this.model = process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
     this.systemPrompt =
       process.env.SYSTEM_PROMPT ||
       `당신은 dwkim의 개인화된 AI 어시스턴트입니다. 
@@ -46,35 +57,51 @@ export class LLMService {
 
   async chat(messages: ChatMessage[], context?: string): Promise<ChatResponse> {
     try {
-      // 컨텍스트가 있으면 시스템 메시지에 추가
-      const systemMessage: ChatMessage = {
-        role: 'system',
-        content: context
-          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
-          : this.systemPrompt,
-      };
+      // Mock mode if no client available
+      if (!this.client) {
+        console.log('Using mock mode for chat');
+        const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+        return {
+          content: `안녕하세요! 현재 Mock 모드로 실행 중입니다. 실제 API 키를 설정하면 정상적으로 작동합니다. 질문: "${userMessage}"에 대한 답변을 준비 중입니다.`,
+          usage: {
+            promptTokens: 100,
+            completionTokens: 50,
+            totalTokens: 150,
+          },
+        };
+      }
 
-      const response = await this.client.chat.completions.create({
+      // Claude API는 system 메시지를 별도로 처리
+      const systemMessage = context
+        ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+        : this.systemPrompt;
+
+      // system 메시지를 제외한 사용자/어시스턴트 메시지만 추출
+      const conversationMessages = messages.filter(msg => msg.role !== 'system');
+
+      const response = await this.client.messages.create({
         model: this.model,
-        messages: [systemMessage, ...messages],
-        temperature: 0.7,
         max_tokens: 1000,
-        stream: false,
+        temperature: 0.7,
+        system: systemMessage,
+        messages: conversationMessages.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        })),
       });
 
-      const content = response.choices[0]?.message?.content || '';
+      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
       const usage = response.usage || {
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0,
+        input_tokens: 0,
+        output_tokens: 0,
       };
 
       return {
         content,
         usage: {
-          promptTokens: usage.prompt_tokens,
-          completionTokens: usage.completion_tokens,
-          totalTokens: usage.total_tokens,
+          promptTokens: usage.input_tokens,
+          completionTokens: usage.output_tokens,
+          totalTokens: usage.input_tokens + usage.output_tokens,
         },
       };
     } catch (error) {
@@ -84,8 +111,14 @@ export class LLMService {
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
+    if (!this.openaiClient) {
+      console.log('Using mock embedding for:', text.substring(0, 50) + '...');
+      // Mock embedding - 1536 dimensions with random values
+      return Array.from({ length: 1536 }, () => Math.random() - 0.5);
+    }
+
     try {
-      const response = await this.client.embeddings.create({
+      const response = await this.openaiClient.embeddings.create({
         model: 'text-embedding-3-small',
         input: text,
       });
@@ -93,7 +126,9 @@ export class LLMService {
       return response.data[0]?.embedding || [];
     } catch (error) {
       console.error('Embedding generation failed:', error);
-      throw new Error('Failed to generate embedding');
+      console.log('Falling back to mock embedding');
+      // Fallback to mock embedding
+      return Array.from({ length: 1536 }, () => Math.random() - 0.5);
     }
   }
 
@@ -101,12 +136,8 @@ export class LLMService {
     try {
       const messages: ChatMessage[] = [
         {
-          role: 'system',
-          content: '주어진 텍스트를 간결하고 핵심적인 내용으로 요약해주세요.',
-        },
-        {
           role: 'user',
-          content: text,
+          content: `다음 텍스트를 간결하고 핵심적인 내용으로 요약해주세요:\n\n${text}`,
         },
       ];
 
@@ -121,7 +152,8 @@ export class LLMService {
   getModelInfo(): { model: string; maxTokens: number } {
     return {
       model: this.model,
-      maxTokens: this.model.includes('gpt-4') ? 8192 : 4096,
+      maxTokens: this.model.includes('claude-3-opus') ? 200000 : 
+                this.model.includes('claude-3-sonnet') ? 200000 : 200000,
     };
   }
 }

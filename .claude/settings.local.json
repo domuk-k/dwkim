@@ -17,7 +17,11 @@
       "Bash(true)",
       "Bash(grep:*)",
       "Bash(rg:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run init-data:*)",
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(pnpm add:*)",
+      "Bash(PORT=3001 dwkim:*)"
     ],
     "deny": []
   }
