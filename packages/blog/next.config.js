@@ -4,6 +4,11 @@ const { withContentlayer } = require('next-contentlayer');
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
 
   webpack: (config) => {
     config.experiments = {

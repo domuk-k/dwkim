@@ -8,6 +8,14 @@ module.exports = {
   darkMode: ['class'],
   theme: {
     extend: {
+      fontFamily: {
+        pretendard: [
+          'Pretendard',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'system-ui',
+        ],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
