@@ -134,6 +134,17 @@ function Summary(props: React.HTMLAttributes<HTMLElement>) {
   return <summary className="cursor-pointer font-semibold" {...props} />;
 }
 
+function CustomParagraph(props: React.HTMLAttributes<HTMLParagraphElement>) {
+  const { children, ...rest } = props;
+  
+  // Check if the paragraph contains only the hairline symbol
+  if (typeof children === 'string' && children.trim() === '⸻') {
+    return <p className="hairline" {...rest}>{children}</p>;
+  }
+  
+  return <p {...rest}>{children}</p>;
+}
+
 const components: MDXComponents = {
   h1: createHeading(1),
   h2: createHeading(2),
@@ -144,6 +155,7 @@ const components: MDXComponents = {
   Image: RoundedImage,
   a: CustomLink as ItemOfMDXComponents,
   code: Code,
+  p: CustomParagraph as ItemOfMDXComponents,
   Table,
   details: Details as ItemOfMDXComponents,
   summary: Summary as ItemOfMDXComponents,
