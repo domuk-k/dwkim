@@ -1,6 +1,7 @@
 import './globals.css';
 import { Analytics } from '@/components/analytics';
 import Footer from '@/components/footer';
+import { Navigation } from '@/components/navigation';
 import { ThemeProvider } from '@/components/theme-provider';
 import type { Metadata } from 'next';
 
@@ -21,7 +22,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
         className="antialiased min-h-screen bg-white dark:bg-[var(--background)] text-slate-900 dark:text-slate-50 font-pretendard"
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="max-w-2xl mx-auto flex flex-col py-10 px-4">
+          <Navigation />
+          <div className="max-w-2xl mx-auto flex flex-col pt-24 pb-10 px-4">
             <main>{children}</main>
             <Footer />
           </div>

@@ -4,7 +4,7 @@ const { withContentlayer } = require('next-contentlayer');
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'export',
+  // output: 'export', // ISR을 위해 제거
   trailingSlash: true,
   images: {
     unoptimized: true,
