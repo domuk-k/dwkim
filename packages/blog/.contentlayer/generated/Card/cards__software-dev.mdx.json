@@ -1,0 +1,20 @@
+{
+  "title": "Software Development",
+  "description": "현대적인 소프트웨어 개발 방법론과 best practices",
+  "icon": "code",
+  "body": {
+    "raw": "\n# Software Development\n\n현대적인 소프트웨어 개발에 대한 접근법과 방법론들을 다룹니다.\n\n## 주요 주제\n\n- 클린 코드 작성법\n- 테스트 주도 개발 (TDD)\n- 마이크로서비스 아키텍처\n- DevOps와 CI/CD",
+    "code": "var Component=(()=>{var m=Object.create;var c=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var x=Object.getPrototypeOf,D=Object.prototype.hasOwnProperty;var f=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports),_=(e,n)=>{for(var r in n)c(e,r,{get:n[r],enumerable:!0})},l=(e,n,r,o)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let i of u(n))!D.call(e,i)&&i!==r&&c(e,i,{get:()=>n[i],enumerable:!(o=p(n,i))||o.enumerable});return e};var j=(e,n,r)=>(r=e!=null?m(x(e)):{},l(n||!e||!e.__esModule?c(r,\"default\",{value:e,enumerable:!0}):r,e)),C=e=>l(c({},\"__esModule\",{value:!0}),e);var h=f((g,s)=>{s.exports=_jsx_runtime});var w={};_(w,{default:()=>a,frontmatter:()=>v});var t=j(h()),v={title:\"Software Development\",description:\"\\uD604\\uB300\\uC801\\uC778 \\uC18C\\uD504\\uD2B8\\uC6E8\\uC5B4 \\uAC1C\\uBC1C \\uBC29\\uBC95\\uB860\\uACFC best practices\",icon:\"code\"};function d(e){let n={h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",ul:\"ul\",...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:\"Software Development\"}),`\n`,(0,t.jsx)(n.p,{children:\"\\uD604\\uB300\\uC801\\uC778 \\uC18C\\uD504\\uD2B8\\uC6E8\\uC5B4 \\uAC1C\\uBC1C\\uC5D0 \\uB300\\uD55C \\uC811\\uADFC\\uBC95\\uACFC \\uBC29\\uBC95\\uB860\\uB4E4\\uC744 \\uB2E4\\uB8F9\\uB2C8\\uB2E4.\"}),`\n`,(0,t.jsx)(n.h2,{children:\"\\uC8FC\\uC694 \\uC8FC\\uC81C\"}),`\n`,(0,t.jsxs)(n.ul,{children:[`\n`,(0,t.jsx)(n.li,{children:\"\\uD074\\uB9B0 \\uCF54\\uB4DC \\uC791\\uC131\\uBC95\"}),`\n`,(0,t.jsx)(n.li,{children:\"\\uD14C\\uC2A4\\uD2B8 \\uC8FC\\uB3C4 \\uAC1C\\uBC1C (TDD)\"}),`\n`,(0,t.jsx)(n.li,{children:\"\\uB9C8\\uC774\\uD06C\\uB85C\\uC11C\\uBE44\\uC2A4 \\uC544\\uD0A4\\uD14D\\uCC98\"}),`\n`,(0,t.jsx)(n.li,{children:\"DevOps\\uC640 CI/CD\"}),`\n`]})]})}function a(e={}){let{wrapper:n}=e.components||{};return n?(0,t.jsx)(n,{...e,children:(0,t.jsx)(d,{...e})}):d(e)}return C(w);})();\n;return Component;"
+  },
+  "_id": "cards/software-dev.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/software-dev.mdx",
+    "sourceFileName": "software-dev.mdx",
+    "sourceFileDir": "cards",
+    "contentType": "mdx",
+    "flattenedPath": "cards/software-dev"
+  },
+  "type": "Card",
+  "url": "/cards/software-dev",
+  "slug": "software-dev"
+}

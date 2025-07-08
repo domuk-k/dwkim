@@ -1,0 +1,25 @@
+{
+  "title": "Welcome to DW Kim Blog",
+  "date": "2024-01-15T00:00:00.000Z",
+  "summary": "블로그에 오신 것을 환영합니다. Next.js 15와 App Router를 사용한 현대적인 블로그입니다.",
+  "tags": [
+    "welcome",
+    "blog",
+    "nextjs"
+  ],
+  "body": {
+    "raw": "\n# Welcome to DW Kim Blog\n\n안녕하세요! DW Kim의 개인 블로그에 오신 것을 환영합니다.\n\n## 이 블로그는\n\n- **Next.js 15** 와 **App Router** 를 사용합니다\n- **서버 컴포넌트** 와 **클라이언트 컴포넌트** 를 적절히 분리하여 성능을 최적화합니다\n- **TypeScript** 로 작성되어 타입 안정성을 보장합니다\n- **Tailwind CSS** 로 스타일링합니다\n- **Contentlayer** 로 MDX 콘텐츠를 관리합니다\n\n앞으로 소프트웨어 개발, 기술, 그리고 다양한 생각들을 이곳에 기록할 예정입니다.\n\n감사합니다!",
+    "code": "var Component=(()=>{var a=Object.create;var i=Object.defineProperty;var g=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var u=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var j=(t,n)=>()=>(n||t((n={exports:{}}).exports,n),n.exports),_=(t,n)=>{for(var r in n)i(t,r,{get:n[r],enumerable:!0})},c=(t,n,r,o)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let l of p(n))!x.call(t,l)&&l!==r&&i(t,l,{get:()=>n[l],enumerable:!(o=g(n,l))||o.enumerable});return t};var D=(t,n,r)=>(r=t!=null?a(u(t)):{},c(n||!t||!t.__esModule?i(r,\"default\",{value:t,enumerable:!0}):r,t)),f=t=>c(i({},\"__esModule\",{value:!0}),t);var h=j((M,s)=>{s.exports=_jsx_runtime});var y={};_(y,{default:()=>m,frontmatter:()=>W});var e=D(h()),W={title:\"Welcome to DW Kim Blog\",date:\"2024-01-15\",summary:\"\\uBE14\\uB85C\\uADF8\\uC5D0 \\uC624\\uC2E0 \\uAC83\\uC744 \\uD658\\uC601\\uD569\\uB2C8\\uB2E4. Next.js 15\\uC640 App Router\\uB97C \\uC0AC\\uC6A9\\uD55C \\uD604\\uB300\\uC801\\uC778 \\uBE14\\uB85C\\uADF8\\uC785\\uB2C8\\uB2E4.\",tags:[\"welcome\",\"blog\",\"nextjs\"]};function d(t){let n={h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",strong:\"strong\",ul:\"ul\",...t.components};return(0,e.jsxs)(e.Fragment,{children:[(0,e.jsx)(n.h1,{children:\"Welcome to DW Kim Blog\"}),`\n`,(0,e.jsx)(n.p,{children:\"\\uC548\\uB155\\uD558\\uC138\\uC694! DW Kim\\uC758 \\uAC1C\\uC778 \\uBE14\\uB85C\\uADF8\\uC5D0 \\uC624\\uC2E0 \\uAC83\\uC744 \\uD658\\uC601\\uD569\\uB2C8\\uB2E4.\"}),`\n`,(0,e.jsx)(n.h2,{children:\"\\uC774 \\uBE14\\uB85C\\uADF8\\uB294\"}),`\n`,(0,e.jsxs)(n.ul,{children:[`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"Next.js 15\"}),\" \\uC640 \",(0,e.jsx)(n.strong,{children:\"App Router\"}),\" \\uB97C \\uC0AC\\uC6A9\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"\\uC11C\\uBC84 \\uCEF4\\uD3EC\\uB10C\\uD2B8\"}),\" \\uC640 \",(0,e.jsx)(n.strong,{children:\"\\uD074\\uB77C\\uC774\\uC5B8\\uD2B8 \\uCEF4\\uD3EC\\uB10C\\uD2B8\"}),\" \\uB97C \\uC801\\uC808\\uD788 \\uBD84\\uB9AC\\uD558\\uC5EC \\uC131\\uB2A5\\uC744 \\uCD5C\\uC801\\uD654\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"TypeScript\"}),\" \\uB85C \\uC791\\uC131\\uB418\\uC5B4 \\uD0C0\\uC785 \\uC548\\uC815\\uC131\\uC744 \\uBCF4\\uC7A5\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"Tailwind CSS\"}),\" \\uB85C \\uC2A4\\uD0C0\\uC77C\\uB9C1\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"Contentlayer\"}),\" \\uB85C MDX \\uCF58\\uD150\\uCE20\\uB97C \\uAD00\\uB9AC\\uD569\\uB2C8\\uB2E4\"]}),`\n`]}),`\n`,(0,e.jsx)(n.p,{children:\"\\uC55E\\uC73C\\uB85C \\uC18C\\uD504\\uD2B8\\uC6E8\\uC5B4 \\uAC1C\\uBC1C, \\uAE30\\uC220, \\uADF8\\uB9AC\\uACE0 \\uB2E4\\uC591\\uD55C \\uC0DD\\uAC01\\uB4E4\\uC744 \\uC774\\uACF3\\uC5D0 \\uAE30\\uB85D\\uD560 \\uC608\\uC815\\uC785\\uB2C8\\uB2E4.\"}),`\n`,(0,e.jsx)(n.p,{children:\"\\uAC10\\uC0AC\\uD569\\uB2C8\\uB2E4!\"})]})}function m(t={}){let{wrapper:n}=t.components||{};return n?(0,e.jsx)(n,{...t,children:(0,e.jsx)(d,{...t})}):d(t)}return f(y);})();\n;return Component;"
+  },
+  "_id": "posts/welcome.md",
+  "_raw": {
+    "sourceFilePath": "posts/welcome.md",
+    "sourceFileName": "welcome.md",
+    "sourceFileDir": "posts",
+    "contentType": "markdown",
+    "flattenedPath": "posts/welcome"
+  },
+  "type": "Post",
+  "url": "/posts/welcome",
+  "slug": "welcome"
+}

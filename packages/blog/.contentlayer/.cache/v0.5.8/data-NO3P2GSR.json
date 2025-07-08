@@ -1,0 +1,59 @@
+{
+  "cacheItemsMap": {
+    "cards/software-dev.mdx": {
+      "document": {
+        "title": "Software Development",
+        "description": "현대적인 소프트웨어 개발 방법론과 best practices",
+        "icon": "code",
+        "body": {
+          "raw": "\n# Software Development\n\n현대적인 소프트웨어 개발에 대한 접근법과 방법론들을 다룹니다.\n\n## 주요 주제\n\n- 클린 코드 작성법\n- 테스트 주도 개발 (TDD)\n- 마이크로서비스 아키텍처\n- DevOps와 CI/CD",
+          "code": "var Component=(()=>{var m=Object.create;var c=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var x=Object.getPrototypeOf,D=Object.prototype.hasOwnProperty;var f=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports),_=(e,n)=>{for(var r in n)c(e,r,{get:n[r],enumerable:!0})},l=(e,n,r,o)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let i of u(n))!D.call(e,i)&&i!==r&&c(e,i,{get:()=>n[i],enumerable:!(o=p(n,i))||o.enumerable});return e};var j=(e,n,r)=>(r=e!=null?m(x(e)):{},l(n||!e||!e.__esModule?c(r,\"default\",{value:e,enumerable:!0}):r,e)),C=e=>l(c({},\"__esModule\",{value:!0}),e);var h=f((g,s)=>{s.exports=_jsx_runtime});var w={};_(w,{default:()=>a,frontmatter:()=>v});var t=j(h()),v={title:\"Software Development\",description:\"\\uD604\\uB300\\uC801\\uC778 \\uC18C\\uD504\\uD2B8\\uC6E8\\uC5B4 \\uAC1C\\uBC1C \\uBC29\\uBC95\\uB860\\uACFC best practices\",icon:\"code\"};function d(e){let n={h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",ul:\"ul\",...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:\"Software Development\"}),`\n`,(0,t.jsx)(n.p,{children:\"\\uD604\\uB300\\uC801\\uC778 \\uC18C\\uD504\\uD2B8\\uC6E8\\uC5B4 \\uAC1C\\uBC1C\\uC5D0 \\uB300\\uD55C \\uC811\\uADFC\\uBC95\\uACFC \\uBC29\\uBC95\\uB860\\uB4E4\\uC744 \\uB2E4\\uB8F9\\uB2C8\\uB2E4.\"}),`\n`,(0,t.jsx)(n.h2,{children:\"\\uC8FC\\uC694 \\uC8FC\\uC81C\"}),`\n`,(0,t.jsxs)(n.ul,{children:[`\n`,(0,t.jsx)(n.li,{children:\"\\uD074\\uB9B0 \\uCF54\\uB4DC \\uC791\\uC131\\uBC95\"}),`\n`,(0,t.jsx)(n.li,{children:\"\\uD14C\\uC2A4\\uD2B8 \\uC8FC\\uB3C4 \\uAC1C\\uBC1C (TDD)\"}),`\n`,(0,t.jsx)(n.li,{children:\"\\uB9C8\\uC774\\uD06C\\uB85C\\uC11C\\uBE44\\uC2A4 \\uC544\\uD0A4\\uD14D\\uCC98\"}),`\n`,(0,t.jsx)(n.li,{children:\"DevOps\\uC640 CI/CD\"}),`\n`]})]})}function a(e={}){let{wrapper:n}=e.components||{};return n?(0,t.jsx)(n,{...e,children:(0,t.jsx)(d,{...e})}):d(e)}return C(w);})();\n;return Component;"
+        },
+        "_id": "cards/software-dev.mdx",
+        "_raw": {
+          "sourceFilePath": "cards/software-dev.mdx",
+          "sourceFileName": "software-dev.mdx",
+          "sourceFileDir": "cards",
+          "contentType": "mdx",
+          "flattenedPath": "cards/software-dev"
+        },
+        "type": "Card",
+        "url": "/cards/software-dev",
+        "slug": "software-dev"
+      },
+      "documentHash": "1751980156496",
+      "hasWarnings": false,
+      "documentTypeName": "Card"
+    },
+    "posts/welcome.md": {
+      "document": {
+        "title": "Welcome to DW Kim Blog",
+        "date": "2024-01-15T00:00:00.000Z",
+        "summary": "블로그에 오신 것을 환영합니다. Next.js 15와 App Router를 사용한 현대적인 블로그입니다.",
+        "tags": [
+          "welcome",
+          "blog",
+          "nextjs"
+        ],
+        "body": {
+          "raw": "\n# Welcome to DW Kim Blog\n\n안녕하세요! DW Kim의 개인 블로그에 오신 것을 환영합니다.\n\n## 이 블로그는\n\n- **Next.js 15** 와 **App Router** 를 사용합니다\n- **서버 컴포넌트** 와 **클라이언트 컴포넌트** 를 적절히 분리하여 성능을 최적화합니다\n- **TypeScript** 로 작성되어 타입 안정성을 보장합니다\n- **Tailwind CSS** 로 스타일링합니다\n- **Contentlayer** 로 MDX 콘텐츠를 관리합니다\n\n앞으로 소프트웨어 개발, 기술, 그리고 다양한 생각들을 이곳에 기록할 예정입니다.\n\n감사합니다!",
+          "code": "var Component=(()=>{var a=Object.create;var i=Object.defineProperty;var g=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var u=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var j=(t,n)=>()=>(n||t((n={exports:{}}).exports,n),n.exports),_=(t,n)=>{for(var r in n)i(t,r,{get:n[r],enumerable:!0})},c=(t,n,r,o)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let l of p(n))!x.call(t,l)&&l!==r&&i(t,l,{get:()=>n[l],enumerable:!(o=g(n,l))||o.enumerable});return t};var D=(t,n,r)=>(r=t!=null?a(u(t)):{},c(n||!t||!t.__esModule?i(r,\"default\",{value:t,enumerable:!0}):r,t)),f=t=>c(i({},\"__esModule\",{value:!0}),t);var h=j((M,s)=>{s.exports=_jsx_runtime});var y={};_(y,{default:()=>m,frontmatter:()=>W});var e=D(h()),W={title:\"Welcome to DW Kim Blog\",date:\"2024-01-15\",summary:\"\\uBE14\\uB85C\\uADF8\\uC5D0 \\uC624\\uC2E0 \\uAC83\\uC744 \\uD658\\uC601\\uD569\\uB2C8\\uB2E4. Next.js 15\\uC640 App Router\\uB97C \\uC0AC\\uC6A9\\uD55C \\uD604\\uB300\\uC801\\uC778 \\uBE14\\uB85C\\uADF8\\uC785\\uB2C8\\uB2E4.\",tags:[\"welcome\",\"blog\",\"nextjs\"]};function d(t){let n={h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",strong:\"strong\",ul:\"ul\",...t.components};return(0,e.jsxs)(e.Fragment,{children:[(0,e.jsx)(n.h1,{children:\"Welcome to DW Kim Blog\"}),`\n`,(0,e.jsx)(n.p,{children:\"\\uC548\\uB155\\uD558\\uC138\\uC694! DW Kim\\uC758 \\uAC1C\\uC778 \\uBE14\\uB85C\\uADF8\\uC5D0 \\uC624\\uC2E0 \\uAC83\\uC744 \\uD658\\uC601\\uD569\\uB2C8\\uB2E4.\"}),`\n`,(0,e.jsx)(n.h2,{children:\"\\uC774 \\uBE14\\uB85C\\uADF8\\uB294\"}),`\n`,(0,e.jsxs)(n.ul,{children:[`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"Next.js 15\"}),\" \\uC640 \",(0,e.jsx)(n.strong,{children:\"App Router\"}),\" \\uB97C \\uC0AC\\uC6A9\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"\\uC11C\\uBC84 \\uCEF4\\uD3EC\\uB10C\\uD2B8\"}),\" \\uC640 \",(0,e.jsx)(n.strong,{children:\"\\uD074\\uB77C\\uC774\\uC5B8\\uD2B8 \\uCEF4\\uD3EC\\uB10C\\uD2B8\"}),\" \\uB97C \\uC801\\uC808\\uD788 \\uBD84\\uB9AC\\uD558\\uC5EC \\uC131\\uB2A5\\uC744 \\uCD5C\\uC801\\uD654\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"TypeScript\"}),\" \\uB85C \\uC791\\uC131\\uB418\\uC5B4 \\uD0C0\\uC785 \\uC548\\uC815\\uC131\\uC744 \\uBCF4\\uC7A5\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"Tailwind CSS\"}),\" \\uB85C \\uC2A4\\uD0C0\\uC77C\\uB9C1\\uD569\\uB2C8\\uB2E4\"]}),`\n`,(0,e.jsxs)(n.li,{children:[(0,e.jsx)(n.strong,{children:\"Contentlayer\"}),\" \\uB85C MDX \\uCF58\\uD150\\uCE20\\uB97C \\uAD00\\uB9AC\\uD569\\uB2C8\\uB2E4\"]}),`\n`]}),`\n`,(0,e.jsx)(n.p,{children:\"\\uC55E\\uC73C\\uB85C \\uC18C\\uD504\\uD2B8\\uC6E8\\uC5B4 \\uAC1C\\uBC1C, \\uAE30\\uC220, \\uADF8\\uB9AC\\uACE0 \\uB2E4\\uC591\\uD55C \\uC0DD\\uAC01\\uB4E4\\uC744 \\uC774\\uACF3\\uC5D0 \\uAE30\\uB85D\\uD560 \\uC608\\uC815\\uC785\\uB2C8\\uB2E4.\"}),`\n`,(0,e.jsx)(n.p,{children:\"\\uAC10\\uC0AC\\uD569\\uB2C8\\uB2E4!\"})]})}function m(t={}){let{wrapper:n}=t.components||{};return n?(0,e.jsx)(n,{...t,children:(0,e.jsx)(d,{...t})}):d(t)}return f(y);})();\n;return Component;"
+        },
+        "_id": "posts/welcome.md",
+        "_raw": {
+          "sourceFilePath": "posts/welcome.md",
+          "sourceFileName": "welcome.md",
+          "sourceFileDir": "posts",
+          "contentType": "markdown",
+          "flattenedPath": "posts/welcome"
+        },
+        "type": "Post",
+        "url": "/posts/welcome",
+        "slug": "welcome"
+      },
+      "documentHash": "1751980149650",
+      "hasWarnings": false,
+      "documentTypeName": "Post"
+    }
+  }
+}
