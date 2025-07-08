@@ -4,7 +4,7 @@
   "description": "My first blog post",
   "body": {
     "raw": "\n# Hello World\n\n안녕하세요! 이것은 첫 번째 블로그 포스트입니다.\n\n## 소개\n\n이 블로그는 Next.js와 Contentlayer를 사용하여 만들어졌습니다.\n\n### 기능\n\n- TypeScript 지원\n- Tailwind CSS 스타일링\n- MDX 지원\n- 반응형 디자인\n\n즐거운 하루 되세요! 🎉",
-    "html": "<h1>Hello World</h1>\n<p>안녕하세요! 이것은 첫 번째 블로그 포스트입니다.</p>\n<h2>소개</h2>\n<p>이 블로그는 Next.js와 Contentlayer를 사용하여 만들어졌습니다.</p>\n<h3>기능</h3>\n<ul>\n<li>TypeScript 지원</li>\n<li>Tailwind CSS 스타일링</li>\n<li>MDX 지원</li>\n<li>반응형 디자인</li>\n</ul>\n<p>즐거운 하루 되세요! 🎉</p>"
+    "code": "var Component=(()=>{var a=Object.create;var i=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var x=Object.getPrototypeOf,m=Object.prototype.hasOwnProperty;var j=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports),_=(e,n)=>{for(var l in n)i(e,l,{get:n[l],enumerable:!0})},o=(e,n,l,c)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let r of u(n))!m.call(e,r)&&r!==l&&i(e,r,{get:()=>n[r],enumerable:!(c=p(n,r))||c.enumerable});return e};var f=(e,n,l)=>(l=e!=null?a(x(e)):{},o(n||!e||!e.__esModule?i(l,\"default\",{value:e,enumerable:!0}):l,e)),g=e=>o(i({},\"__esModule\",{value:!0}),e);var s=j((w,h)=>{h.exports=_jsx_runtime});var D={};_(D,{default:()=>C,frontmatter:()=>M});var t=f(s()),M={title:\"Hello World\",date:new Date(17040672e5),description:\"My first blog post\"};function d(e){let n=Object.assign({h1:\"h1\",p:\"p\",h2:\"h2\",h3:\"h3\",ul:\"ul\",li:\"li\"},e.components);return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:\"Hello World\"}),`\n`,(0,t.jsx)(n.p,{children:\"\\uC548\\uB155\\uD558\\uC138\\uC694! \\uC774\\uAC83\\uC740 \\uCCAB \\uBC88\\uC9F8 \\uBE14\\uB85C\\uADF8 \\uD3EC\\uC2A4\\uD2B8\\uC785\\uB2C8\\uB2E4.\"}),`\n`,(0,t.jsx)(n.h2,{children:\"\\uC18C\\uAC1C\"}),`\n`,(0,t.jsx)(n.p,{children:\"\\uC774 \\uBE14\\uB85C\\uADF8\\uB294 Next.js\\uC640 Contentlayer\\uB97C \\uC0AC\\uC6A9\\uD558\\uC5EC \\uB9CC\\uB4E4\\uC5B4\\uC84C\\uC2B5\\uB2C8\\uB2E4.\"}),`\n`,(0,t.jsx)(n.h3,{children:\"\\uAE30\\uB2A5\"}),`\n`,(0,t.jsxs)(n.ul,{children:[`\n`,(0,t.jsx)(n.li,{children:\"TypeScript \\uC9C0\\uC6D0\"}),`\n`,(0,t.jsx)(n.li,{children:\"Tailwind CSS \\uC2A4\\uD0C0\\uC77C\\uB9C1\"}),`\n`,(0,t.jsx)(n.li,{children:\"MDX \\uC9C0\\uC6D0\"}),`\n`,(0,t.jsx)(n.li,{children:\"\\uBC18\\uC751\\uD615 \\uB514\\uC790\\uC778\"}),`\n`]}),`\n`,(0,t.jsx)(n.p,{children:\"\\uC990\\uAC70\\uC6B4 \\uD558\\uB8E8 \\uB418\\uC138\\uC694! \\u{1F389}\"})]})}function y(e={}){let{wrapper:n}=e.components||{};return n?(0,t.jsx)(n,Object.assign({},e,{children:(0,t.jsx)(d,e)})):d(e)}var C=y;return g(D);})();\n;return Component;"
   },
   "_id": "posts/hello-world.md",
   "_raw": {
@@ -15,5 +15,6 @@
     "flattenedPath": "posts/hello-world"
   },
   "type": "Post",
-  "url": "/posts/posts/hello-world"
+  "url": "/blog/posts/posts/hello-world",
+  "slug": "posts/hello-world"
 }

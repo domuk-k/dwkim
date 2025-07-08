@@ -1,0 +1,6 @@
+{
+  "status": 404,
+  "headers": {
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/blog/layout,_N_T_/blog/posts/layout,_N_T_/blog/posts/[slug]/layout,_N_T_/blog/posts/[slug]/page,_N_T_/blog/posts/posts%2Fhello-world"
+  }
+}

@@ -19,9 +19,10 @@ export type Post = {
   date: IsoDateTimeString
   /** The description of the post */
   description?: string | undefined
-  /** Markdown file body */
-  body: Markdown
+  /** MDX file body */
+  body: MDX
   url: string
+  slug: string
 }  
 
 /** Nested types */

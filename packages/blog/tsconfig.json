@@ -23,7 +23,8 @@
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
-      "@/utils/*": ["./utils/*"]
+      "@/utils/*": ["./utils/*"],
+      "contentlayer/generated": ["./.contentlayer/generated"]
     }
   },
   "include": [
