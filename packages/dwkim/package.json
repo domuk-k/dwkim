@@ -16,12 +16,13 @@
   "scripts": {
     "build": "node script/build.js",
     "dev": "tsx watch src/index.ts",
-    "lint": "tsc"
+    "lint": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "typescript": "^5.8.3"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
     "esbuild": "^0.20.0",

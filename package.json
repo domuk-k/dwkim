@@ -11,6 +11,12 @@
     "build:dwkim": "pnpm --filter dwkim build",
     "dev:dwkim": "pnpm --filter dwkim dev",
     "lint:dwkim": "pnpm --filter dwkim lint",
+    "build:blog": "pnpm --filter blog build",
+    "dev:blog": "pnpm --filter blog dev",
+    "lint:blog": "pnpm --filter blog lint",
+    "build:persona-api": "pnpm --filter persona-api build",
+    "dev:persona-api": "pnpm --filter persona-api dev",
+    "lint:persona-api": "pnpm --filter persona-api lint",
     "changeset": "changeset",
     "version": "changeset version",
     "release:dwkim": "pnpm run build:dwkim && changeset publish"

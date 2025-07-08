@@ -57,7 +57,7 @@ export class PersonaApiClient {
       throw new Error(`Chat request failed: ${response.status} - ${error}`);
     }
 
-    return response.json();
+    return response.json() as Promise<ChatResponse>;
   }
 
   async search(query: string): Promise<SearchResult[]> {
@@ -68,7 +68,7 @@ export class PersonaApiClient {
       throw new Error(`Search request failed: ${response.status} - ${error}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { results?: SearchResult[] };
     return result.results || [];
   }
 
@@ -80,6 +80,6 @@ export class PersonaApiClient {
       throw new Error(`Status request failed: ${response.status} - ${error}`);
     }
 
-    return response.json();
+    return response.json() as Promise<StatusResponse>;
   }
 }

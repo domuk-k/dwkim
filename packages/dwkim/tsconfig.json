@@ -8,7 +8,7 @@
     "moduleResolution": "Bundler", // gonna use tsup
     "module": "ESNext",
 
-    "lib": ["es2022", "dom", "dom.iterable"],
+    "lib": ["es2022"],
 
     /* Modules */
     "resolveJsonModule": true /* Enable importing .json files. */,
@@ -28,5 +28,7 @@
 
     /* Completeness */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules", "**/*.js"]
 }
