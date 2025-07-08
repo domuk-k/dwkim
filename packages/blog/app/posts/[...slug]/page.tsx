@@ -15,7 +15,7 @@ async function getPostFromParams(params: PostProps['params']) {
   const slug = params?.slug?.join('/');
 
   const post = allPosts.find(
-    (post) => post.slugAsParams === decodeURIComponent(slug),
+    (post) => post.slugAsParams === decodeURIComponent(slug)
   );
 
   return post;
@@ -42,6 +42,8 @@ export async function generateStaticParams(): Promise<PostProps['params'][]> {
   }));
 }
 
+export const revalidate = 60 * 60 * 6; // 6 hours
+
 export default async function PostPage({ params }: PostProps) {
   const post = await getPostFromParams(params);
 
@@ -51,21 +53,6 @@ export default async function PostPage({ params }: PostProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Navigation Header */}
-      <nav className="border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50 backdrop-blur-md">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <Link 
-            href="/posts" 
-            className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-sm font-medium"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            글 목록
-          </Link>
-        </div>
-      </nav>
-
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-16">
         <header className="mb-16">
@@ -77,13 +64,13 @@ export default async function PostPage({ params }: PostProps) {
               {post.description}
             </p>
           )}
-          
+
           <div className="flex items-center text-sm text-gray-500 dark:text-gray-500 border-b border-gray-100 dark:border-gray-800 pb-8">
             <time>
-              {new Date(post.date).toLocaleDateString('ko-KR', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              {new Date(post.date).toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
               })}
             </time>
           </div>
@@ -97,12 +84,22 @@ export default async function PostPage({ params }: PostProps) {
 
         {/* Navigation */}
         <footer className="pt-8 border-t border-gray-100 dark:border-gray-800">
-          <Link 
+          <Link
             href="/posts"
             className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-sm font-medium"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             다른 글 보기
           </Link>
