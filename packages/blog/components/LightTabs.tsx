@@ -44,24 +44,11 @@ const LightTabs = ({ children }: { children: React.ReactNode }) => {
                   {tab.label}
                   {activeTab === tab.value && (
                     <motion.div
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                      className="absolute bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
                       layoutId="activeTabIndicator"
                       initial={false}
                       transition={{
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                  {activeTab === tab.value && (
-                    <motion.div
-                      className="absolute -bottom-2 left-1/2 w-12 h-4 bg-blue-500/20 blur-xl rounded-full"
-                      layoutId="activeTabGlow"
-                      initial={false}
-                      animate={{ x: "-50%" }}
-                      transition={{
-                        type: "spring",
+                        type: 'spring',
                         stiffness: 500,
                         damping: 30,
                       }}
