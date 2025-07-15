@@ -12,7 +12,10 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
         <span class="title-text english">dwkim</span>
       </a>
     </div>
-    <ThemeToggle />
+    <div class="nav-right">
+      <a href="/posts" class="nav-link">글쓰기</a>
+      <ThemeToggle />
+    </div>
   </nav>
 </header>
 <style>
@@ -79,5 +82,26 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
   .animated-title:hover .title-text.english {
     transform: translateY(0);
     opacity: 1;
+  }
+  
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .nav-link {
+    font-size: var(--font-size-m);
+    font-weight: var(--font-weight-regular);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+  
+  .nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--selection);
   }
 </style>

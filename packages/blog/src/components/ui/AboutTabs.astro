@@ -155,13 +155,16 @@
   }
 </style>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
+<script is:inline>
+  function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
     
+    if (!tabButtons.length || !tabPanels.length) return;
+    
     tabButtons.forEach(button => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
         const targetTab = button.getAttribute('data-tab');
         
         // Remove active class from all buttons and panels
@@ -170,8 +173,18 @@
         
         // Add active class to clicked button and corresponding panel
         button.classList.add('active');
-        document.getElementById(targetTab)?.classList.add('active');
+        const targetPanel = document.getElementById(targetTab);
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+        }
       });
     });
-  });
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTabs);
+  } else {
+    initTabs();
+  }
 </script>

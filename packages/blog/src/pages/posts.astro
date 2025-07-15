@@ -1,0 +1,44 @@
+---
+import { getCollection } from 'astro:content'
+import IndexLayout from '@/layouts/IndexLayout.astro'
+import PostList from '@/components/widgets/PostList.astro'
+import { themeConfig } from '@/config'
+
+const posts = await getCollection('posts', ({ data }) => {
+  return import.meta.env.PROD ? data.draft !== true : true
+})
+
+const sortedPosts = posts.sort(
+  (a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf(),
+)
+
+const title = `글목록 | ${themeConfig.site.title}`
+const description = `${themeConfig.site.author}의 모든 글을 확인할 수 있습니다.`
+---
+
+<IndexLayout title={title} description={description}>
+  <div class="posts-header">
+    <h1>글목록</h1>
+    <p class="posts-description">모든 글을 시간순으로 정렬했습니다.</p>
+  </div>
+  <PostList posts={sortedPosts} />
+</IndexLayout>
+
+<style>
+  .posts-header {
+    margin-bottom: 2rem;
+  }
+  
+  .posts-header h1 {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .posts-description {
+    font-size: var(--font-size-m);
+    color: var(--text-secondary);
+    margin: 0;
+  }
+</style>
