@@ -1,0 +1,177 @@
+---
+// AboutTabs.astro - About 페이지용 탭 네비게이션 컴포넌트
+---
+
+<div class="about-tabs">
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="developer">개발자</button>
+    <button class="tab-btn" data-tab="runner">러너</button>
+    <button class="tab-btn" data-tab="contributor">기여자</button>
+    <button class="tab-btn" data-tab="coach">코치</button>
+  </nav>
+  
+  <div class="tab-content">
+    <div class="tab-panel active" id="developer">
+      <div class="prose">
+        <p>저는 문서 기반 엔터프라이즈 SaaS 제품을 개발하는 프로덕트 엔지니어입니다. 현재 <a href="https://bhsn.ai" target="_blank">BHSN.ai</a>에서 전자서명 에디터를 개발하고 있습니다.</p>
+        
+        <p>사용자가 원하는 목표를 쉽게 달성할 수 있는 경험을 지향합니다. 사용자의 목표를 정확히 이해하기 위해 로그 분석, 세션 리플레이 등 관측 도구를 활용하고, 이를 바탕으로 디자이너와 치열하게 논의하며 최적의 사용성을 고민합니다.</p>
+        
+        <p>프론트엔드 개발자로서 React를 3년 이상 사용했고, 최근에는 SvelteKit을 주로 활용하고 있습니다. 동료들에게 주도적으로 문화/코드 개선에 대해 관심을 일으키고, 분배할 수 있습니다.</p>
+        
+        <p>빌드 속도 개선, 모니터링 도구 도입, E2E 테스트 도입/관리, 의존성 관리, private/public 패키지 배포 등 다양한 경험을 쌓았습니다. Nest.js, Express, Docker, PostgreSQL, Redis, MongoDB 등 기술에 경험이 있습니다.</p>
+        
+        <p>읽기 쉬운 코드, 수정하거나 제거하기에 편한 코드를 작성합니다. 이를 위해 작은 모듈을 쉽게 합성할 수 있는 구조를 추구합니다. 또한 일관된 코드 품질을 유지하기 위해 정적 분석 도구를 활용합니다.</p>
+        
+        <h3>히스토리</h3>
+        <p><a href="https://baek.co" target="_blank">대학 시절 촬영 공간 대여 사업</a>을 운영한 경험을 바탕으로 스타트업 액셀러레이터에서 인턴을 하며 제품 개발에 대한 열정을 키웠습니다. 데이터 분석 과정에서 처음 프로그래밍을 접했고, 사용자 인터페이스 개발에 매력을 느껴 프론트엔드 개발자로 커리어를 시작했습니다.</p>
+        
+        <p>현재는 프로덕트 엔지니어로서 시장과 제품의 문제를 해결하는 과제에 집중하고 있으며, 이러한 방향으로 성장하고 동료들과 함께 발전할 수 있는 팀을 찾고 있습니다.</p>
+      </div>
+    </div>
+    
+    <div class="tab-panel" id="runner">
+      <div class="prose">
+        <ul>
+          <li>2024년 4분기에 203.1km를 달렸습니다.</li>
+          <li>2024 손기정평화마라톤에서 하프마라톤(21.1km) 완주</li>
+          <li>2025년 풀코스 마라톤 완주 예정 😊</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="tab-panel" id="contributor">
+      <div class="prose">
+        <p>기회가 잦지 않지만, 커뮤니티에 기여하고 싶은 마음이 있습니다. 개선의 기회가 보이면 이슈/PR을 찾아보고 바로 기여해보려고 합니다.</p>
+        
+        <ul>
+          <li>react-hook-form v7.48.0: <a href="https://github.com/react-hook-form/react-hook-form/releases/tag/v7.48.0" target="_blank">jsDoc 문서 오타수정</a></li>
+          <li>svelte-toast v0.9.6: <a href="https://github.com/zerodevx/svelte-toast/releases/tag/v0.9.6" target="_blank">옵션 인터페이스 노출하기</a></li>
+          <li>svelte.dev : <a href="https://github.com/sveltejs/svelte.dev/commit/aa7e00e432831204c981ba886a05c47580be5336" target="_blank">Svelte 공식문서 예시코드 파싱로직 개선</a></li>
+          <li>@ark-ui/svelte v0.3.0 : <a href="https://github.com/chakra-ui/ark/pull/3171" target="_blank">Portal, Frame 컴포넌트 추가</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="tab-panel" id="coach">
+      <div class="prose">
+        <p>현재 codeit에서 멘토로 활동하며, 다양한 코드 리뷰와 실질적인 조언을 제공하고 있습니다.</p>
+        
+        <p>스스로 질문을 던지고 그 답을 찾아가는 과정에서 마중물을 제공하며, 동료들과의 활발한 소통을 촉진하고 있습니다. 《성과를 위한 코칭(Coaching for Performance)》을 통해 코칭의 기본 개념을 터득했습니다.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .about-tabs {
+    margin-bottom: 1.25rem;
+  }
+  
+  .tab-nav {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+  
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-m);
+    font-family: var(--font-sans);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: all 0.15s ease;
+    font-weight: var(--font-weight-regular);
+  }
+  
+  .tab-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--selection);
+  }
+  
+  .tab-btn.active {
+    color: var(--text-primary);
+    background-color: var(--code-bg);
+    font-weight: var(--font-weight-bold);
+  }
+  
+  .tab-panel {
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  
+  .tab-panel.active {
+    display: block;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(0.5rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .tab-panel .prose {
+    max-width: none;
+    color: var(--text-primary);
+  }
+  
+  .tab-panel .prose p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    font-size: var(--font-size-m);
+  }
+  
+  .tab-panel .prose ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+  }
+  
+  .tab-panel .prose li {
+    margin-bottom: 0.5rem;
+    font-size: var(--font-size-m);
+  }
+  
+  .tab-panel .prose a {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-decoration-color: var(--text-tertiary);
+    text-underline-offset: 0.2em;
+  }
+  
+  .tab-panel .prose a:hover {
+    text-decoration-color: var(--text-secondary);
+  }
+  
+  .tab-panel .prose h3 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: var(--font-size-l);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetTab = button.getAttribute('data-tab');
+        
+        // Remove active class from all buttons and panels
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabPanels.forEach(panel => panel.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding panel
+        button.classList.add('active');
+        document.getElementById(targetTab)?.classList.add('active');
+      });
+    });
+  });
+</script>
