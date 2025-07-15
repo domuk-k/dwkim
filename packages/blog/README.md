@@ -1,17 +1,59 @@
-# 개인 블로그
+# Chiri 🌸
 
-TODO:
-- 블로그 md파일 불러오기
-- 코치 섹션 작성하기
-- 긍정적인 사람 작성하기
-- 영문 지원
-- 블로그 포스팅하기
+![screenshot-light](public/screenshots/screenshot-light.png)
+![screenshot-dark](public/screenshots/screenshot-dark.png)
 
-### 노트:
-    블로그 포스팅들을 외부 레포지토리에서 불러오는 이유
-    - 작성을 Obsidian에서 하고 있음. 이걸 바꾸지 않을 것.
-    - 작성한 파일들을 웹으로 올리는 가장 쉬운 방법은 커스텀 플러그인 obsidian git. 이걸로 깃 레포지토리와 동기화할 수 있음.
-    - self 레포의 sub module로 동기화하던가
-        - 이건 복잡해질 듯.
-    - 별도 레포로 맞춰줘야함.
-        - self 레포에서 싱크만 하면 됨
+Chiri is a minimal blog theme built with [Astro](https://astro.build), offering customization options while preserving its clean aesthetic.
+
+Check the [demo](https://astro-chiri.netlify.app/) for more details.
+
+## Features
+
+- Built with Astro
+- Responsive
+- Light / Dark mode
+- MD & MDX
+- KaTeX
+- Sitemap
+- RSS
+- ...
+
+## Getting Started
+
+1. [Fork](https://github.com/the3ash/astro-chiri/fork) this repository, or use this template to [create a new repository](https://github.com/new?template_name=astro-chiri&template_owner=the3ash).
+
+2. Run the following commands:
+
+   ```bash
+   git clone <your-repo-url>
+
+   cd <your-repo-name>
+
+   pnpm install
+
+   pnpm dev
+   ```
+
+3. Edit `src/config.ts` and `src/content/about/about.md` to your liking.
+
+4. Use `pnpm new <title>` to create new posts, or add your posts to `src/content/posts`.
+
+5. Deploy to Netlify, Vercel, or other platforms, refer to [Astro Deployment Guides](https://docs.astro.build/en/guides/deploy/) for more details.
+
+&emsp;[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start) [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new)
+
+## Commands
+
+- `pnpm new <title>` - Create a new post (use `_title` for drafts)
+- `pnpm update-theme` - Update the theme to the latest version
+
+## References
+
+- https://paco.me/
+- https://benji.org/
+- https://shud.in/
+- https://retypeset.radishzz.cc/
+
+## License
+
+MIT
