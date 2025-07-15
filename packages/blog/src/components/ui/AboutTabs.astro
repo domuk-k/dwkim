@@ -162,13 +162,22 @@
     
     if (!tabButtons.length || !tabPanels.length) return;
     
+    // Remove existing event listeners to prevent duplicates
     tabButtons.forEach(button => {
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
+    });
+    
+    // Re-query elements after cloning
+    const newTabButtons = document.querySelectorAll('.tab-btn');
+    
+    newTabButtons.forEach(button => {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         const targetTab = button.getAttribute('data-tab');
         
         // Remove active class from all buttons and panels
-        tabButtons.forEach(btn => btn.classList.remove('active'));
+        newTabButtons.forEach(btn => btn.classList.remove('active'));
         tabPanels.forEach(panel => panel.classList.remove('active'));
         
         // Add active class to clicked button and corresponding panel
@@ -187,4 +196,10 @@
   } else {
     initTabs();
   }
+  
+  // Re-initialize on page navigation (for View Transitions)
+  document.addEventListener('astro:page-load', initTabs);
+  
+  // Fallback for non-Astro navigation
+  window.addEventListener('popstate', initTabs);
 </script>
