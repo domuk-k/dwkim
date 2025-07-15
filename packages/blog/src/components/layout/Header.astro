@@ -7,7 +7,10 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
   <nav>
     <div class="logo-container">
       {themeConfig.general.favicon && <img src="/favicon.svg" alt="favicon" class="favicon" />}
-      <a href="/">{themeConfig.site.title}</a>
+      <a href="/" class="animated-title">
+        <span class="title-text english">dwkim</span>
+        <span class="title-text korean">김동욱</span>
+      </a>
     </div>
     <ThemeToggle />
   </nav>
@@ -28,14 +31,51 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
     min-width: 3rem;
     display: inline-block;
   }
+  
   .logo-container {
     position: relative;
   }
+  
   .favicon {
     position: absolute;
     width: 1.125rem;
     height: 1.125rem;
     bottom: calc(100% + 3.5rem);
     left: 0;
+  }
+  
+  .animated-title {
+    position: relative;
+    overflow: hidden;
+    height: 1.2em;
+    cursor: pointer;
+  }
+  
+  .title-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    white-space: nowrap;
+  }
+  
+  .title-text.english {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  
+  .title-text.korean {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  
+  .animated-title:hover .title-text.english {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  
+  .animated-title:hover .title-text.korean {
+    transform: translateY(0);
+    opacity: 1;
   }
 </style>
