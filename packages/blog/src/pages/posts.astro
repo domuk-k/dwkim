@@ -13,13 +13,13 @@ const sortedPosts = posts.sort(
 )
 
 const title = `글목록 | ${themeConfig.site.title}`
-const description = `${themeConfig.site.author}의 모든 글을 확인할 수 있습니다.`
+const description = `${themeConfig.site.author}의 모든 글을 확인할 수 있다.`
 ---
 
 <IndexLayout title={title} description={description}>
   <div class="posts-header">
     <h1>글목록</h1>
-    <p class="posts-description">모든 글을 시간순으로 정렬했습니다.</p>
+    <p class="posts-description">모든 글을 시간순으로 정렬했다.</p>
   </div>
   <PostList posts={sortedPosts} />
 </IndexLayout>
