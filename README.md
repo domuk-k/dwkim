@@ -11,3 +11,20 @@
 ```bash
 npx dwkim
 ```
+
+### [persona-api](./packages/persona-api) - Fastify RAG API 서버
+
+개인화된 챗봇 API 서버로, RAG (Retrieval-Augmented Generation) 기술을 사용합니다.
+
+- **Framework**: Fastify with TypeScript
+- **Database**: ChromaDB (vector store), Redis (cache)
+- **LLM**: OpenAI (primary), Anthropic (fallback)
+- **Deployment**: https://dwkim.onrender.com
+
+### [blog](./packages/blog) - Next.js 블로그
+
+MDX 기반의 개인 블로그 사이트입니다.
+
+- **Framework**: Next.js 13+ with App Router
+- **Content**: Contentlayer for MDX processing
+- **Styling**: Tailwind CSS with shadcn/ui components
