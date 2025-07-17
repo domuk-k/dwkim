@@ -25,7 +25,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async () => {
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -87,15 +87,15 @@ export default async function healthRoutes(fastify: FastifyInstance) {
         // Redis 연결 확인
         let redisStatus = false;
         try {
-          // @ts-ignore - Redis 플러그인이 등록되어 있음
-          await fastify.redis.ping();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (fastify as any).redis.ping();
           redisStatus = true;
         } catch (error) {
           fastify.log.error('Redis health check failed:', error);
         }
 
         // RAG 엔진 상태 확인
-        let ragEngineStatus: any = {
+        let ragEngineStatus: Record<string, unknown> = {
           status: 'not_initialized',
           components: {},
         };
@@ -166,7 +166,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async () => {
       return {
         name: 'Persona API',
         version: '1.0.0',

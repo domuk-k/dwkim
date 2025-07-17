@@ -16,9 +16,16 @@
     "lint:blog": "pnpm --filter blog lint",
     "changeset": "changeset",
     "version": "changeset version",
-    "release:dwkim": "pnpm run build:dwkim && changeset publish"
+    "release:dwkim": "pnpm run build:dwkim && changeset publish",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.4"
+    "@changesets/cli": "^2.29.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2"
+  },
+  "lint-staged": {
+    "*.{ts,js,tsx,jsx}": ["eslint --fix", "git add"],
+    "*.{md,json}": ["prettier --write", "git add"]
   }
 }

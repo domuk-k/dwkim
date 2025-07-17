@@ -36,7 +36,10 @@
       "Bash(find:*)",
       "Bash(pnpm build:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run:*)",
+      "Bash(npx husky:*)"
     ],
     "deny": []
   }

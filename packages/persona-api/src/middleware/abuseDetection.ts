@@ -34,7 +34,7 @@ interface AbuseDetectionOptions {
   errorThreshold?: number;
 }
 
-interface AbuseResult {
+export interface AbuseResult {
   blocked: boolean;
   reason?: string;
   blockExpiry?: number;
