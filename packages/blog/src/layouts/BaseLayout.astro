@@ -4,6 +4,7 @@ import { ClientRouter } from 'astro:transitions'
 import ThemeManager from '@/components/ui/ThemeManager.astro'
 import FaviconThemeSwitcher from '@/components/ui/FaviconThemeSwitcher.astro'
 import TransitionWrapper from '@/components/layout/TransitionWrapper.astro'
+import Header from '@/components/layout/Header.astro'
 import type { LayoutProps } from '@/types'
 
 type Props = LayoutProps
@@ -35,10 +36,12 @@ const finalWidth = shouldUseCustomWidth ? `${widthValue}rem` : '25rem'
     {
       fadeAnimation ? (
         <TransitionWrapper type={type} class="layout-wrapper">
+          <Header />
           <slot />
         </TransitionWrapper>
       ) : (
         <div class="layout-wrapper">
+          <Header />
           <slot />
         </div>
       )

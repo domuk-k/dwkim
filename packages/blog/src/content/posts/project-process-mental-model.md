@@ -31,13 +31,13 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 내 방식은 이렇습니다:
 
 1. 피그마를 복사해서 데이터 흐름과 상태 변화를 중심으로 메모
-2. 기획 문서를 Dia 브라우저로 파악하고, Claude Code를 활용해 기능별/도메인별로 분류
+2. 기획 문서를 [Dia 브라우저](https://www.diabrowser.com/)로 파악하고, LLM도구:[Claude code](https://www.anthropic.com/claude-code)를 활용해 기능별/도메인별로 분류한 md 작성
 3. AI가 놓친 부분이나 시스템 관점에서 어색한 부분을 직접 보완
 
 중요한 건 AI 도구를 단순한 정리 도구로 쓰는 게 아니라, 내가 놓칠 수 있는 관점을 찾는 파트너로 활용하는 것입니다. 그리고 결과물은 반드시 도메인 모델링 관점에서 검증해요.
 
-- **도메인 모델링**: 비즈니스 로직을 기술에 종속되지 않게 추상화
-- **비기능적 요구사항**: 환경, 성능, 보안 등 주어진 제약이나 기준
+- **도메인 모델링**: 비즈니스 로직을 기술에 종속되지 않게 추상화 → [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html) 참고
+- **비기능적 요구사항**: 환경, 성능, 보안 등 주어진 제약이나 기준 → [Non-functional requirements](https://en.wikipedia.org/wiki/Non-functional_requirement) 참고
 
 ### 3. 과업 정의
 
@@ -47,7 +47,7 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 특히 데이터 일관성, 사용자 경험, 성능 등을 시스템 전체 관점에서 균형 있게 설계하는 게 중요합니다. 팀 프로젝트에서는 각자의 강점을 살리면서도 전체적인 아키텍처 일관성을 유지할 수 있도록 과업을 배분해요.
 
-- **이슈/티켓**: 구현 가능한 최소 작업 단위
+- **이슈/티켓**: 구현 가능한 최소 작업 단위 → [User Story](https://www.atlassian.com/agile/project-management/user-stories), [Story Point](https://www.atlassian.com/agile/project-management/estimation) 개념 활용
 
 ### 4. 기술 스택 선정 & 아키텍처 설계
 
@@ -57,7 +57,7 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 데이터 저장/관리 전략, 클라이언트-서버 통신 방식, 상태 관리 패턴 등을 통합적으로 설계합니다. 이때 도메인 모델이 기술 스택에 종속되지 않도록 하는 것이 중요해요.
 
-- **아키텍처 패턴**: 데이터 흐름과 책임 분리를 고려한 구조 설계
+- **아키텍처 패턴**: 데이터 흐름과 책임 분리를 고려한 구조 설계 → [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html), [Layered Architecture](https://martinfowler.com/bliki/LayeredArchitecture.html) 참고
 
 ### 5. 프로젝트 세팅 & 개발 환경 구축
 
@@ -67,7 +67,7 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 코드 품질 관리, 문서화 체계, 배포 자동화 등을 초기에 설정해두면 나중에 기술 부채가 쌓이는 것을 방지할 수 있어요. 멘토링에서도 이런 프로세스를 경험하는 것 자체가 중요하다고 생각해서 가능한 한 실제 환경과 비슷하게 만들었습니다.
 
-- **코드 품질**: 린트, 포맷터, 테스트 환경 구성
+- **코드 품질**: 린트, 포맷터, 테스트 환경 구성 → [Pre-commit hooks](https://pre-commit.com/), [CI/CD](https://www.redhat.com/en/topics/devops/what-is-ci-cd) 파이프라인 활용
 
 ### 6. 구현/배포
 
@@ -77,7 +77,7 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 이 과정에서 테스트, 성능 최적화, 리팩토링 등이 자연스럽게 포함됩니다. 중요한 건 완벽한 코드를 한 번에 만들려고 하지 않고, 지속적으로 개선해나가는 마인드셋이에요.
 
-- **테스트**: 기능 테스트, 통합 테스트, 성능 테스트
+- **테스트**: 기능 테스트, 통합 테스트, 성능 테스트 → [Testing Pyramid](https://martinfowler.com/bliki/TestPyramid.html) 전략 적용
 
 ### 7. 회고
 
@@ -87,13 +87,13 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 특히 새로운 기술이나 도구를 도입했을 때는 더 자세히 분석합니다. 뭐가 예상대로 작동했고, 뭐가 예상과 달랐는지, 다음에는 어떻게 접근할 건지를 구체적으로 정리해둬요.
 
-- **회고 방법론**: KPT, 4L 등 상황에 맞는 회고 방식 선택
+- **회고 방법론**: [KPT](https://en.wikipedia.org/wiki/KPT_(software_development)), [4L](https://retrospectivewiki.org/index.php?title=4_Ls_Retrospective), [Start Stop Continue](https://retrospectivewiki.org/index.php?title=Start_Stop_Continue) 등 상황에 맞는 회고 방식 선택
 
 ## 멘토링을 통해 얻은 인사이트
 
 이 프로세스를 멘티들과 함께 적용하면서 몇 가지 인사이트를 얻었습니다:
 
-- **AI 도구 활용의 핵심은 전략적 사고**: 예를 들어 추가 기능을 기획할 때 Figma Make로 Supabase와 연동된 실제 동작하는 챗봇 프로토타입을 만들어보는 것처럼, 단순한 문서 작업을 넘어서 실제 검증 가능한 결과물을 만드는 데 활용해야 해요
+- **AI 도구 활용의 핵심은 전략적 사고**: 예를 들어 추가 기능을 기획할 때 [Figma Make](https://help.figma.com/hc/en-us/articles/1500005362262-Create-prototypes-with-Figma)로 [Supabase](https://supabase.com/)와 연동된 실제 동작하는 챗봇 프로토타입을 만들어보는 것처럼, 단순한 문서 작업을 넘어서 실제 검증 가능한 결과물을 만드는 데 활용해야 해요
 
 - **프로세스의 일관성이 품질을 결정**: 매번 다른 방식으로 접근하면 놓치는 부분이 생기고, 팀원들과의 소통도 어려워집니다. 하지만 기본 틀을 유지하면서 상황에 맞게 유연하게 적용하는 것이 중요해요
 

@@ -97,6 +97,31 @@ html.dark {
   --astro-code-token-link: rgba(255, 255, 255, 0.55);
 }
 
+/* Beige Mode */
+html.beige {
+  --bg: #f5f5dc;
+  --text-primary: rgba(101, 67, 33, 0.9);
+  --text-secondary: rgba(101, 67, 33, 0.5);
+  --text-tertiary: rgba(101, 67, 33, 0.3);
+  --border: rgba(101, 67, 33, 0.15);
+  --selection: rgba(101, 67, 33, 0.1);
+  --code-bg: rgba(101, 67, 33, 0.08);
+  --mark: #e6d7b7;
+
+  /* Syntax Theme  */
+  --astro-code-foreground: rgba(101, 67, 33, 0.9);
+  --astro-code-background: rgba(101, 67, 33, 0.03);
+  --astro-code-token-constant: rgba(101, 67, 33, 0.9);
+  --astro-code-token-string: rgba(101, 67, 33, 0.9);
+  --astro-code-token-comment: rgba(101, 67, 33, 0.35);
+  --astro-code-token-keyword: rgba(101, 67, 33, 0.55);
+  --astro-code-token-parameter: rgba(101, 67, 33, 0.9);
+  --astro-code-token-function: rgba(101, 67, 33, 0.9);
+  --astro-code-token-string-expression: rgba(101, 67, 33, 0.55);
+  --astro-code-token-punctuation: rgba(101, 67, 33, 0.55);
+  --astro-code-token-link: rgba(101, 67, 33, 0.55);
+}
+
 html {
   background-color: var(--bg);
   scroll-behavior: smooth;

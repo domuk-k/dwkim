@@ -7,6 +7,7 @@ import { themeConfig } from '@/config'
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
       <div class="theme-icon hollow-circle" />
       <div class="theme-icon solid-circle" />
+      <div class="theme-icon beige-circle" />
     </button>
   )
 }
@@ -71,6 +72,12 @@ import { themeConfig } from '@/config'
 
   .solid-circle {
     background-color: var(--text-primary);
+    border-radius: 50%;
+  }
+
+  .beige-circle {
+    background-color: #f5f5dc;
+    border: 1.5px solid var(--text-primary);
     border-radius: 50%;
   }
 </style>
