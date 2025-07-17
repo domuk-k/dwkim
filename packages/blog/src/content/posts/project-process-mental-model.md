@@ -30,14 +30,14 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 내 방식은 이렇습니다:
 
-1. 피그마를 복사해서 데이터 흐름과 상태 변화를 중심으로 메모
+1. 디자인 시안(figma)에 특이사항 메모하면서 대략적인 유즈케이스 파악
 2. 기획 문서를 [Dia 브라우저](https://www.diabrowser.com/)로 파악하고, LLM도구:[Claude code](https://www.anthropic.com/claude-code)를 활용해 기능별/도메인별로 분류한 md 작성
 3. AI가 놓친 부분이나 시스템 관점에서 어색한 부분을 직접 보완
 
 중요한 건 AI 도구를 단순한 정리 도구로 쓰는 게 아니라, 내가 놓칠 수 있는 관점을 찾는 파트너로 활용하는 것입니다. 그리고 결과물은 반드시 도메인 모델링 관점에서 검증해요.
 
-- **도메인 모델링**: 비즈니스 로직을 기술에 종속되지 않게 추상화 → [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html) 참고
-- **비기능적 요구사항**: 환경, 성능, 보안 등 주어진 제약이나 기준 → [Non-functional requirements](https://en.wikipedia.org/wiki/Non-functional_requirement) 참고
+- **도메인 모델링**: 비즈니스 로직을 기술에 종속되지 않게 추상화 → [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)
+- **비기능적 요구사항**: 환경, 성능, 보안 등 주어진 제약이나 기준 → [Non-functional requirements](https://en.wikipedia.org/wiki/Non-functional_requirement)
 
 ### 3. 과업 정의
 
@@ -87,7 +87,7 @@ description: '프로젝트 수행 프로세스에 대한 나의 멘탈모델'
 
 특히 새로운 기술이나 도구를 도입했을 때는 더 자세히 분석합니다. 뭐가 예상대로 작동했고, 뭐가 예상과 달랐는지, 다음에는 어떻게 접근할 건지를 구체적으로 정리해둬요.
 
-- **회고 방법론**: [KPT](https://en.wikipedia.org/wiki/KPT_(software_development)), [4L](https://retrospectivewiki.org/index.php?title=4_Ls_Retrospective), [Start Stop Continue](https://retrospectivewiki.org/index.php?title=Start_Stop_Continue) 등 상황에 맞는 회고 방식 선택
+- **회고 방법론**: [KPT](<https://en.wikipedia.org/wiki/KPT_(software_development)>), [4L](https://retrospectivewiki.org/index.php?title=4_Ls_Retrospective), [Start Stop Continue](https://retrospectivewiki.org/index.php?title=Start_Stop_Continue) 등 상황에 맞는 회고 방식 선택
 
 ## 멘토링을 통해 얻은 인사이트
 
