@@ -1,0 +1,98 @@
+---
+import ThemeToggle from '@/components/ui/ThemeToggle.astro'
+---
+
+<header>
+  <nav>
+    <div class="logo-container">
+      <a href="/" class="animated-title">
+        <span class="title-text korean">김동욱</span>
+        <span class="title-text english">dwkim</span>
+      </a>
+    </div>
+    <div class="nav-right">
+      <a href="/posts" class="nav-link">게시글</a>
+      <ThemeToggle />
+    </div>
+  </nav>
+</header>
+<style>
+  header {
+    margin: 0 0 1.75rem 0;
+  }
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header a {
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    text-decoration: none;
+    min-width: 3rem;
+    display: inline-block;
+  }
+
+  .logo-container {
+    position: relative;
+  }
+
+  .animated-title {
+    position: relative;
+    overflow: hidden;
+    height: 1.4em;
+    cursor: pointer;
+    padding: 0.1em 0;
+  }
+
+  .title-text {
+    position: absolute;
+    top: 0.1em;
+    left: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    white-space: nowrap;
+    line-height: 1.2;
+    font-size: 1.1em;
+  }
+
+  .title-text.korean {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .title-text.english {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  .animated-title:hover .title-text.korean {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  .animated-title:hover .title-text.english {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .nav-link {
+    font-size: var(--font-size-m);
+    font-weight: var(--font-weight-regular);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--selection);
+  }
+</style>

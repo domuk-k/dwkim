@@ -22,7 +22,21 @@
       "Bash(PORT=3001 npm run dev)",
       "Bash(pnpm add:*)",
       "Bash(PORT=3001 dwkim:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:nextjs.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm dev:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(pnpm list:*)",
+      "Bash(git checkout:*)",
+      "Bash(mv:*)",
+      "Bash(git clone:*)",
+      "Bash(rm:*)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(pnpm build:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
