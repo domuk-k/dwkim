@@ -44,7 +44,7 @@
       },
 
       applyTheme(theme) {
-        document.documentElement.classList.remove('light', 'dark')
+        document.documentElement.classList.remove('light', 'dark', 'beige')
         document.documentElement.classList.add(theme)
 
         // Dispatch event for other components
@@ -61,8 +61,15 @@
 
       toggle() {
         const currentTheme = this.getEffectiveTheme()
-        // Simply toggle between light and dark
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
+        // Cycle through light -> dark -> beige -> light
+        let newTheme
+        if (currentTheme === 'light') {
+          newTheme = 'dark'
+        } else if (currentTheme === 'dark') {
+          newTheme = 'beige'
+        } else {
+          newTheme = 'light'
+        }
 
         this.setStoredTheme(newTheme)
         this.applyTheme(newTheme)
@@ -96,9 +103,12 @@
         // Use requestAnimationFrame to ensure execution in the next frame, avoiding conflicts with transition animations
         requestAnimationFrame(() => {
           const currentTheme = window.ThemeManager.getEffectiveTheme()
-          const appliedTheme = document.documentElement.classList.contains('dark')
-            ? 'dark'
-            : 'light'
+          let appliedTheme = 'light'
+          if (document.documentElement.classList.contains('dark')) {
+            appliedTheme = 'dark'
+          } else if (document.documentElement.classList.contains('beige')) {
+            appliedTheme = 'beige'
+          }
 
           // Only reapply theme when there's a mismatch to avoid unnecessary flickering
           if (currentTheme !== appliedTheme) {
