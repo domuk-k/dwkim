@@ -122,14 +122,14 @@ body {
   flex-direction: column;
   box-sizing: border-box;
   letter-spacing: var(--spacing-m);
-  padding: 6rem 1.5rem 1.5rem 1.5rem;
+  padding: 3rem 1.5rem 1.5rem 1.5rem;
   overscroll-behavior-y: contain;
   transition: background-color 0.2s ease-out;
 }
 
 @media (max-width: 768px) {
   body {
-    padding: 4rem 1.25rem 1.25rem 1.25rem;
+    padding: 2rem 1.25rem 1.25rem 1.25rem;
   }
 }
 

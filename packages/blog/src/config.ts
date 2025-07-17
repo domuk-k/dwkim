@@ -12,7 +12,7 @@ export const themeConfig: ThemeConfig = {
 
   // GENERAL SETTINGS ////////////////////////////////////////////////////////////////////////////////////
   general: {
-    contentWidth: '35rem', // Content area width
+    contentWidth: '40rem', // Content area width
     centeredLayout: true, // Use centered layout (false for left-aligned)
     favicon: true, // Show favicon on index page
     themeToggle: true, // Show theme toggle button (uses system theme by default)

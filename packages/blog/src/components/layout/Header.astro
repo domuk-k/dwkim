@@ -1,12 +1,10 @@
 ---
-import { themeConfig } from '@/config'
 import ThemeToggle from '@/components/ui/ThemeToggle.astro'
 ---
 
 <header>
   <nav>
     <div class="logo-container">
-      {themeConfig.general.favicon && <img src="/favicon.svg" alt="favicon" class="favicon" />}
       <a href="/" class="animated-title">
         <span class="title-text korean">김동욱</span>
         <span class="title-text english">dwkim</span>
@@ -34,19 +32,11 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
     min-width: 3rem;
     display: inline-block;
   }
-  
+
   .logo-container {
     position: relative;
   }
-  
-  .favicon {
-    position: absolute;
-    width: 1.125rem;
-    height: 1.125rem;
-    bottom: calc(100% + 3.5rem);
-    left: 0;
-  }
-  
+
   .animated-title {
     position: relative;
     overflow: hidden;
@@ -54,7 +44,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
     cursor: pointer;
     padding: 0.1em 0;
   }
-  
+
   .title-text {
     position: absolute;
     top: 0.1em;
@@ -62,34 +52,35 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
     transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     white-space: nowrap;
     line-height: 1.2;
+    font-size: 1.1em;
   }
-  
+
   .title-text.korean {
     transform: translateY(0);
     opacity: 1;
   }
-  
+
   .title-text.english {
     transform: translateY(100%);
     opacity: 0;
   }
-  
+
   .animated-title:hover .title-text.korean {
     transform: translateY(-100%);
     opacity: 0;
   }
-  
+
   .animated-title:hover .title-text.english {
     transform: translateY(0);
     opacity: 1;
   }
-  
+
   .nav-right {
     display: flex;
     align-items: center;
     gap: 1rem;
   }
-  
+
   .nav-link {
     font-size: var(--font-size-m);
     font-weight: var(--font-weight-regular);
@@ -99,7 +90,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
   }
-  
+
   .nav-link:hover {
     color: var(--text-primary);
     background-color: var(--selection);

@@ -34,7 +34,9 @@
       "Bash(rm:*)",
       "Bash(cp:*)",
       "Bash(find:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

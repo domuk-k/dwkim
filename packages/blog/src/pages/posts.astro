@@ -9,18 +9,14 @@ const posts = await getCollection('posts', ({ data }) => {
 })
 
 const sortedPosts = posts.sort(
-  (a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf(),
+  (a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf()
 )
 
 const title = `글목록 | ${themeConfig.site.title}`
-const description = `${themeConfig.site.author}의 모든 글을 확인할 수 있다.`
+const description = `${themeConfig.site.author}의 모든 글을 확인할 수 있습니다.`
 ---
 
 <IndexLayout title={title} description={description}>
-  <div class="posts-header">
-    <h1>글목록</h1>
-    <p class="posts-description">모든 글을 시간순으로 정렬했다.</p>
-  </div>
   <PostList posts={sortedPosts} />
 </IndexLayout>
 
@@ -28,14 +24,14 @@ const description = `${themeConfig.site.author}의 모든 글을 확인할 수 �
   .posts-header {
     margin-bottom: 2rem;
   }
-  
+
   .posts-header h1 {
     font-size: 1.5rem;
     font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     margin-bottom: 0.5rem;
   }
-  
+
   .posts-description {
     font-size: var(--font-size-m);
     color: var(--text-secondary);
