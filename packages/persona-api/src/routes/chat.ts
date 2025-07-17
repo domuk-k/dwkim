@@ -23,7 +23,7 @@ const ChatRequestSchema = z.object({
 });
 
 // 응답 스키마
-const ChatResponseSchema = z.object({
+export const ChatResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     answer: z.string(),

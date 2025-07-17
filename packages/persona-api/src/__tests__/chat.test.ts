@@ -1,8 +1,9 @@
 import request from 'supertest';
 import { createServer } from '../server';
+import type { FastifyInstance } from 'fastify';
 
 describe('Chat API', () => {
-  let app: any;
+  let app: FastifyInstance;
 
   beforeAll(async () => {
     app = await createServer();
