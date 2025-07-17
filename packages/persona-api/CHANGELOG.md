@@ -1,8 +1,8 @@
-# dwkim
+# persona-api
 
-## 0.2.0
+## 2.0.0
 
-### Minor Changes
+### Major Changes
 
 - 5b13b43: feat: RAG 기반 개인화 챗봇 API 및 CLI 통합 구현
 
@@ -27,15 +27,3 @@
   - 문서 검색 및 관리
   - Rate limiting 및 abuse detection
   - 종합적인 헬스체크 시스템
-
-### Patch Changes
-
-- e5dd4c0: refactor: printProfile 함수 개선 및 프로필 정보 상수화
-- a10fb76: fix: bio update
-
-## 0.1.2
-
-### Patch Changes
-
-- 14bb186: chore: intro of pnpm workspace
-- 8b6bd18: dwkim 패키지 구조 변경 및 스크립트 수정
