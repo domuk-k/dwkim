@@ -39,7 +39,10 @@
       "Bash(git rm:*)",
       "Bash(pnpm run lint:*)",
       "Bash(pnpm run:*)",
-      "Bash(npx husky:*)"
+      "Bash(npx husky:*)",
+      "WebFetch(domain:leerob.com)",
+      "WebFetch(domain:www.kibo-ui.com)",
+      "Bash(npx kibo-ui@latest add:*)"
     ],
     "deny": []
   }
