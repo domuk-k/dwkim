@@ -6,6 +6,7 @@ import FaviconThemeSwitcher from '@/components/ui/FaviconThemeSwitcher.astro'
 import TransitionWrapper from '@/components/layout/TransitionWrapper.astro'
 import Header from '@/components/layout/Header.astro'
 import type { LayoutProps } from '@/types'
+import Analytics from '@vercel/analytics/astro'
 
 type Props = LayoutProps
 
@@ -19,10 +20,9 @@ const finalWidth = shouldUseCustomWidth ? `${widthValue}rem` : '25rem'
 ---
 
 <html lang={language}>
-  <head>
-    {fadeAnimation && <ClientRouter />}
-    <slot name="head" />
-  </head>
+  {fadeAnimation && <ClientRouter />}
+  <slot name="head" />
+
   <body
     data-centered={themeConfig.general.centeredLayout}
     style={`
@@ -32,6 +32,7 @@ const finalWidth = shouldUseCustomWidth ? `${widthValue}rem` : '25rem'
   >
     <ThemeManager />
     <FaviconThemeSwitcher />
+    <Analytics />
 
     {
       fadeAnimation ? (
