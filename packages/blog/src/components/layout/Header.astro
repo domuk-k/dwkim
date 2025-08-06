@@ -6,6 +6,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
   <nav>
     <div class="logo-container">
       <a href="/" class="animated-title">
+        <span class="title-text-sizer">dwkim</span>
         <span class="title-text korean">김동욱</span>
         <span class="title-text english">dwkim</span>
       </a>
@@ -43,6 +44,14 @@ import ThemeToggle from '@/components/ui/ThemeToggle.astro'
     height: 1.4em;
     cursor: pointer;
     padding: 0.1em 0;
+    display: inline-block;
+  }
+
+  .title-text-sizer {
+    visibility: hidden;
+    white-space: nowrap;
+    line-height: 1.2;
+    font-size: 1.1em;
   }
 
   .title-text {
