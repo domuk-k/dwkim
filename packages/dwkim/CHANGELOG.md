@@ -1,5 +1,11 @@
 # dwkim
 
+## 0.2.1
+
+### Patch Changes
+
+- f5e7e49: Fix a bug where the CLI command would crash due to a double shebang line.
+
 ## 0.2.0
 
 ### Minor Changes
