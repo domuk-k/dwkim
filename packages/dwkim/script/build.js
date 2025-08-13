@@ -15,9 +15,6 @@ try {
     platform: 'node',
     format: 'esm',
     outfile: join(projectRoot, 'dist/index.js'),
-    banner: {
-      js: '#!/usr/bin/env node',
-    },
     target: 'node18',
     minify: true,
   });
