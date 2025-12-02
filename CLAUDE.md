@@ -19,25 +19,21 @@ This is a **pnpm workspace monorepo** with three main packages:
 - **LLM**: OpenAI (primary), Anthropic (fallback)
 - **Deployment**: Render.com at https://dwkim.onrender.com
 
-### 3. `packages/blog/` - Next.js Blog
+### 3. `packages/blog/` - Astro Blog
 - **Purpose**: Personal blog with MDX content
-- **Framework**: Next.js 13+ with App Router
-- **Content**: Contentlayer for MDX processing
-- **Styling**: Tailwind CSS with shadcn/ui components
+- **Framework**: Astro 5.11+ with static site generation
+- **Content**: Astro Content Collections for MDX processing
+- **Styling**: Custom CSS with KaTeX for mathematical typography
+- **Features**: RSS/Atom feeds, sitemap, image optimization, table of contents
 
 ## Common Commands
 
 ### Workspace-level (from root)
 ```bash
 pnpm dev                  # Start all packages in dev mode
-pnpm build               # Build all packages
-pnpm lint                # Lint all packages
-
-# Individual package commands
-pnpm dev:dwkim           # CLI tool dev mode
-pnpm dev:blog            # Blog dev server
-pnpm build:dwkim         # Build CLI tool
-pnpm build:blog          # Build blog
+pnpm build                # Build all packages
+pnpm lint                 # Lint all packages
+pnpm release:dwkim        # Build and publish dwkim to npm
 ```
 
 ### Package-specific Commands
@@ -60,14 +56,16 @@ pnpm test:coverage       # Coverage report
 pnpm lint                # ESLint
 pnpm type-check          # TypeScript check
 pnpm init-data           # Initialize vector DB
+pnpm manage              # Manage vector DB data
 ```
 
 #### blog (`packages/blog/`)
 ```bash
-pnpm dev                 # Next.js dev server
-pnpm build               # Next.js build
-pnpm preview             # Build and start
-pnpm lint                # Next.js lint
+pnpm dev                 # Astro dev server
+pnpm build               # Astro static build
+pnpm preview             # Preview built site
+pnpm lint                # ESLint
+pnpm new                 # Create new blog post (interactive)
 ```
 
 ## Architecture Notes
@@ -77,24 +75,16 @@ pnpm lint                # Next.js lint
 - **Routes**: `src/routes/` (health, chat)
 - **Services**: `src/services/` (LLM, RAG engine, vector store)
 - **Middleware**: Rate limiting, abuse detection (Redis-dependent)
+- **Data**: `data/` contains personal info (resume, experience, FAQ, thoughts)
 - **Graceful Degradation**: Runs without Redis, falls back to memory-based rate limiting
-- **Error Handling**: Comprehensive error handlers with fallback mechanisms
 
 ### Development Patterns
 - **Error Handling**: Always provide fallbacks (especially for Redis)
 - **Environment Variables**: All configuration externalized
-- **Logging**: Uses emojis for status indication
 - **TypeScript**: Strict mode across all packages
-- **Testing**: Jest for persona-api, no test setup for other packages
+- **Testing**: Jest for persona-api only
 
 ### Deployment
 - **persona-api**: Auto-deploys to Render.com on git push
 - **Rate Limiting**: 8 req/min in production
-- **Redis**: Optional dependency (free tier)
 - **Health Check**: `/health` endpoint for monitoring
-
-## Development Workflow
-1. Work from workspace root
-2. Use package-specific commands when needed
-3. Test changes before committing
-4. persona-api auto-deploys on push to main
