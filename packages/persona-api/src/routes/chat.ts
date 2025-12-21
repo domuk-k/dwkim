@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { RAGEngine, RAGResponse } from '../services/ragEngine';
-import { ChatMessage } from '../services/llmService';
+import { RAGEngine } from '../services/ragEngine';
+import type { RAGResponse } from '../services/ragEngine';
+import type { ChatMessage } from '../services/llmService';
 
 // 요청 스키마
 const ChatRequestSchema = z.object({
@@ -249,6 +250,86 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           success: false,
           error: '서버 내부 오류가 발생했습니다.',
         });
+      }
+    }
+  );
+
+  // 스트리밍 채팅 엔드포인트 (SSE)
+  fastify.post(
+    '/chat/stream',
+    {
+      schema: {
+        description: '스트리밍 RAG 채팅 API (Server-Sent Events)',
+        tags: ['Chat'],
+        body: {
+          type: 'object',
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              description: '사용자 메시지',
+              minLength: 1,
+              maxLength: 1000,
+            },
+            conversationHistory: {
+              type: 'array',
+              description: '대화 히스토리',
+              items: {
+                type: 'object',
+                properties: {
+                  role: { type: 'string', enum: ['user', 'assistant'] },
+                  content: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const validatedData = ChatRequestSchema.parse(request.body);
+        const { message, conversationHistory = [] } = validatedData;
+
+        if (!ragEngine) {
+          return reply.status(503).send({
+            success: false,
+            error: 'RAG 엔진이 초기화되지 않았습니다.',
+          });
+        }
+
+        // SSE 헤더 설정
+        reply.raw.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        });
+
+        const history: ChatMessage[] = conversationHistory.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+
+        // 스트리밍 응답
+        for await (const event of ragEngine.processQueryStream(message, history)) {
+          const data = JSON.stringify(event);
+          reply.raw.write(`data: ${data}\n\n`);
+        }
+
+        reply.raw.end();
+      } catch (error) {
+        console.error('Stream chat error:', error);
+
+        if (error instanceof z.ZodError) {
+          return reply.status(400).send({
+            success: false,
+            error: '입력 데이터 검증 실패',
+          });
+        }
+
+        reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`);
+        reply.raw.end();
       }
     }
   );
