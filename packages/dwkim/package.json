@@ -1,7 +1,7 @@
 {
   "name": "dwkim",
   "version": "0.2.1",
-  "description": "this",
+  "description": "CLI business card and AI assistant for dwkim",
   "license": "MIT",
   "author": "dannyworks102@gmail.com",
   "type": "module",
@@ -11,22 +11,30 @@
   },
   "files": [
     "dist",
+    "scripts/install.sh",
     "package.json"
   ],
   "scripts": {
     "build": "node script/build.js",
+    "build:binary": "pkg dist/index.js --targets node20-linux-x64,node20-macos-x64,node20-macos-arm64,node20-win-x64 --output dist/bin/dwkim",
     "dev": "tsx watch src/index.ts",
     "lint": "tsc"
   },
   "dependencies": {
-    "typescript": "^5.8.3"
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
+    "ora": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "boxen": "^8.0.1",
-    "chalk": "^5.4.1",
+    "@yao-pkg/pkg": "^6.0.0",
     "esbuild": "^0.20.0",
-    "ora": "^9.0.0",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "pkg": {
+    "scripts": "dist/**/*.js",
+    "assets": [],
+    "outputPath": "dist/bin"
   }
 }
