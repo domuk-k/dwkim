@@ -1,12 +1,80 @@
+// 사용자 친화적 에러 클래스
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode?: number,
+    public readonly isRetryable: boolean = false
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+// 네트워크 에러를 친절한 메시지로 변환
+function handleFetchError(error: unknown): never {
+  if (error instanceof TypeError) {
+    // 네트워크 연결 실패
+    if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
+      throw new ApiError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.', undefined, true);
+    }
+    if (error.message.includes('ETIMEDOUT') || error.message.includes('timeout')) {
+      throw new ApiError('요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.', undefined, true);
+    }
+  }
+  throw error;
+}
+
+// HTTP 상태 코드별 에러 처리
+function handleHttpError(status: number, body: string): never {
+  switch (status) {
+    case 429:
+      throw new ApiError('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', 429, true);
+    case 503:
+      throw new ApiError('서버가 일시적으로 사용 불가합니다. 잠시 후 다시 시도해주세요.', 503, true);
+    case 500:
+      throw new ApiError('서버 내부 오류가 발생했습니다.', 500, false);
+    default:
+      throw new ApiError(`요청 실패: ${status}`, status, false);
+  }
+}
+
+// API 응답의 실제 구조 (persona-api에서 반환)
+interface ApiChatResponse {
+  success: boolean;
+  data: {
+    answer: string;
+    sources?: Array<{
+      id: string;
+      content: string;
+      metadata: {
+        type: string;
+        title?: string;
+        category?: string;
+      };
+    }>;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    metadata: {
+      searchQuery: string;
+      searchResults: number;
+      processingTime: number;
+    };
+  };
+  error?: string;
+}
+
+// CLI에서 사용하는 정규화된 응답
 export interface ChatResponse {
   answer: string;
   sources?: Array<{
     type: string;
-    filename: string;
+    title: string;
     content: string;
-    score?: number;
   }>;
-  timestamp: string;
+  processingTime: number;
 }
 
 export interface SearchResult {
@@ -44,20 +112,41 @@ export class PersonaApiClient {
   }
 
   async chat(message: string): Promise<ChatResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
-    });
+    let response: Response;
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Chat request failed: ${response.status} - ${error}`);
+    try {
+      response = await fetch(`${this.baseUrl}/api/v1/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+    } catch (error) {
+      handleFetchError(error);
     }
 
-    return response.json();
+    if (!response.ok) {
+      const body = await response.text();
+      handleHttpError(response.status, body);
+    }
+
+    const apiResponse: ApiChatResponse = await response.json();
+
+    if (!apiResponse.success || !apiResponse.data) {
+      throw new ApiError(apiResponse.error || 'Invalid API response');
+    }
+
+    // API 응답을 CLI 형식으로 정규화
+    return {
+      answer: apiResponse.data.answer,
+      sources: apiResponse.data.sources?.map((source) => ({
+        type: source.metadata.type,
+        title: source.metadata.title || source.id,
+        content: source.content,
+      })),
+      processingTime: apiResponse.data.metadata.processingTime,
+    };
   }
 
   async search(query: string): Promise<SearchResult[]> {
