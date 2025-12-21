@@ -1,5 +1,6 @@
 import { createReadlineInterface } from './utils/readline';
 import { PersonaApiClient, ApiError } from './utils/personaApiClient';
+import ora from 'ora';
 
 const DEFAULT_API_URL = 'https://dwkim.onrender.com';
 const API_URL = process.env.DWKIM_API_URL || DEFAULT_API_URL;
@@ -17,11 +18,17 @@ Press Ctrl+C to exit
   const rl = createReadlineInterface();
 
   // Check API connection
+  const healthSpinner = ora({
+    text: 'Connecting to persona-api...',
+    spinner: 'dots',
+  }).start();
+
   try {
     await client.checkHealth();
-    console.log('✅ Connected to persona-api\n');
+    healthSpinner.succeed('Connected to persona-api');
+    console.log('');
   } catch (error) {
-    console.log('❌ Failed to connect to persona-api');
+    healthSpinner.fail('Failed to connect to persona-api');
     if (API_URL === DEFAULT_API_URL) {
       console.log('💡 The API server might be waking up. Please try again in a moment.\n');
     } else {
@@ -46,10 +53,15 @@ Press Ctrl+C to exit
       }
 
       // Send question to API
+      const spinner = ora({
+        text: 'Thinking...',
+        spinner: 'dots',
+      }).start();
+
       try {
-        console.log('\n🤔 Thinking...');
         const response = await client.chat(question);
-        
+        spinner.stop();
+
         console.log(`\n🤖 Assistant: ${response.answer}\n`);
 
         if (response.sources && response.sources.length > 0) {
@@ -63,8 +75,9 @@ Press Ctrl+C to exit
         if (response.processingTime) {
           console.log(`⏱️  ${response.processingTime}ms\n`);
         }
-        
+
       } catch (error) {
+        spinner.fail('Failed to get response');
         if (error instanceof ApiError) {
           console.log(`\n❌ ${error.message}`);
           if (error.isRetryable) {
