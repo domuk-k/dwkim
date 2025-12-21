@@ -1,7 +1,8 @@
 import { createReadlineInterface } from './utils/readline';
-import { PersonaApiClient } from './utils/personaApiClient';
+import { PersonaApiClient, ApiError } from './utils/personaApiClient';
 
-const API_URL = 'http://localhost:8080';
+const DEFAULT_API_URL = 'https://dwkim.onrender.com';
+const API_URL = process.env.DWKIM_API_URL || DEFAULT_API_URL;
 
 export async function startChat() {
   console.log(`
@@ -21,7 +22,11 @@ Press Ctrl+C to exit
     console.log('✅ Connected to persona-api\n');
   } catch (error) {
     console.log('❌ Failed to connect to persona-api');
-    console.log('💡 Make sure the API server is running: cd packages/persona-api && npm run docker:up\n');
+    if (API_URL === DEFAULT_API_URL) {
+      console.log('💡 The API server might be waking up. Please try again in a moment.\n');
+    } else {
+      console.log(`💡 Check if the API is running at: ${API_URL}\n`);
+    }
   }
 
   const askQuestion = () => {
@@ -46,17 +51,30 @@ Press Ctrl+C to exit
         const response = await client.chat(question);
         
         console.log(`\n🤖 Assistant: ${response.answer}\n`);
-        
+
         if (response.sources && response.sources.length > 0) {
           console.log('📚 Sources:');
           response.sources.forEach((source, index) => {
-            console.log(`  ${index + 1}. ${source.type}/${source.filename} (relevance: ${source.score?.toFixed(2)})`);
+            console.log(`  ${index + 1}. [${source.type}] ${source.title}`);
           });
           console.log('');
         }
+
+        if (response.processingTime) {
+          console.log(`⏱️  ${response.processingTime}ms\n`);
+        }
         
       } catch (error) {
-        console.log(`\n❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
+        if (error instanceof ApiError) {
+          console.log(`\n❌ ${error.message}`);
+          if (error.isRetryable) {
+            console.log('💡 다시 시도해보세요.\n');
+          } else {
+            console.log('');
+          }
+        } else {
+          console.log(`\n❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
+        }
       }
 
       askQuestion();
