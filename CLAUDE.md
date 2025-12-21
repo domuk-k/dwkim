@@ -20,9 +20,9 @@ This is a **pnpm workspace monorepo** with three main packages:
 - **Deployment**: Render.com at https://dwkim.onrender.com
 
 ### 3. `packages/blog/` - Astro Blog
-- **Purpose**: Personal blog with MDX content
+- **Purpose**: Personal blog with Markdown content
 - **Framework**: Astro 5.11+ with static site generation
-- **Content**: Astro Content Collections for MDX processing
+- **Content**: Astro Content Collections (`posts`, `about`)
 - **Styling**: Custom CSS with KaTeX for mathematical typography
 - **Features**: RSS/Atom feeds, sitemap, image optimization, table of contents
 
@@ -54,9 +54,12 @@ pnpm test                # Jest tests
 pnpm test:watch          # Watch tests
 pnpm test:coverage       # Coverage report
 pnpm lint                # ESLint
+pnpm lint:fix            # ESLint with auto-fix
 pnpm type-check          # TypeScript check
 pnpm init-data           # Initialize vector DB
 pnpm manage              # Manage vector DB data
+pnpm docker:up           # Start Docker containers
+pnpm docker:down         # Stop Docker containers
 ```
 
 #### blog (`packages/blog/`)
@@ -65,6 +68,7 @@ pnpm dev                 # Astro dev server
 pnpm build               # Astro static build
 pnpm preview             # Preview built site
 pnpm lint                # ESLint
+pnpm lint:fix            # ESLint with auto-fix
 pnpm new                 # Create new blog post (interactive)
 ```
 
@@ -75,14 +79,22 @@ pnpm new                 # Create new blog post (interactive)
 - **Routes**: `src/routes/` (health, chat)
 - **Services**: `src/services/` (LLM, RAG engine, vector store)
 - **Middleware**: Rate limiting, abuse detection (Redis-dependent)
-- **Data**: `data/` contains personal info (resume, experience, FAQ, thoughts)
+- **Data**: `data/` contains personal info (resume.md, experience.md, faq.md, thoughts.md)
 - **Graceful Degradation**: Runs without Redis, falls back to memory-based rate limiting
+- **Tests**: Jest with tests in `src/__tests__/`, run single test with `pnpm test -- path/to/test`
+
+### Blog Architecture
+- **Content Collections**: Defined in `src/content.config.ts`
+  - `posts`: Blog posts with title, description, pubDate, image frontmatter
+  - `about`: Profile sections (developer, coach, runner, contributor)
+- **Custom Plugins** (`src/plugins/`): remark/rehype plugins for embedded media, reading time, TOC, image processing, copy code buttons
 
 ### Development Patterns
 - **Error Handling**: Always provide fallbacks (especially for Redis)
 - **Environment Variables**: All configuration externalized
 - **TypeScript**: Strict mode across all packages
 - **Testing**: Jest for persona-api only
+- **Versioning**: Changesets for version management (`pnpm changeset`)
 
 ### Deployment
 - **persona-api**: Auto-deploys to Render.com on git push
