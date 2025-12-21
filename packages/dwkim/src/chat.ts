@@ -10,11 +10,15 @@ const API_URL = process.env.DWKIM_API_URL || DEFAULT_API_URL;
 
 export async function startChat() {
   console.log(`
-🤖 AI Assistant Chat
+╭────────────────────────────────────────────────╮
+│  🤖  dwkim AI Assistant                        │
+│                                                │
+│  Ask me anything about dwkim's experience,     │
+│  skills, projects, or thoughts on tech!        │
+╰────────────────────────────────────────────────╯
 
-Connected to: ${API_URL}
-Type your questions about dwkim or '/help' for commands
-Press Ctrl+C to exit
+${USE_STREAMING ? '⚡ Streaming mode enabled' : '📦 Batch mode'}
+Type ${'/help'} for commands • Press Ctrl+C to exit
 `);
 
   const client = new PersonaApiClient(API_URL);
@@ -29,6 +33,11 @@ Press Ctrl+C to exit
   try {
     await client.checkHealth();
     healthSpinner.succeed('Connected to persona-api');
+    console.log('');
+    console.log('💡 Try asking:');
+    console.log('   • What technologies do you use?');
+    console.log('   • Tell me about your experience');
+    console.log('   • What are your thoughts on AI?');
     console.log('');
   } catch (error) {
     healthSpinner.fail('Failed to connect to persona-api');
@@ -188,19 +197,23 @@ async function handleCommand(command: string, client: PersonaApiClient) {
   switch (cmd) {
     case 'help':
       console.log(`
-📋 Available Commands:
+╭─────────────────────────────────────────────────╮
+│  📋 Available Commands                          │
+╰─────────────────────────────────────────────────╯
 
-Chat Commands:
-  /help          Show this help message
-  /status        Check API server status
-  /search <query>    Search documents directly
-  /clear         Clear conversation history (if supported)
-  
-Examples:
-  What technologies do you use?
-  Tell me about your experience
-  What are your thoughts on AI?
-  /search typescript
+  /help           Show this help message
+  /status         Check API server status
+  /search <query> Search documents directly
+  /clear          Clear conversation history
+
+╭─────────────────────────────────────────────────╮
+│  💬 Example Questions                           │
+╰─────────────────────────────────────────────────╯
+
+  • What technologies do you use?
+  • Tell me about your work experience
+  • What projects have you worked on?
+  • What are your thoughts on AI?
 `);
       break;
 
