@@ -101,6 +101,18 @@ export interface StatusResponse {
   };
 }
 
+export interface StreamEvent {
+  type: 'sources' | 'content' | 'done' | 'error';
+  sources?: Array<{
+    id: string;
+    content: string;
+    metadata: { type: string; title?: string };
+  }>;
+  content?: string;
+  metadata?: { searchQuery: string; searchResults: number; processingTime: number };
+  error?: string;
+}
+
 export class PersonaApiClient {
   constructor(private baseUrl: string) {}
 
@@ -147,6 +159,59 @@ export class PersonaApiClient {
       })),
       processingTime: apiResponse.data.metadata.processingTime,
     };
+  }
+
+  async *chatStream(message: string): AsyncGenerator<StreamEvent> {
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}/api/v1/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+    } catch (error) {
+      handleFetchError(error);
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      handleHttpError(response.status, body);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new ApiError('스트리밍 응답을 받을 수 없습니다.');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event: StreamEvent = JSON.parse(line.slice(6));
+              yield event;
+            } catch {
+              // JSON 파싱 실패 시 무시
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   async search(query: string): Promise<SearchResult[]> {

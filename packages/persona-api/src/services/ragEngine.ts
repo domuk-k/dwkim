@@ -1,5 +1,6 @@
 import { VectorStore, Document } from './vectorStore';
-import { LLMService, ChatMessage } from './llmService';
+import { LLMService } from './llmService';
+import type { ChatMessage } from './llmService';
 
 export interface RAGResponse {
   answer: string;
@@ -14,6 +15,14 @@ export interface RAGResponse {
     searchResults: number;
     processingTime: number;
   };
+}
+
+export interface RAGStreamEvent {
+  type: 'sources' | 'content' | 'done' | 'error';
+  sources?: Document[];
+  content?: string;
+  metadata?: RAGResponse['metadata'];
+  error?: string;
 }
 
 export class RAGEngine {
@@ -87,6 +96,57 @@ export class RAGEngine {
     } catch (error) {
       console.error('RAG processing failed:', error);
       throw new Error('Failed to process query with RAG engine');
+    }
+  }
+
+  async *processQueryStream(
+    query: string,
+    conversationHistory: ChatMessage[] = []
+  ): AsyncGenerator<RAGStreamEvent> {
+    const startTime = Date.now();
+
+    try {
+      console.log('RAG Engine streaming query:', query);
+
+      // 1. 벡터 검색
+      const searchResults = await this.vectorStore.search(
+        query,
+        this.maxSearchResults
+      );
+
+      // 소스 먼저 전송
+      yield { type: 'sources', sources: searchResults };
+
+      // 2. 컨텍스트 생성
+      const context = this.buildContext(searchResults, query);
+
+      // 3. LLM 스트리밍
+      const messages: ChatMessage[] = [
+        ...conversationHistory,
+        { role: 'user', content: query },
+      ];
+
+      for await (const chunk of this.llmService.chatStream(messages, context)) {
+        if (chunk.type === 'content' && chunk.content) {
+          yield { type: 'content', content: chunk.content };
+        } else if (chunk.type === 'error') {
+          yield { type: 'error', error: chunk.error };
+          return;
+        }
+      }
+
+      const processingTime = Date.now() - startTime;
+      yield {
+        type: 'done',
+        metadata: {
+          searchQuery: query,
+          searchResults: searchResults.length,
+          processingTime,
+        },
+      };
+    } catch (error) {
+      console.error('RAG streaming failed:', error);
+      yield { type: 'error', error: 'Failed to process streaming query' };
     }
   }
 

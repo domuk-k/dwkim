@@ -15,6 +15,13 @@ export interface ChatResponse {
   };
 }
 
+export interface ChatStreamChunk {
+  type: 'content' | 'done' | 'error';
+  content?: string;
+  usage?: ChatResponse['usage'];
+  error?: string;
+}
+
 export class LLMService {
   private client?: Anthropic;
   private openaiClient?: OpenAI;
@@ -150,6 +157,100 @@ export class LLMService {
     } catch (error) {
       console.error('LLM API call failed:', error);
       throw new Error('Failed to generate response from LLM');
+    }
+  }
+
+  async *chatStream(
+    messages: ChatMessage[],
+    context?: string
+  ): AsyncGenerator<ChatStreamChunk> {
+    try {
+      console.log(`LLM Service: Processing stream with ${this.llmProvider} provider`);
+
+      // OpenAI streaming
+      if (this.llmProvider === 'openai' && this.openaiClient) {
+        const systemMessage = context
+          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+          : this.systemPrompt;
+
+        const chatMessages = [
+          { role: 'system' as const, content: systemMessage },
+          ...messages.filter((msg) => msg.role !== 'system'),
+        ];
+
+        const stream = await this.openaiClient.chat.completions.create({
+          model: this.model,
+          messages: chatMessages,
+          max_tokens: 1000,
+          temperature: 0.7,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield { type: 'content', content };
+          }
+        }
+
+        yield {
+          type: 'done',
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+        return;
+      }
+
+      // Anthropic streaming
+      if (this.llmProvider === 'anthropic' && this.client) {
+        const systemMessage = context
+          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+          : this.systemPrompt;
+
+        const conversationMessages = messages.filter((msg) => msg.role !== 'system');
+
+        const stream = this.client.messages.stream({
+          model: this.model,
+          max_tokens: 1000,
+          temperature: 0.7,
+          system: systemMessage,
+          messages: conversationMessages.map((msg) => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+          })),
+        });
+
+        for await (const event of stream) {
+          if (
+            event.type === 'content_block_delta' &&
+            event.delta.type === 'text_delta'
+          ) {
+            yield { type: 'content', content: event.delta.text };
+          }
+        }
+
+        yield {
+          type: 'done',
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+        return;
+      }
+
+      // Mock mode - simulate streaming
+      const mockResponse = `안녕하세요! Mock 스트리밍 모드입니다.`;
+      for (const char of mockResponse) {
+        yield { type: 'content', content: char };
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      yield {
+        type: 'done',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      };
+    } catch (error) {
+      console.error('LLM streaming failed:', error);
+      yield {
+        type: 'error',
+        error: 'Failed to generate streaming response',
+      };
     }
   }
 
