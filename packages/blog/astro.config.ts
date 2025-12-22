@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config'
 import mdx from '@astrojs/mdx'
 import sitemap from '@astrojs/sitemap'
+import mermaid from 'astro-mermaid'
 import playformInline from '@playform/inline'
 import remarkMath from 'remark-math'
 import remarkDirective from 'remark-directive'
@@ -39,6 +40,7 @@ export default defineConfig({
     rehypePlugins: [rehypeKatex, rehypeCleanup, rehypeImageProcessor, rehypeCopyCode]
   },
   integrations: [
+    mermaid(),
     mdx(),
     sitemap(),
     playformInline({
