@@ -25,6 +25,16 @@ export interface GeneralSettings {
   fadeAnimation: boolean
 }
 
+// Hero settings configuration type
+export interface HeroSettings {
+  flashCards: boolean
+  flashCardsCount: number
+  keywordMarquee: boolean
+  marqueeSpeed: number
+  flipWords: boolean
+  flipWordsInterval: number
+}
+
 // Date settings configuration type
 export interface DateSettings {
   dateFormat: DateFormat
@@ -62,6 +72,7 @@ export interface GeoSettings {
 export interface ThemeConfig {
   site: SiteInfo
   general: GeneralSettings
+  hero: HeroSettings
   date: DateSettings
   post: PostSettings
   seo: SeoSettings

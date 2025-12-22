@@ -1,0 +1,194 @@
+---
+interface Props {
+  highlight: string
+  title: string
+  description?: string
+  href: string
+}
+
+const { highlight, title, description, href } = Astro.props
+---
+
+<div class="flash-card" tabindex="0" role="button" aria-label={`${title}: ${highlight}`}>
+  <div class="card-inner">
+    <div class="card-front">
+      <blockquote>{highlight}</blockquote>
+    </div>
+    <div class="card-back">
+      <h3>{title}</h3>
+      {description && <p>{description}</p>}
+      <a href={href} class="card-link">
+        <span>읽기</span>
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .flash-card {
+    perspective: 1000px;
+    cursor: pointer;
+    height: 180px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease-out;
+    transform-style: preserve-3d;
+  }
+
+  /* Flip on hover (desktop) */
+  @media (hover: hover) {
+    .flash-card:hover .card-inner,
+    .flash-card:focus .card-inner {
+      transform: rotateY(180deg);
+    }
+  }
+
+  /* Flip on tap (mobile) - handled by JS */
+  .flash-card.flipped .card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .card-front,
+  .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .card-front {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-back {
+    transform: rotateY(180deg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Dark mode shadow adjustments */
+  :global(html.dark) .card-front {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  :global(html.dark) .card-back {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-front blockquote {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--font-size-m);
+    font-weight: var(--font-weight-light);
+    color: var(--text-primary);
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .card-back h3 {
+    margin: 0 0 0.5rem;
+    font-size: var(--font-size-s);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+
+  .card-back p {
+    margin: 0 0 0.75rem;
+    font-size: var(--font-size-s);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--font-size-s);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease-out;
+  }
+
+  .card-link:hover {
+    color: var(--text-primary);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .card-inner {
+      transition: none;
+    }
+
+    /* Show both sides stacked instead of flip */
+    .flash-card:hover .card-inner,
+    .flash-card:focus .card-inner,
+    .flash-card.flipped .card-inner {
+      transform: none;
+    }
+
+    .card-back {
+      transform: none;
+      position: relative;
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border);
+      border-radius: 0;
+      padding-top: 0.75rem;
+    }
+
+    .card-front {
+      position: relative;
+    }
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 640px) {
+    .flash-card {
+      height: 160px;
+      min-width: 100%;
+    }
+
+    .card-front blockquote {
+      font-size: var(--font-size-s);
+    }
+  }
+</style>
+
+<script>
+  // Handle tap to flip on touch devices
+  document.querySelectorAll('.flash-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      // Only toggle on touch devices
+      if (window.matchMedia('(hover: none)').matches) {
+        card.classList.toggle('flipped')
+      }
+    })
+
+    // Keyboard accessibility
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        card.classList.toggle('flipped')
+      }
+    })
+  })
+</script>

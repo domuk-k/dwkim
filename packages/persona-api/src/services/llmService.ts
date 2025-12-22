@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
 export interface ChatMessage {
@@ -22,18 +21,18 @@ export interface ChatStreamChunk {
   error?: string;
 }
 
+// LLM 제공자 타입 (추후 vLLM fallback 고려)
+type LLMProvider = 'gemini' | 'vllm' | 'none';
+
 export class LLMService {
-  private anthropicClient?: Anthropic;
   private geminiClient?: ChatGoogleGenerativeAI;
-  private model: string = 'gemini-2.5-flash-preview-05-20';
+  private model: string = 'gemini-2.0-flash-exp';
   private systemPrompt: string = '';
-  private llmProvider: 'gemini' | 'anthropic' | 'mock';
+  private llmProvider: LLMProvider;
 
   constructor() {
     const googleKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    // LLM 제공자 우선순위: Gemini > Anthropic > Mock
     if (googleKey) {
       this.geminiClient = new ChatGoogleGenerativeAI({
         model: this.model,
@@ -42,15 +41,12 @@ export class LLMService {
       });
       this.llmProvider = 'gemini';
       console.log('LLM Service: Using Google Gemini');
-    } else if (anthropicKey) {
-      this.anthropicClient = new Anthropic({
-        apiKey: anthropicKey,
-      });
-      this.llmProvider = 'anthropic';
-      console.log('LLM Service: Using Anthropic Claude');
     } else {
-      this.llmProvider = 'mock';
-      console.log('LLM Service: Using Mock mode');
+      // TODO: 추후 vLLM fallback 구현
+      // const vllmUrl = process.env.VLLM_URL;
+      // if (vllmUrl) { ... }
+      this.llmProvider = 'none';
+      console.warn('LLM Service: No API key configured. Set GOOGLE_API_KEY.');
     }
 
     this.systemPrompt =
@@ -68,83 +64,48 @@ export class LLMService {
   }
 
   async chat(messages: ChatMessage[], context?: string): Promise<ChatResponse> {
-    try {
-      console.log(`LLM Service: Processing chat with ${this.llmProvider} provider`);
-
-      // Gemini 사용
-      if (this.llmProvider === 'gemini' && this.geminiClient) {
-        const systemMessage = context
-          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
-          : this.systemPrompt;
-
-        const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
-        const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
-
-        const response = await this.geminiClient.invoke(fullPrompt);
-        const content = typeof response.content === 'string'
-          ? response.content
-          : JSON.stringify(response.content);
-
-        return {
-          content,
-          usage: {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-          },
-        };
-      }
-
-      // Anthropic Claude 사용
-      if (this.llmProvider === 'anthropic' && this.anthropicClient) {
-        const systemMessage = context
-          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
-          : this.systemPrompt;
-
-        const conversationMessages = messages.filter(msg => msg.role !== 'system');
-
-        const response = await this.anthropicClient.messages.create({
-          model: 'claude-3-haiku-20240307',
-          max_tokens: 1000,
-          temperature: 0.7,
-          system: systemMessage,
-          messages: conversationMessages.map(msg => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-          })),
-        });
-
-        const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
-        const usage = response.usage || {
-          input_tokens: 0,
-          output_tokens: 0,
-        };
-
-        return {
-          content,
-          usage: {
-            promptTokens: usage.input_tokens,
-            completionTokens: usage.output_tokens,
-            totalTokens: usage.input_tokens + usage.output_tokens,
-          },
-        };
-      }
-
-      // Mock 모드
-      console.log('Using mock mode for chat');
-      const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+    // LLM 미설정 시 안내 메시지
+    if (this.llmProvider === 'none') {
       return {
-        content: `안녕하세요! 현재 Mock 모드로 실행 중입니다. API 키를 설정하면 정상적으로 작동합니다.\n\n질문: "${userMessage}"\n\n설정 방법:\n- Google: GOOGLE_API_KEY 설정\n- Claude: ANTHROPIC_API_KEY 설정`,
+        content: '현재 AI 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요.',
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      };
+    }
+
+    try {
+      console.log(`LLM Service: Processing chat with ${this.llmProvider}`);
+
+      if (!this.geminiClient) {
+        throw new Error('Gemini client not initialized');
+      }
+
+      const systemMessage = context
+        ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+        : this.systemPrompt;
+
+      const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+      const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
+
+      const response = await this.geminiClient.invoke(fullPrompt);
+      const content = typeof response.content === 'string'
+        ? response.content
+        : JSON.stringify(response.content);
+
+      return {
+        content,
         usage: {
-          promptTokens: 100,
-          completionTokens: 50,
-          totalTokens: 150,
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
         },
       };
-
     } catch (error) {
       console.error('LLM API call failed:', error);
-      throw new Error('Failed to generate response from LLM');
+      // 사용자 친화적 에러 메시지
+      return {
+        content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      };
     }
   }
 
@@ -152,86 +113,45 @@ export class LLMService {
     messages: ChatMessage[],
     context?: string
   ): AsyncGenerator<ChatStreamChunk> {
+    // LLM 미설정 시
+    if (this.llmProvider === 'none' || !this.geminiClient) {
+      yield {
+        type: 'error',
+        error: '현재 AI 서비스가 설정되지 않았습니다.',
+      };
+      return;
+    }
+
     try {
-      console.log(`LLM Service: Processing stream with ${this.llmProvider} provider`);
+      console.log(`LLM Service: Processing stream with ${this.llmProvider}`);
 
-      // Gemini streaming
-      if (this.llmProvider === 'gemini' && this.geminiClient) {
-        const systemMessage = context
-          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
-          : this.systemPrompt;
+      const systemMessage = context
+        ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
+        : this.systemPrompt;
 
-        const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
-        const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
+      const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+      const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
 
-        const stream = await this.geminiClient.stream(fullPrompt);
+      const stream = await this.geminiClient.stream(fullPrompt);
 
-        for await (const chunk of stream) {
-          const content = typeof chunk.content === 'string'
-            ? chunk.content
-            : '';
-          if (content) {
-            yield { type: 'content', content };
-          }
+      for await (const chunk of stream) {
+        const content = typeof chunk.content === 'string'
+          ? chunk.content
+          : '';
+        if (content) {
+          yield { type: 'content', content };
         }
-
-        yield {
-          type: 'done',
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        };
-        return;
       }
 
-      // Anthropic streaming
-      if (this.llmProvider === 'anthropic' && this.anthropicClient) {
-        const systemMessage = context
-          ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
-          : this.systemPrompt;
-
-        const conversationMessages = messages.filter((msg) => msg.role !== 'system');
-
-        const stream = this.anthropicClient.messages.stream({
-          model: 'claude-3-haiku-20240307',
-          max_tokens: 1000,
-          temperature: 0.7,
-          system: systemMessage,
-          messages: conversationMessages.map((msg) => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-          })),
-        });
-
-        for await (const event of stream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            yield { type: 'content', content: event.delta.text };
-          }
-        }
-
-        yield {
-          type: 'done',
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        };
-        return;
-      }
-
-      // Mock mode - simulate streaming
-      const mockResponse = `안녕하세요! Mock 스트리밍 모드입니다.`;
-      for (const char of mockResponse) {
-        yield { type: 'content', content: char };
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      }
       yield {
         type: 'done',
-        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       };
     } catch (error) {
       console.error('LLM streaming failed:', error);
       yield {
         type: 'error',
-        error: 'Failed to generate streaming response',
+        error: '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       };
     }
   }

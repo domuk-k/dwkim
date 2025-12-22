@@ -1,0 +1,98 @@
+---
+import { getCollection } from 'astro:content'
+import FlashCard from './FlashCard.astro'
+import { themeConfig } from '@/config'
+
+const { flashCardsCount = 3 } = themeConfig.hero
+
+// Get posts with highlights, sorted by date
+const allPosts = await getCollection('posts')
+const postsWithHighlights = allPosts
+  .filter((post) => post.data.highlight)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, flashCardsCount)
+---
+
+{
+  postsWithHighlights.length > 0 && (
+    <section class="flash-card-hero" aria-label="Featured ideas">
+      <div class="flash-cards">
+        {postsWithHighlights.map((post) => (
+          <FlashCard
+            highlight={post.data.highlight!}
+            title={post.data.title}
+            description={post.data.description}
+            href={`/${post.id}/`}
+          />
+        ))}
+      </div>
+      <p class="hint">
+        <span aria-hidden="true">*</span> hover to reveal
+      </p>
+    </section>
+  )
+}
+
+<style>
+  .flash-card-hero {
+    margin-bottom: 2rem;
+  }
+
+  .flash-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .hint {
+    margin: 0.75rem 0 0;
+    font-size: var(--font-size-s);
+    color: var(--text-tertiary);
+    text-align: center;
+  }
+
+  /* Hide hint on touch devices */
+  @media (hover: none) {
+    .hint {
+      display: none;
+    }
+
+    .hint::after {
+      content: '* tap to reveal';
+    }
+  }
+
+  /* Show tap hint on mobile */
+  @media (hover: none) {
+    .flash-card-hero::after {
+      content: '* tap to reveal';
+      display: block;
+      margin-top: 0.75rem;
+      font-size: var(--font-size-s);
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+
+    .hint {
+      display: none;
+    }
+  }
+
+  /* Reduced motion - hide flip hint */
+  @media (prefers-reduced-motion: reduce) {
+    .hint {
+      display: none;
+    }
+
+    .flash-card-hero::after {
+      display: none;
+    }
+  }
+
+  /* Single column on mobile */
+  @media (max-width: 640px) {
+    .flash-cards {
+      flex-direction: column;
+    }
+  }
+</style>

@@ -11,7 +11,10 @@ const posts = defineCollection({
       description: z.string().optional(),
       // Transform string to Date object
       pubDate: z.coerce.date(),
-      image: z.string().optional()
+      image: z.string().optional(),
+      // Hero section fields
+      highlight: z.string().optional(), // Key quote for flash card
+      keywords: z.array(z.string()).optional() // Keywords for marquee
     })
 })
 

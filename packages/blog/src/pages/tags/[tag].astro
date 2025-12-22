@@ -1,0 +1,73 @@
+---
+import { getCollection } from 'astro:content'
+import IndexLayout from '@/layouts/IndexLayout.astro'
+import PostList from '@/components/widgets/PostList.astro'
+import { themeConfig } from '@/config'
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => {
+    return import.meta.env.PROD ? data.draft !== true : true
+  })
+
+  // Collect all unique keywords
+  const allKeywords = [...new Set(posts.flatMap((post) => post.data.keywords || []))]
+
+  return allKeywords.map((tag) => ({
+    params: { tag },
+    props: {
+      tag,
+      posts: posts
+        .filter((post) => post.data.keywords?.includes(tag))
+        .sort((a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf())
+    }
+  }))
+}
+
+interface Props {
+  tag: string
+  posts: Awaited<ReturnType<typeof getCollection<'posts'>>>
+}
+
+const { tag, posts } = Astro.props
+
+const title = `#${tag} | ${themeConfig.site.title}`
+const description = `'${tag}' 키워드가 포함된 글 목록입니다.`
+---
+
+<IndexLayout title={title} description={description}>
+  <div class="tag-header">
+    <a href="/" class="back-link">&larr; 홈으로</a>
+    <h1>#{tag}</h1>
+    <p class="tag-count">{posts.length}개의 글</p>
+  </div>
+  <PostList posts={posts} />
+</IndexLayout>
+
+<style>
+  .tag-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link {
+    font-size: var(--font-size-s);
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    color: var(--text-primary);
+  }
+
+  .tag-header h1 {
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0.5rem 0 0.25rem;
+  }
+
+  .tag-count {
+    font-size: var(--font-size-s);
+    color: var(--text-secondary);
+    margin: 0;
+  }
+</style>
