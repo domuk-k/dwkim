@@ -47,7 +47,7 @@ Inside the chat mode, you can use:
 
 ### Environment Variables
 
-- `DWKIM_API_URL` - Custom API endpoint (default: https://dwkim.onrender.com)
+- `DWKIM_API_URL` - Custom API endpoint (default: https://persona-api.fly.dev)
 - `DWKIM_NO_STREAM` - Set to `1` to disable streaming mode
 
 ## Features

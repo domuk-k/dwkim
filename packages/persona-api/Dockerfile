@@ -1,22 +1,40 @@
-FROM node:18-alpine
+# Build stage
+FROM node:20-slim AS builder
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (lockfile은 monorepo 루트에 있으므로 optional)
+COPY package.json ./
 
-# Install pnpm and dependencies
-RUN npm install -g pnpm@latest
+# Install dependencies
 RUN pnpm install
 
-# Copy source code
+# Copy source
 COPY . .
 
-# Build the application
-RUN pnpm run build
+# Build
+RUN pnpm build
 
-# Expose port
-EXPOSE 3000
+# Production stage
+FROM node:20-slim
 
-# Start the application
-CMD ["pnpm", "start"]
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+# Copy package files and install production deps
+COPY package.json ./
+RUN pnpm install --prod
+
+# Copy built files and data
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/data ./data
+
+# Expose port (Fly.io uses 8080)
+EXPOSE 8080
+
+# Start
+CMD ["node", "dist/index.js"]

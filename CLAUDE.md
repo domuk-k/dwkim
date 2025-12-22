@@ -17,7 +17,7 @@ This is a **pnpm workspace monorepo** with three main packages:
 - **Framework**: Fastify with TypeScript
 - **Database**: ChromaDB (vector store), Redis (cache, optional)
 - **LLM**: OpenAI (primary), Anthropic (fallback)
-- **Deployment**: Render.com at https://dwkim.onrender.com
+- **Deployment**: Fly.io at https://persona-api.fly.dev
 
 ### 3. `packages/blog/` - Astro Blog
 - **Purpose**: Personal blog with Markdown content
@@ -97,6 +97,6 @@ pnpm new                 # Create new blog post (interactive)
 - **Versioning**: Changesets for version management (`pnpm changeset`)
 
 ### Deployment
-- **persona-api**: Auto-deploys to Render.com on git push
+- **persona-api**: Deploy with `fly deploy` from packages/persona-api/
 - **Rate Limiting**: 8 req/min in production
 - **Health Check**: `/health` endpoint for monitoring

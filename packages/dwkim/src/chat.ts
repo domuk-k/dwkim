@@ -5,7 +5,7 @@ import ora from 'ora';
 
 const USE_STREAMING = process.env.DWKIM_NO_STREAM !== '1';
 
-const DEFAULT_API_URL = 'https://dwkim.onrender.com';
+const DEFAULT_API_URL = 'https://persona-api.fly.dev';
 const API_URL = process.env.DWKIM_API_URL || DEFAULT_API_URL;
 
 export async function startChat() {
