@@ -4,6 +4,36 @@ import dotenv from 'dotenv';
 // 환경변수 로드
 dotenv.config({ path: '.env.test' });
 
+// ESM 패키지 mock (Jest에서 ESM 직접 처리 불가)
+jest.mock('deepagents', () => ({
+  createDeepAgent: jest.fn(() => ({
+    invoke: jest.fn().mockResolvedValue({ messages: [] }),
+    stream: jest.fn().mockReturnValue({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true }) }) }),
+  })),
+}));
+
+jest.mock('@langchain/google-genai', () => ({
+  ChatGoogleGenerativeAI: jest.fn().mockImplementation(() => ({})),
+}));
+
+jest.mock('@langchain/core/tools', () => ({
+  DynamicStructuredTool: jest.fn().mockImplementation(() => ({})),
+}));
+
+// VectorStore mock (ChromaDB 없이 테스트 가능)
+jest.mock('../services/vectorStore', () => ({
+  VectorStore: jest.fn().mockImplementation(() => ({
+    initialize: jest.fn().mockResolvedValue(undefined),
+    search: jest.fn().mockResolvedValue([
+      {
+        id: 'test-doc-1',
+        content: '테스트 문서 내용',
+        metadata: { type: 'faq', title: '테스트 문서' },
+      },
+    ]),
+  })),
+}));
+
 // 테스트 타임아웃 설정
 jest.setTimeout(10000);
 
