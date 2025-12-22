@@ -61,11 +61,23 @@ export const ChatResponseSchema = z.object({
 
 export default async function chatRoutes(fastify: FastifyInstance) {
   const ragEngine = new RAGEngine();
-  const deepAgentService = USE_DEEP_AGENT ? new DeepAgentService() : null;
+
+  // DeepAgentService는 API 키가 필요하므로 생성 시 에러 처리
+  let deepAgentService: DeepAgentService | null = null;
+  let useDeepAgent = USE_DEEP_AGENT;
+
+  if (USE_DEEP_AGENT) {
+    try {
+      deepAgentService = new DeepAgentService();
+    } catch (error) {
+      console.warn('DeepAgentService creation failed, falling back to RAG Engine:', error);
+      useDeepAgent = false;
+    }
+  }
 
   // 엔진 초기화
   try {
-    if (USE_DEEP_AGENT && deepAgentService) {
+    if (useDeepAgent && deepAgentService) {
       await deepAgentService.initialize();
       console.log('DeepAgentService initialized (Gemini 2.5 Flash)');
     } else {
@@ -191,7 +203,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         console.log('Validated data:', { message, historyLength: conversationHistory.length });
 
         // DeepAgent 또는 RAG 엔진 사용
-        if (USE_DEEP_AGENT && deepAgentService) {
+        if (useDeepAgent && deepAgentService) {
           console.log('Processing query with DeepAgentService...');
 
           const response = await deepAgentService.processQuery(
@@ -325,7 +337,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         });
 
         // DeepAgent 또는 RAG 엔진 사용
-        if (USE_DEEP_AGENT && deepAgentService) {
+        if (useDeepAgent && deepAgentService) {
           for await (const event of deepAgentService.processQueryStream(message, conversationHistory)) {
             const data = JSON.stringify(event);
             reply.raw.write(`data: ${data}\n\n`);
