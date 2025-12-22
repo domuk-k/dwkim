@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -23,25 +23,27 @@ export interface ChatStreamChunk {
 }
 
 export class LLMService {
-  private client?: Anthropic;
-  private openaiClient?: OpenAI;
-  private model: string = 'gpt-4o-mini';
+  private anthropicClient?: Anthropic;
+  private geminiClient?: ChatGoogleGenerativeAI;
+  private model: string = 'gemini-2.5-flash-preview-05-20';
   private systemPrompt: string = '';
-  private llmProvider: 'openai' | 'anthropic' | 'mock';
+  private llmProvider: 'gemini' | 'anthropic' | 'mock';
 
   constructor() {
+    const googleKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
-    
-    // LLM 제공자 우선순위: OpenAI > Anthropic > Mock
-    if (openaiKey) {
-      this.openaiClient = new OpenAI({
-        apiKey: openaiKey,
+
+    // LLM 제공자 우선순위: Gemini > Anthropic > Mock
+    if (googleKey) {
+      this.geminiClient = new ChatGoogleGenerativeAI({
+        model: this.model,
+        apiKey: googleKey,
+        temperature: 0.7,
       });
-      this.llmProvider = 'openai';
-      console.log('LLM Service: Using OpenAI');
+      this.llmProvider = 'gemini';
+      console.log('LLM Service: Using Google Gemini');
     } else if (anthropicKey) {
-      this.client = new Anthropic({
+      this.anthropicClient = new Anthropic({
         apiKey: anthropicKey,
       });
       this.llmProvider = 'anthropic';
@@ -51,11 +53,10 @@ export class LLMService {
       console.log('LLM Service: Using Mock mode');
     }
 
-    this.model = process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || 'gpt-4o-mini';
     this.systemPrompt =
       process.env.SYSTEM_PROMPT ||
-      `당신은 dwkim의 개인화된 AI 어시스턴트입니다. 
-    
+      `당신은 dwkim의 개인화된 AI 어시스턴트입니다.
+
 다음 지침을 따라 답변해주세요:
 1. dwkim의 경험과 생각을 바탕으로 개인화된 답변을 제공
 2. 전문적이면서도 친근한 톤 유지
@@ -70,53 +71,40 @@ export class LLMService {
     try {
       console.log(`LLM Service: Processing chat with ${this.llmProvider} provider`);
 
-      // OpenAI 사용
-      if (this.llmProvider === 'openai' && this.openaiClient) {
+      // Gemini 사용
+      if (this.llmProvider === 'gemini' && this.geminiClient) {
         const systemMessage = context
           ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
           : this.systemPrompt;
 
-        const chatMessages = [
-          { role: 'system' as const, content: systemMessage },
-          ...messages.filter(msg => msg.role !== 'system')
-        ];
+        const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+        const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
 
-        const response = await this.openaiClient.chat.completions.create({
-          model: this.model,
-          messages: chatMessages,
-          max_tokens: 1000,
-          temperature: 0.7,
-        });
-
-        const content = response.choices[0]?.message?.content || '';
-        const usage = response.usage || {
-          prompt_tokens: 0,
-          completion_tokens: 0,
-          total_tokens: 0,
-        };
+        const response = await this.geminiClient.invoke(fullPrompt);
+        const content = typeof response.content === 'string'
+          ? response.content
+          : JSON.stringify(response.content);
 
         return {
           content,
           usage: {
-            promptTokens: usage.prompt_tokens,
-            completionTokens: usage.completion_tokens,
-            totalTokens: usage.total_tokens,
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
           },
         };
       }
 
       // Anthropic Claude 사용
-      if (this.llmProvider === 'anthropic' && this.client) {
-        // Claude API는 system 메시지를 별도로 처리
+      if (this.llmProvider === 'anthropic' && this.anthropicClient) {
         const systemMessage = context
           ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
           : this.systemPrompt;
 
-        // system 메시지를 제외한 사용자/어시스턴트 메시지만 추출
         const conversationMessages = messages.filter(msg => msg.role !== 'system');
 
-        const response = await this.client.messages.create({
-          model: this.model,
+        const response = await this.anthropicClient.messages.create({
+          model: 'claude-3-haiku-20240307',
           max_tokens: 1000,
           temperature: 0.7,
           system: systemMessage,
@@ -146,7 +134,7 @@ export class LLMService {
       console.log('Using mock mode for chat');
       const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
       return {
-        content: `안녕하세요! 현재 Mock 모드로 실행 중입니다. API 키를 설정하면 정상적으로 작동합니다.\n\n질문: "${userMessage}"\n\n설정 방법:\n- OpenAI: OPENAI_API_KEY 설정\n- Claude: ANTHROPIC_API_KEY 설정`,
+        content: `안녕하세요! 현재 Mock 모드로 실행 중입니다. API 키를 설정하면 정상적으로 작동합니다.\n\n질문: "${userMessage}"\n\n설정 방법:\n- Google: GOOGLE_API_KEY 설정\n- Claude: ANTHROPIC_API_KEY 설정`,
         usage: {
           promptTokens: 100,
           completionTokens: 50,
@@ -167,27 +155,21 @@ export class LLMService {
     try {
       console.log(`LLM Service: Processing stream with ${this.llmProvider} provider`);
 
-      // OpenAI streaming
-      if (this.llmProvider === 'openai' && this.openaiClient) {
+      // Gemini streaming
+      if (this.llmProvider === 'gemini' && this.geminiClient) {
         const systemMessage = context
           ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
           : this.systemPrompt;
 
-        const chatMessages = [
-          { role: 'system' as const, content: systemMessage },
-          ...messages.filter((msg) => msg.role !== 'system'),
-        ];
+        const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+        const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
 
-        const stream = await this.openaiClient.chat.completions.create({
-          model: this.model,
-          messages: chatMessages,
-          max_tokens: 1000,
-          temperature: 0.7,
-          stream: true,
-        });
+        const stream = await this.geminiClient.stream(fullPrompt);
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const content = typeof chunk.content === 'string'
+            ? chunk.content
+            : '';
           if (content) {
             yield { type: 'content', content };
           }
@@ -201,15 +183,15 @@ export class LLMService {
       }
 
       // Anthropic streaming
-      if (this.llmProvider === 'anthropic' && this.client) {
+      if (this.llmProvider === 'anthropic' && this.anthropicClient) {
         const systemMessage = context
           ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
           : this.systemPrompt;
 
         const conversationMessages = messages.filter((msg) => msg.role !== 'system');
 
-        const stream = this.client.messages.stream({
-          model: this.model,
+        const stream = this.anthropicClient.messages.stream({
+          model: 'claude-3-haiku-20240307',
           max_tokens: 1000,
           temperature: 0.7,
           system: systemMessage,
@@ -254,28 +236,6 @@ export class LLMService {
     }
   }
 
-  async generateEmbedding(text: string): Promise<number[]> {
-    if (!this.openaiClient) {
-      console.log('Using mock embedding for:', text.substring(0, 50) + '...');
-      // Mock embedding - 1536 dimensions with random values
-      return Array.from({ length: 1536 }, () => Math.random() - 0.5);
-    }
-
-    try {
-      const response = await this.openaiClient.embeddings.create({
-        model: 'text-embedding-3-small',
-        input: text,
-      });
-
-      return response.data[0]?.embedding || [];
-    } catch (error) {
-      console.error('Embedding generation failed:', error);
-      console.log('Falling back to mock embedding');
-      // Fallback to mock embedding
-      return Array.from({ length: 1536 }, () => Math.random() - 0.5);
-    }
-  }
-
   async summarizeText(text: string): Promise<string> {
     try {
       const messages: ChatMessage[] = [
@@ -296,8 +256,7 @@ export class LLMService {
   getModelInfo(): { model: string; maxTokens: number } {
     return {
       model: this.model,
-      maxTokens: this.model.includes('claude-3-opus') ? 200000 : 
-                this.model.includes('claude-3-sonnet') ? 200000 : 200000,
+      maxTokens: 100000,
     };
   }
 }
