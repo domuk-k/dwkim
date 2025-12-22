@@ -42,7 +42,7 @@ export const profile = {
   id: '1',
   name: '김동욱',
   email: 'dannyworks102@gmail.com',
-  title: 'Software Engineer, BHSN.ai',
+  title: 'LLM Agent Engineer, Coxwave',
   github: 'https://github.com/domuk-k',
   website: 'https://domuk-k.vercel.app',
   project: 'https://github.com/domuk-k/dwkim',
