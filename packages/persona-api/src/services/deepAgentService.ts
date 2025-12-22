@@ -48,14 +48,16 @@ export class DeepAgentService {
   private vectorStore: VectorStore;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private agent: any = null;
-  private model: ChatGoogleGenerativeAI;
+  private model: ChatGoogleGenerativeAI | null = null;
 
   constructor() {
     this.vectorStore = new VectorStore();
 
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.warn('DeepAgentService: No GOOGLE_API_KEY found, will use fallback');
+      throw new Error(
+        'DeepAgentService requires GOOGLE_API_KEY or GEMINI_API_KEY environment variable'
+      );
     }
 
     this.model = new ChatGoogleGenerativeAI({
