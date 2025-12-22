@@ -96,6 +96,35 @@ pnpm new                 # Create new blog post (interactive)
 - **Testing**: Jest for persona-api only
 - **Versioning**: Changesets for version management (`pnpm changeset`)
 
+### Git Commit Convention
+Use **scoped commits** with conventional commit format:
+```
+<type>(<scope>): <description>
+```
+
+**Scopes** (package names):
+- `dwkim` - CLI business card tool
+- `blog` - Astro blog
+- `persona-api` - RAG API server
+
+**Types**:
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation changes
+- `refactor` - Code refactoring
+- `chore` - Maintenance tasks
+
+**Examples**:
+```bash
+fix(dwkim): update company info
+docs(blog): update developer profile
+feat(persona-api): add new RAG endpoint
+```
+
+**Rules**:
+- Separate commits by package/concern
+- One logical change per commit
+
 ### Deployment
 - **persona-api**: Deploy with `fly deploy` from packages/persona-api/
 - **Rate Limiting**: 8 req/min in production
