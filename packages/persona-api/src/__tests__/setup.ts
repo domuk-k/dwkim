@@ -14,13 +14,28 @@ jest.mock('deepagents', () => ({
 
 jest.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: jest.fn().mockImplementation(() => ({})),
+  GoogleGenerativeAIEmbeddings: jest.fn().mockImplementation(() => ({})),
 }));
 
 jest.mock('@langchain/core/tools', () => ({
   DynamicStructuredTool: jest.fn().mockImplementation(() => ({})),
 }));
 
-// VectorStore mock (ChromaDB 없이 테스트 가능)
+jest.mock('@langchain/core/documents', () => ({
+  Document: jest.fn().mockImplementation((data) => data),
+}));
+
+jest.mock('@langchain/community/vectorstores/neon', () => ({
+  NeonPostgres: {
+    initialize: jest.fn().mockResolvedValue({
+      addDocuments: jest.fn().mockResolvedValue([]),
+      similaritySearch: jest.fn().mockResolvedValue([]),
+      delete: jest.fn().mockResolvedValue(undefined),
+    }),
+  },
+}));
+
+// VectorStore mock (Neon DB 없이 테스트 가능)
 jest.mock('../services/vectorStore', () => ({
   VectorStore: jest.fn().mockImplementation(() => ({
     initialize: jest.fn().mockResolvedValue(undefined),
