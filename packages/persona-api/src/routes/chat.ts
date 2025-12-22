@@ -1,8 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { RAGEngine } from '../services/ragEngine';
+import { DeepAgentService } from '../services/deepAgentService';
 import type { RAGResponse } from '../services/ragEngine';
 import type { ChatMessage } from '../services/llmService';
+
+// Feature flag: USE_DEEP_AGENT=1 to enable DeepAgents
+const USE_DEEP_AGENT = process.env.USE_DEEP_AGENT === '1';
 
 // 요청 스키마
 const ChatRequestSchema = z.object({
@@ -57,13 +61,19 @@ export const ChatResponseSchema = z.object({
 
 export default async function chatRoutes(fastify: FastifyInstance) {
   const ragEngine = new RAGEngine();
+  const deepAgentService = USE_DEEP_AGENT ? new DeepAgentService() : null;
 
-  // RAG 엔진 초기화
+  // 엔진 초기화
   try {
-    await ragEngine.initialize();
-    console.log('RAG Engine initialized for chat routes');
+    if (USE_DEEP_AGENT && deepAgentService) {
+      await deepAgentService.initialize();
+      console.log('DeepAgentService initialized (Gemini 2.5 Flash)');
+    } else {
+      await ragEngine.initialize();
+      console.log('RAG Engine initialized for chat routes');
+    }
   } catch (error) {
-    console.error('Failed to initialize RAG Engine:', error);
+    console.error('Failed to initialize engine:', error);
     // 초기화 실패 시에도 서버는 계속 실행 (Mock 응답 사용)
   }
 
@@ -180,26 +190,41 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 
         console.log('Validated data:', { message, historyLength: conversationHistory.length });
 
-        // 실제 RAG 엔진 사용
+        // DeepAgent 또는 RAG 엔진 사용
+        if (USE_DEEP_AGENT && deepAgentService) {
+          console.log('Processing query with DeepAgentService...');
 
-        // RAG 엔진이 초기화되지 않은 경우 Mock 응답
+          const response = await deepAgentService.processQuery(
+            message,
+            conversationHistory
+          );
+
+          console.log('DeepAgent response received:', {
+            answerLength: response.answer.length,
+            sourcesCount: response.sources.length,
+          });
+
+          return reply.send({
+            success: true,
+            data: {
+              answer: response.answer,
+              sources: options.includeSources !== false ? response.sources : [],
+              usage: response.usage,
+              metadata: response.metadata,
+            },
+          });
+        }
+
+        // Fallback: RAG 엔진 사용
         if (!ragEngine) {
           console.log('RAG engine is null, returning mock response');
           return reply.send({
             success: true,
             data: {
-              answer: `안녕하세요! dwkim의 AI 어시스턴트입니다. 현재 RAG 엔진이 초기화 중이므로 Mock 응답을 드립니다.\n\n질문: ${message}\n\n실제 RAG 엔진이 준비되면 더 정확하고 개인화된 답변을 제공할 수 있습니다.`,
+              answer: `안녕하세요! dwkim의 AI 어시스턴트입니다. 현재 엔진이 초기화 중이므로 Mock 응답을 드립니다.\n\n질문: ${message}`,
               sources: [],
-              usage: {
-                promptTokens: 0,
-                completionTokens: 0,
-                totalTokens: 0,
-              },
-              metadata: {
-                searchQuery: message,
-                searchResults: 0,
-                processingTime: 0,
-              },
+              usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+              metadata: { searchQuery: message, searchResults: 0, processingTime: 0 },
             },
           });
         }
@@ -211,16 +236,16 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         }));
 
         console.log('Processing query with RAG engine...');
-        
+
         // RAG 엔진으로 쿼리 처리
         const response: RAGResponse = await ragEngine.processQuery(
           message,
           history
         );
-        
-        console.log('RAG response received:', { 
-          answerLength: response.answer.length, 
-          sourcesCount: response.sources.length 
+
+        console.log('RAG response received:', {
+          answerLength: response.answer.length,
+          sourcesCount: response.sources.length
         });
 
         // 응답 구성
@@ -291,13 +316,6 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         const validatedData = ChatRequestSchema.parse(request.body);
         const { message, conversationHistory = [] } = validatedData;
 
-        if (!ragEngine) {
-          return reply.status(503).send({
-            success: false,
-            error: 'RAG 엔진이 초기화되지 않았습니다.',
-          });
-        }
-
         // SSE 헤더 설정
         reply.raw.writeHead(200, {
           'Content-Type': 'text/event-stream',
@@ -306,15 +324,24 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           'Access-Control-Allow-Origin': '*',
         });
 
-        const history: ChatMessage[] = conversationHistory.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+        // DeepAgent 또는 RAG 엔진 사용
+        if (USE_DEEP_AGENT && deepAgentService) {
+          for await (const event of deepAgentService.processQueryStream(message, conversationHistory)) {
+            const data = JSON.stringify(event);
+            reply.raw.write(`data: ${data}\n\n`);
+          }
+        } else if (ragEngine) {
+          const history: ChatMessage[] = conversationHistory.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          }));
 
-        // 스트리밍 응답
-        for await (const event of ragEngine.processQueryStream(message, history)) {
-          const data = JSON.stringify(event);
-          reply.raw.write(`data: ${data}\n\n`);
+          for await (const event of ragEngine.processQueryStream(message, history)) {
+            const data = JSON.stringify(event);
+            reply.raw.write(`data: ${data}\n\n`);
+          }
+        } else {
+          reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '엔진이 초기화되지 않았습니다.' })}\n\n`);
         }
 
         reply.raw.end();
