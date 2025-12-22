@@ -26,7 +26,7 @@ type LLMProvider = 'gemini' | 'vllm' | 'none';
 
 export class LLMService {
   private geminiClient?: ChatGoogleGenerativeAI;
-  private model: string = 'models/gemini-1.5-flash-001';
+  private model: string = 'gemini-1.5-flash-002';
   private systemPrompt: string = '';
   private llmProvider: LLMProvider;
 
