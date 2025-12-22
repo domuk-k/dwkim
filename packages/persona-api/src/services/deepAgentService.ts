@@ -61,7 +61,7 @@ export class DeepAgentService {
     }
 
     this.model = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-1.5-flash',
       apiKey,
       temperature: 0.7,
     });
@@ -244,7 +244,7 @@ export class DeepAgentService {
   }> {
     return {
       initialized: this.agent !== null,
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-1.5-flash',
       vectorStore: true,
     };
   }
