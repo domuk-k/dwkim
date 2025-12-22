@@ -1,0 +1,136 @@
+---
+import { getCollection } from 'astro:content'
+import { themeConfig } from '@/config'
+
+const { marqueeSpeed = 30 } = themeConfig.hero
+
+// Collect all keywords from posts
+const allPosts = await getCollection('posts')
+const allKeywords = allPosts
+  .flatMap((post) => post.data.keywords || [])
+  .filter((keyword, index, self) => self.indexOf(keyword) === index) // unique
+
+// Duplicate for seamless loop
+const keywords = [...allKeywords, ...allKeywords]
+---
+
+{
+  allKeywords.length > 0 && (
+    <div class="marquee-container" aria-label="Keywords from blog posts" role="marquee">
+      <div class="marquee-content" style={`--marquee-speed: ${marqueeSpeed}s`}>
+        {keywords.map((keyword, i) => (
+          <a
+            href={`/tags/${encodeURIComponent(keyword)}`}
+            class="keyword"
+            aria-hidden={i >= allKeywords.length}
+            tabindex={i >= allKeywords.length ? -1 : 0}
+          >
+            {keyword}
+          </a>
+        ))}
+      </div>
+      {/* Screen reader friendly list */}
+      <ul class="sr-only">
+        {allKeywords.map((keyword) => (
+          <li>{keyword}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+<style>
+  .marquee-container {
+    overflow: hidden;
+    position: relative;
+    margin: 0.5rem 0;
+    padding: 0.25rem 0;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
+  }
+
+  .marquee-content {
+    display: flex;
+    gap: 2rem;
+    width: max-content;
+    animation: marquee var(--marquee-speed) linear infinite;
+  }
+
+  .marquee-container:hover .marquee-content {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .keyword {
+    font-size: var(--font-size-s);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    letter-spacing: var(--spacing-s);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .keyword:hover {
+    color: var(--text-primary);
+  }
+
+  .keyword::before {
+    content: '·';
+    margin-right: 2rem;
+    color: var(--text-tertiary);
+  }
+
+  .keyword:first-child::before {
+    content: '';
+    margin-right: 0;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-content {
+      animation: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem 1.5rem;
+    }
+
+    .marquee-container {
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+
+    /* Hide duplicates when not animating */
+    .keyword[aria-hidden='true'] {
+      display: none;
+    }
+
+    .keyword::before {
+      margin-right: 0;
+    }
+  }
+
+  /* Hide completely if no keywords */
+  .marquee-container:empty {
+    display: none;
+  }
+</style>

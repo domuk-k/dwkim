@@ -1,11 +1,23 @@
 ---
 import AboutTabs from '@/components/ui/AboutTabs.astro'
 import Snippet from '@/components/ui/Snippet.astro'
+import FlipWords from '@/components/ui/FlipWords.astro'
+import { themeConfig } from '@/config'
+
+const showFlipWords = themeConfig.hero.flipWords
+const roles = ['developer', 'writer', 'runner']
 ---
 
 <div class="about">
   <div class="about-intro">
     <Snippet code="npx dwkim" language="sh" />
+    {
+      showFlipWords && (
+        <p class="flip-intro">
+          <FlipWords words={roles} prefix="I'm a " suffix="." />
+        </p>
+      )
+    }
   </div>
   <AboutTabs />
 </div>
@@ -21,5 +33,11 @@ import Snippet from '@/components/ui/Snippet.astro'
 
   .about-intro pre {
     margin: 0.5rem 0;
+  }
+
+  .flip-intro {
+    margin: 0.75rem 0 0;
+    font-size: var(--font-size-m);
+    color: var(--text-secondary);
   }
 </style>

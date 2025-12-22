@@ -1,9 +1,15 @@
 ---
 import IndexLayout from '@/layouts/IndexLayout.astro'
 import About from '@/components/widgets/About.astro'
+import FlashCardHero from '@/components/ui/FlashCardHero.astro'
+import KeywordMarquee from '@/components/ui/KeywordMarquee.astro'
 import { themeConfig } from '@/config'
+
+const { flashCards, keywordMarquee } = themeConfig.hero
 ---
 
 <IndexLayout title={themeConfig.site.title} description={themeConfig.site.description}>
+  {flashCards && <FlashCardHero />}
   <About />
+  {keywordMarquee && <KeywordMarquee />}
 </IndexLayout>

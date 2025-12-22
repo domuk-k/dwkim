@@ -1,0 +1,115 @@
+---
+import { themeConfig } from '@/config'
+
+interface Props {
+  words: string[]
+  prefix?: string
+  suffix?: string
+}
+
+const { words, prefix = '', suffix = '' } = Astro.props
+const { flipWordsInterval = 3000 } = themeConfig.hero
+---
+
+<span
+  class="flip-words-container"
+  data-words={JSON.stringify(words)}
+  data-interval={flipWordsInterval}
+  aria-live="polite"
+>
+  {prefix && <span class="prefix">{prefix}</span>}
+  <span class="flip-word" data-index="0">
+    {words[0]}
+  </span>
+  {suffix && <span class="suffix">{suffix}</span>}
+</span>
+
+<style>
+  .flip-words-container {
+    display: inline;
+  }
+
+  .prefix,
+  .suffix {
+    color: var(--text-primary);
+  }
+
+  .flip-word {
+    display: inline-block;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--text-tertiary);
+    transition:
+      opacity 0.3s ease-out,
+      transform 0.3s ease-out;
+  }
+
+  .flip-word.changing {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .flip-word {
+      transition: none;
+    }
+
+    .flip-word.changing {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  function initFlipWords() {
+    const containers = document.querySelectorAll('.flip-words-container')
+
+    containers.forEach((container) => {
+      const wordsAttr = container.getAttribute('data-words')
+      const intervalAttr = container.getAttribute('data-interval')
+
+      if (!wordsAttr) return
+
+      const words: string[] = JSON.parse(wordsAttr)
+      const interval = parseInt(intervalAttr || '3000', 10)
+      const wordEl = container.querySelector('.flip-word') as HTMLElement
+
+      if (!wordEl || words.length <= 1) return
+
+      let currentIndex = 0
+
+      // Check for reduced motion preference
+      const prefersReducedMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches
+
+      if (prefersReducedMotion) {
+        // Just show all words separated by /
+        wordEl.textContent = words.join(' / ')
+        return
+      }
+
+      setInterval(() => {
+        // Start fade out
+        wordEl.classList.add('changing')
+
+        setTimeout(() => {
+          // Change word
+          currentIndex = (currentIndex + 1) % words.length
+          wordEl.textContent = words[currentIndex]
+          wordEl.setAttribute('data-index', String(currentIndex))
+
+          // Fade in
+          wordEl.classList.remove('changing')
+        }, 300)
+      }, interval)
+    })
+  }
+
+  // Initialize on page load
+  initFlipWords()
+
+  // Re-initialize on view transitions
+  document.addEventListener('astro:after-swap', initFlipWords)
+</script>

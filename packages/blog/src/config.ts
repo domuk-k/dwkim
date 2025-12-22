@@ -20,6 +20,16 @@ export const themeConfig: ThemeConfig = {
     fadeAnimation: true // Enable fade animations
   },
 
+  // HERO SETTINGS ///////////////////////////////////////////////////////////////////////////////////////
+  hero: {
+    flashCards: false, // Show flash cards with post highlights
+    flashCardsCount: 3, // Number of flash cards to show
+    keywordMarquee: true, // Show scrolling keywords marquee
+    marqueeSpeed: 30, // Marquee animation duration in seconds (higher = slower)
+    flipWords: false, // Show flip words animation in about section
+    flipWordsInterval: 3000 // Flip words interval in milliseconds
+  },
+
   // DATE SETTINGS ///////////////////////////////////////////////////////////////////////////////////////
   date: {
     dateFormat: 'YYYY-MM-DD', // Date format: YYYY-MM-DD, MM-DD-YYYY, DD-MM-YYYY, MONTH DAY YYYY, DAY MONTH YYYY
