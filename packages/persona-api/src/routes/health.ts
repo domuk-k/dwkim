@@ -91,7 +91,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
           await (fastify as any).redis.ping();
           redisStatus = true;
         } catch (error) {
-          fastify.log.error('Redis health check failed:', error);
+          fastify.log.error({ err: error }, 'Redis health check failed');
         }
 
         // RAG 엔진 상태 확인
@@ -107,7 +107,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
             components: engineStatus,
           };
         } catch (error) {
-          fastify.log.error('RAG Engine health check failed:', error);
+          fastify.log.error({ err: error }, 'RAG Engine health check failed');
           ragEngineStatus = {
             status: 'error',
             components: {
@@ -134,7 +134,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
 
         return reply.send(health);
       } catch (error) {
-        fastify.log.error('Detailed health check failed:', error);
+        fastify.log.error({ err: error }, 'Detailed health check failed');
         return reply.status(503).send({
           status: 'unhealthy',
           timestamp: new Date().toISOString(),
