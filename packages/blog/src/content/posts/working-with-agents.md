@@ -1,6 +1,6 @@
 ---
 title: '우리는 이미 에이전트와 일하고 있다'
-pubDate: '2025-12-22'
+pubDate: '2025-12-21'
 description: 'AI 에이전트 시대, 그런데 우리는 정말 에이전트와 처음 일하는 걸까?'
 highlight: '다만 관리할 대리자가 하나 늘었을 뿐'
 keywords: ['agency', 'delegation', 'AI', 'vibe-coding']
