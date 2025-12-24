@@ -164,9 +164,8 @@ async function processDataFiles(): Promise<ChunkResult[]> {
 
         // 경력 섹션에 자연어 설명 추가 (임베딩 모델의 한국어 의미 연결 보완)
         let enhancedContent = chunk.trim();
-        if (sectionTitle.includes('경력')) {
-          enhancedContent = `dwkim이 일한 회사와 직장 경력, 근무 이력입니다. 어떤 회사에서 일했는지, 무슨 일을 했는지 확인할 수 있습니다.\n\n${enhancedContent}`;
-        }
+        // NOTE: 프리앰블 추가는 임베딩 모델 한계로 효과 없음
+        // TODO: 하이브리드 검색 (BM25 + Vector) 또는 쿼리 확장 필요
 
         results.push({
           id: `data_${type}_${index}`,
