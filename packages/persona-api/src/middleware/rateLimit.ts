@@ -1,4 +1,3 @@
-import type { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 
 interface RateLimitOptions {
@@ -119,55 +118,4 @@ export class RateLimiter {
       };
     }
   }
-}
-
-// Fastify 플러그인으로 등록
-export async function rateLimitPlugin(fastify: FastifyInstance) {
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-
-  // 분당 제한
-  const perMinuteLimiter = new RateLimiter(redis, {
-    windowMs: 60 * 1000, // 1분
-    max: parseInt(process.env.RATE_LIMIT_MAX || '10'),
-    message: '분당 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.',
-  });
-
-  // 시간당 제한
-  const perHourLimiter = new RateLimiter(redis, {
-    windowMs: 60 * 60 * 1000, // 1시간
-    max: parseInt(process.env.RATE_LIMIT_HOURLY_MAX || '100'),
-    message: '시간당 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.',
-  });
-
-  // 미들웨어 등록
-  fastify.addHook('preHandler', async (request, reply) => {
-    // 분당 제한 체크
-    const minuteCheck = await perMinuteLimiter.checkLimit(
-      request.ip || 'unknown'
-    );
-    if (!minuteCheck.allowed) {
-      reply.status(minuteCheck.statusCode || 429).send({
-        error: 'Too Many Requests',
-        message: minuteCheck.message,
-        retryAfter: minuteCheck.retryAfter,
-      });
-      return;
-    }
-
-    // 시간당 제한 체크
-    const hourCheck = await perHourLimiter.checkLimit(request.ip || 'unknown');
-    if (!hourCheck.allowed) {
-      reply.status(hourCheck.statusCode || 429).send({
-        error: 'Too Many Requests',
-        message: hourCheck.message,
-        retryAfter: hourCheck.retryAfter,
-      });
-      return;
-    }
-
-    // 헤더에 남은 요청 수 정보 추가
-    reply.header('X-RateLimit-Limit', hourCheck.limit);
-    reply.header('X-RateLimit-Remaining', hourCheck.remaining);
-    reply.header('X-RateLimit-Reset', hourCheck.resetTime);
-  });
 }

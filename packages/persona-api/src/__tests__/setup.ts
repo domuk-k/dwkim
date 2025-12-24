@@ -35,17 +35,30 @@ jest.mock('@langchain/community/vectorstores/neon', () => ({
   },
 }));
 
-// VectorStore mock (Neon DB 없이 테스트 가능)
+// VectorStore mock (Qdrant 없이 테스트 가능)
+const mockSearchResults = [
+  {
+    id: 'test-doc-1',
+    content: '테스트 문서 내용',
+    metadata: { type: 'faq', title: '테스트 문서' },
+  },
+];
+
 jest.mock('../services/vectorStore', () => ({
   VectorStore: jest.fn().mockImplementation(() => ({
     initialize: jest.fn().mockResolvedValue(undefined),
-    search: jest.fn().mockResolvedValue([
-      {
-        id: 'test-doc-1',
-        content: '테스트 문서 내용',
-        metadata: { type: 'faq', title: '테스트 문서' },
-      },
-    ]),
+    search: jest.fn().mockResolvedValue(mockSearchResults),
+    searchDiverse: jest.fn().mockResolvedValue(mockSearchResults),
+    searchMMR: jest.fn().mockResolvedValue(mockSearchResults),
+    addDocument: jest.fn().mockResolvedValue(undefined),
+    addDocuments: jest.fn().mockResolvedValue(undefined),
+    deleteDocument: jest.fn().mockResolvedValue(undefined),
+    getCollectionInfo: jest.fn().mockResolvedValue({
+      initialized: true,
+      hasVectorStore: true,
+      provider: 'qdrant',
+      collectionName: 'persona_documents',
+    }),
   })),
 }));
 
