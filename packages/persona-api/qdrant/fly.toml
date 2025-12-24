@@ -1,0 +1,42 @@
+# fly.toml app configuration file generated for persona-qdrant on 2025-12-23T18:51:44+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'persona-qdrant'
+primary_region = 'nrt'
+
+[build]
+  image = 'qdrant/qdrant:latest'
+
+[env]
+  QDRANT__SERVICE__GRPC_PORT = '6334'
+
+[[mounts]]
+  source = 'qdrant_data'
+  destination = '/qdrant/storage'
+
+[http_service]
+  internal_port = 6333
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1  # Always keep Qdrant running to avoid cold start issues
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 250
+    soft_limit = 200
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/healthz'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512
