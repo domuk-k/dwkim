@@ -1,6 +1,7 @@
 import { VectorStore, Document } from './vectorStore';
 import { LLMService } from './llmService';
 import type { ChatMessage } from './llmService';
+// import { Guardrails, GuardrailResult } from './guardrails'; // 임시 비활성화
 
 export interface RAGResponse {
   answer: string;
@@ -14,6 +15,10 @@ export interface RAGResponse {
     searchQuery: string;
     searchResults: number;
     processingTime: number;
+    guardrail?: {
+      classification: string;
+      requiresClarification?: boolean;
+    };
   };
 }
 
@@ -28,12 +33,14 @@ export interface RAGStreamEvent {
 export class RAGEngine {
   private vectorStore: VectorStore;
   private llmService: LLMService;
+  // private guardrails: Guardrails; // 임시 비활성화
   private maxSearchResults: number;
   private contextWindow: number;
 
   constructor() {
     this.vectorStore = new VectorStore();
     this.llmService = new LLMService();
+    // this.guardrails = new Guardrails(this.llmService); // 임시 비활성화
     this.maxSearchResults = parseInt(process.env.MAX_SEARCH_RESULTS || '5');
     this.contextWindow = parseInt(process.env.CONTEXT_WINDOW || '4000');
   }
@@ -56,14 +63,23 @@ export class RAGEngine {
 
     try {
       console.log('RAG Engine processing query:', query);
-      
-      // 1. 벡터 검색으로 관련 문서 찾기
+
+      // 가드레일 임시 비활성화 - LLM 호출 감소
+      // const guardrailResult = await this.guardrails.checkQuery(query, conversationHistory);
+      // if (!guardrailResult.allowed) {
+      //   return this.buildGuardrailResponse(guardrailResult, query, startTime);
+      // }
+      // if (guardrailResult.classification === 'ambiguous') {
+      //   return this.buildClarificationResponse(guardrailResult, query, startTime);
+      // }
+
+      // 1. 다양성 검색으로 관련 문서 찾기 (중복 청크 제거)
       console.log('Searching for relevant documents...');
-      const searchResults = await this.vectorStore.search(
+      const searchResults = await this.vectorStore.searchDiverse(
         query,
         this.maxSearchResults
       );
-      console.log(`Found ${searchResults.length} relevant documents`);
+      console.log(`Found ${searchResults.length} diverse documents`);
 
       // 2. 컨텍스트 생성
       console.log('Building context...');
@@ -91,6 +107,7 @@ export class RAGEngine {
           searchQuery: query,
           searchResults: searchResults.length,
           processingTime,
+          // guardrail 임시 비활성화
         },
       };
     } catch (error) {
@@ -98,6 +115,10 @@ export class RAGEngine {
       throw new Error('Failed to process query with RAG engine');
     }
   }
+
+  // 가드레일 임시 비활성화 - 아래 메서드들 주석 처리
+  // private buildGuardrailResponse(...) { ... }
+  // private buildClarificationResponse(...) { ... }
 
   async *processQueryStream(
     query: string,
@@ -108,8 +129,12 @@ export class RAGEngine {
     try {
       console.log('RAG Engine streaming query:', query);
 
-      // 1. 벡터 검색
-      const searchResults = await this.vectorStore.search(
+      // 가드레일 임시 비활성화 - LLM 호출 감소
+      // const guardrailResult = await this.guardrails.checkQuery(query, conversationHistory);
+      // ... (생략)
+
+      // 1. 다양성 검색 (중복 청크 제거)
+      const searchResults = await this.vectorStore.searchDiverse(
         query,
         this.maxSearchResults
       );
@@ -193,7 +218,7 @@ export class RAGEngine {
 
   async searchDocuments(query: string, topK: number = 5): Promise<Document[]> {
     try {
-      return await this.vectorStore.search(query, topK);
+      return await this.vectorStore.searchDiverse(query, topK);
     } catch (error) {
       console.error('Document search failed:', error);
       throw error;
