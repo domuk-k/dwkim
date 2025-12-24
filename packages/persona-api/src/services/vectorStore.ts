@@ -171,8 +171,7 @@ export class VectorStore {
   async search(
     query: string,
     topK: number = 5,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filter?: Record<string, any>
+    filter?: Record<string, unknown>
   ): Promise<Document[]> {
     if (!this.vectorStore) {
       console.warn('Vector store not available - returning empty results');
@@ -232,25 +231,55 @@ export class VectorStore {
   }
 
   /**
-   * 다양성 검색 (MMR 기반)
-   * 기존 searchDiverse 인터페이스 유지하면서 내부적으로 MMR 사용
+   * 다양성 검색 (키워드 부스팅 + 중복 제거)
+   *
+   * 한국어 임베딩 모델의 의미 매칭 한계를 보완:
+   * 1. 넓은 범위의 similarity search
+   * 2. 제목에 쿼리 키워드 포함된 문서 우선
+   * 3. 동일 문서의 중복 청크 제거
    */
   async searchDiverse(
     query: string,
     topK: number = 5,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filter?: Record<string, any>
+    filter?: Record<string, unknown>
   ): Promise<Document[]> {
-    // filter가 있으면 기존 방식 사용 (MMR은 필터와 함께 사용 불가)
-    if (filter) {
-      return this.searchDiverseFallback(query, topK, filter);
+    if (!this.vectorStore) {
+      console.warn('Vector store not available - returning mock results');
+      return this.getMockResults(query);
     }
 
-    // MMR 검색 사용
-    return this.searchMMR(query, topK, {
-      fetchK: topK * 3,
-      lambda: 0.5, // 관련성과 다양성 균형
-    });
+    try {
+      // 1. 넓은 범위에서 후보 검색 (한국어 임베딩 한계 보완)
+      const fetchK = Math.max(topK * 5, 30);
+      const results = await this.vectorStore.similaritySearch(query, fetchK, filter);
+
+      console.log(`VectorStore: Fetched ${results.length} candidates for query: ${query}`);
+
+      // 2. 키워드 부스팅: 제목에 쿼리 포함된 문서 우선
+      const queryLower = query.toLowerCase();
+      const boostedResults = [...results].sort((a, b) => {
+        const aTitle = (a.metadata.title || '').toLowerCase();
+        const bTitle = (b.metadata.title || '').toLowerCase();
+        const aMatch = aTitle.includes(queryLower) ? 1 : 0;
+        const bMatch = bTitle.includes(queryLower) ? 1 : 0;
+        return bMatch - aMatch;
+      });
+
+      // 3. 동일 문서 중복 제거 (첫 번째 청크만 유지)
+      const seen = new Set<string>();
+      const diverseResults = boostedResults.filter((doc) => {
+        const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, topK);
+
+      console.log(`VectorStore: Returning ${diverseResults.length} diverse results`);
+      return this.mapResults(diverseResults);
+    } catch (error) {
+      console.error('Diverse search failed:', error);
+      return this.getMockResults(query);
+    }
   }
 
   /**
@@ -259,8 +288,7 @@ export class VectorStore {
   private async searchDiverseFallback(
     query: string,
     topK: number = 5,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filter?: Record<string, any>
+    filter?: Record<string, unknown>
   ): Promise<Document[]> {
     if (!this.vectorStore) {
       return this.getMockResults(query);
@@ -290,8 +318,7 @@ export class VectorStore {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapResults(results: any[]): Document[] {
+  private mapResults(results: LangChainDocument[]): Document[] {
     return results.map((doc, index) => ({
       id: doc.metadata.docId || `result-${index}`,
       content: doc.pageContent,
@@ -379,8 +406,12 @@ export class VectorStore {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async getCollectionInfo(): Promise<any> {
+  async getCollectionInfo(): Promise<{
+    initialized: boolean;
+    hasVectorStore: boolean;
+    provider: string;
+    collectionName: string;
+  }> {
     return {
       initialized: this.initialized,
       hasVectorStore: this.vectorStore !== null,
