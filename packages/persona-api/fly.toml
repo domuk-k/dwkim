@@ -7,9 +7,15 @@ primary_region = "nrt" # Tokyo (한국과 가까움)
 [env]
   PORT = "8080"
   NODE_ENV = "production"
-  USE_DEEP_AGENT = "1"
+  USE_DEEP_AGENT = "0"
   RATE_LIMIT_MAX = "20"
   RATE_LIMIT_WINDOW_MS = "60000"
+  OPENROUTER_MODEL = "google/gemini-2.5-flash"
+  # Use external URL since Qdrant Docker image doesn't listen on IPv6 by default
+  QDRANT_URL = "https://persona-qdrant.fly.dev"
+  # Increase context window and search results to capture more relevant documents
+  CONTEXT_WINDOW = "10000"
+  MAX_SEARCH_RESULTS = "7"
 
 [http_service]
   internal_port = 8080
