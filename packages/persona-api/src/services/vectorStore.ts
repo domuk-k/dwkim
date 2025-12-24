@@ -1,22 +1,39 @@
-import { NeonPostgres } from '@langchain/community/vectorstores/neon';
+import { QdrantVectorStore } from '@langchain/qdrant';
+import { QdrantClient } from '@qdrant/js-client-rest';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Document as LangChainDocument } from '@langchain/core/documents';
+
+export type DocumentType =
+  | 'resume'
+  | 'faq'
+  | 'thoughts'
+  | 'experience'
+  | 'about'
+  | 'post';
+
+export type DocumentSource = 'persona-api' | 'blog';
 
 export interface Document {
   id: string;
   content: string;
   metadata: {
-    type: 'resume' | 'faq' | 'thoughts' | 'experience';
+    type: DocumentType;
     title?: string;
     category?: string;
+    source?: DocumentSource;
+    pubDate?: string;
+    keywords?: string[];
+    chunkIndex?: number;
+    totalChunks?: number;
     createdAt?: string;
   };
 }
 
 export class VectorStore {
-  private vectorStore: NeonPostgres | null = null;
+  private vectorStore: QdrantVectorStore | null = null;
   private embeddings: GoogleGenerativeAIEmbeddings | null = null;
   private initialized = false;
+  private collectionName = 'persona_documents';
 
   constructor() {
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
@@ -37,9 +54,9 @@ export class VectorStore {
         return;
       }
 
-      const connectionString = process.env.DATABASE_URL;
-      if (!connectionString) {
-        console.warn('DATABASE_URL not set - vector store will use mock mode');
+      const qdrantUrl = process.env.QDRANT_URL;
+      if (!qdrantUrl) {
+        console.warn('QDRANT_URL not set - vector store will use mock mode');
         this.initialized = true;
         return;
       }
@@ -48,18 +65,45 @@ export class VectorStore {
         throw new Error('Google API key required for embeddings');
       }
 
-      this.vectorStore = await NeonPostgres.initialize(this.embeddings, {
-        connectionString,
-        tableName: 'persona_documents',
-        columns: {
-          idColumnName: 'id',
-          vectorColumnName: 'embedding',
-          contentColumnName: 'content',
-          metadataColumnName: 'metadata',
-        },
+      // Qdrant 클라이언트 설정
+      const url = new URL(qdrantUrl);
+      const isHttps = url.protocol === 'https:';
+      // HTTPS 외부 접근시 포트 443 사용, 내부/로컬은 URL에서 추출
+      const port = isHttps ? 443 : parseInt(url.port || '6333');
+
+      console.log(`Connecting to Qdrant: ${url.hostname}:${port} (${isHttps ? 'HTTPS' : 'HTTP'})`);
+
+      // QdrantClient 직접 생성 (포트 명시)
+      const qdrantClient = new QdrantClient({
+        host: url.hostname,
+        port,
+        https: isHttps,
+        apiKey: process.env.QDRANT_API_KEY,
+        checkCompatibility: false, // 버전 체크 스킵
       });
 
-      console.log('Vector store initialized with Neon Postgres');
+      const qdrantConfig = {
+        client: qdrantClient,
+        collectionName: this.collectionName,
+      };
+
+      // 기존 컬렉션 연결 시도
+      try {
+        this.vectorStore = await QdrantVectorStore.fromExistingCollection(
+          this.embeddings,
+          qdrantConfig
+        );
+        console.log('Vector store initialized with Qdrant (existing collection)');
+      } catch (existingError) {
+        console.log('fromExistingCollection failed:', existingError);
+        console.log('Creating new collection...');
+        this.vectorStore = await QdrantVectorStore.fromDocuments(
+          [],
+          this.embeddings,
+          qdrantConfig
+        );
+        console.log('Vector store initialized with Qdrant (new collection)');
+      }
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize vector store:', error);
@@ -142,24 +186,130 @@ export class VectorStore {
 
       console.log('VectorStore: Found', results.length, 'results');
 
-      return results.map((doc, index) => ({
-        id: doc.metadata.docId || `result-${index}`,
-        content: doc.pageContent,
-        metadata: {
-          type: doc.metadata.type || 'experience',
-          title: doc.metadata.title,
-          category: doc.metadata.category,
-          createdAt: doc.metadata.createdAt,
-        },
-      }));
+      return this.mapResults(results);
     } catch (error) {
       console.error('Vector search failed:', error);
       return this.getMockResults(query);
     }
   }
 
+  /**
+   * MMR 검색: 관련성과 다양성을 동시에 최적화
+   * Qdrant 네이티브 MMR 지원 활용
+   */
+  async searchMMR(
+    query: string,
+    topK: number = 5,
+    options?: {
+      fetchK?: number;  // 리랭킹 전 후보 수
+      lambda?: number;  // 0=다양성 중심, 1=관련성 중심 (기본 0.5)
+    }
+  ): Promise<Document[]> {
+    if (!this.vectorStore) {
+      console.warn('Vector store not available - returning mock results');
+      return this.getMockResults(query);
+    }
+
+    try {
+      console.log('VectorStore: MMR searching for:', query);
+
+      const fetchK = options?.fetchK || topK * 3;
+      const lambda = options?.lambda || 0.5;
+
+      const results = await this.vectorStore.maxMarginalRelevanceSearch(query, {
+        k: topK,
+        fetchK,
+        lambda,
+      });
+
+      console.log(`VectorStore: MMR returned ${results.length} diverse results`);
+
+      return this.mapResults(results);
+    } catch (error) {
+      console.error('MMR search failed, falling back to similarity search:', error);
+      return this.search(query, topK);
+    }
+  }
+
+  /**
+   * 다양성 검색 (MMR 기반)
+   * 기존 searchDiverse 인터페이스 유지하면서 내부적으로 MMR 사용
+   */
+  async searchDiverse(
+    query: string,
+    topK: number = 5,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    filter?: Record<string, any>
+  ): Promise<Document[]> {
+    // filter가 있으면 기존 방식 사용 (MMR은 필터와 함께 사용 불가)
+    if (filter) {
+      return this.searchDiverseFallback(query, topK, filter);
+    }
+
+    // MMR 검색 사용
+    return this.searchMMR(query, topK, {
+      fetchK: topK * 3,
+      lambda: 0.5, // 관련성과 다양성 균형
+    });
+  }
+
+  /**
+   * 필터가 필요할 때 사용하는 폴백 다양성 검색
+   */
+  private async searchDiverseFallback(
+    query: string,
+    topK: number = 5,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    filter?: Record<string, any>
+  ): Promise<Document[]> {
+    if (!this.vectorStore) {
+      return this.getMockResults(query);
+    }
+
+    try {
+      console.log('VectorStore: Diverse fallback searching for:', query);
+
+      const fetchK = topK * 3;
+      const results = await this.vectorStore.similaritySearch(query, fetchK, filter);
+
+      // 문서 제목별로 그룹화, 첫 번째(가장 유사한) 청크만 유지
+      const seen = new Set<string>();
+      const diverseResults = results.filter((doc) => {
+        const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, topK);
+
+      console.log(`VectorStore: ${results.length} candidates → ${diverseResults.length} diverse results`);
+
+      return this.mapResults(diverseResults);
+    } catch (error) {
+      console.error('Diverse fallback search failed:', error);
+      return this.search(query, topK, filter);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapResults(results: any[]): Document[] {
+    return results.map((doc, index) => ({
+      id: doc.metadata.docId || `result-${index}`,
+      content: doc.pageContent,
+      metadata: {
+        type: doc.metadata.type || 'experience',
+        title: doc.metadata.title,
+        category: doc.metadata.category,
+        source: doc.metadata.source,
+        pubDate: doc.metadata.pubDate,
+        keywords: doc.metadata.keywords,
+        chunkIndex: doc.metadata.chunkIndex,
+        totalChunks: doc.metadata.totalChunks,
+        createdAt: doc.metadata.createdAt,
+      },
+    }));
+  }
+
   private getMockResults(query: string): Document[] {
-    // Mock 결과 - 실제 데이터 없을 때 기본 응답
     return [
       {
         id: 'mock-1',
@@ -187,12 +337,55 @@ export class VectorStore {
     }
   }
 
+  /**
+   * 컬렉션 초기화 (기존 데이터 삭제 후 재생성)
+   */
+  async resetCollection(): Promise<void> {
+    if (!this.embeddings) {
+      throw new Error('Embeddings not initialized');
+    }
+
+    const qdrantUrl = process.env.QDRANT_URL;
+    if (!qdrantUrl) {
+      throw new Error('QDRANT_URL not set');
+    }
+
+    try {
+      // 새 컬렉션으로 초기화 (기존 데이터 덮어쓰기)
+      const qdrantConfig: {
+        url: string;
+        collectionName: string;
+        apiKey?: string;
+      } = {
+        url: qdrantUrl,
+        collectionName: this.collectionName,
+      };
+
+      if (process.env.QDRANT_API_KEY) {
+        qdrantConfig.apiKey = process.env.QDRANT_API_KEY;
+      }
+
+      // 빈 문서로 새 컬렉션 생성 (기존 컬렉션 덮어쓰기)
+      this.vectorStore = await QdrantVectorStore.fromDocuments(
+        [],
+        this.embeddings,
+        qdrantConfig
+      );
+
+      console.log('Collection reset successfully');
+    } catch (error) {
+      console.error('Failed to reset collection:', error);
+      throw error;
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getCollectionInfo(): Promise<any> {
     return {
       initialized: this.initialized,
       hasVectorStore: this.vectorStore !== null,
-      provider: 'neon-postgres',
+      provider: 'qdrant',
+      collectionName: this.collectionName,
     };
   }
 }
