@@ -5,32 +5,32 @@ import { startChat } from './chat';
 
 const command = process.argv[2];
 
-switch (command) {
-  case 'chat':
-    await startChat();
-    break;
-  case 'profile':
-  case undefined:
-    printProfile();
-    break;
-  case 'help':
-    console.log(`
+(async () => {
+  switch (command) {
+    case 'profile':
+      printProfile();
+      break;
+    case 'help':
+      console.log(`
 📚 dwkim CLI
 
-Usage: dwkim [command]
+사용법: dwkim [명령어]
 
-Commands:
-  profile    Show developer profile (default)
-  chat       Start interactive chat with AI assistant
-  help       Show this help message
+명령어:
+  (기본)    프로필 + 채팅 시작
+  profile   프로필만 표시
+  help      도움말
 
-Examples:
-  dwkim              # Show profile
-  dwkim profile      # Show profile
-  dwkim chat         # Start chat
+예시:
+  dwkim              # 프로필 + 채팅
+  dwkim profile      # 프로필만
 `);
-    break;
-  default:
-    console.log(`Unknown command: ${command}`);
-    console.log('Run "dwkim help" for available commands');
-}
+      break;
+    case undefined:
+    default:
+      // 기본: 명함 출력 후 채팅 시작
+      printProfile();
+      console.log('');
+      await startChat();
+  }
+})();

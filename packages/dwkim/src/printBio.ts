@@ -25,17 +25,6 @@ export function printProfile() {
   ].join('\n');
 
   console.log(boxen(cardContent, boxenOptions));
-
-  // CTA: 채팅 기능 안내
-  console.log('');
-  console.log(
-    chalk.cyan('💬 Want to know more about me? Run ') +
-      chalk.white.bold('dwkim chat') +
-      chalk.cyan(' to ask questions!')
-  );
-  console.log(
-    chalk.gray('   Example: "What technologies do you use?" or "Tell me about your experience"')
-  );
 }
 
 export const profile = {
