@@ -2,9 +2,9 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { RAGEngine } from '../services/ragEngine';
 
 export default async function healthRoutes(fastify: FastifyInstance) {
-  // GET /health
+  // GET / (when registered with /health prefix, becomes /health)
   fastify.get(
-    '/health',
+    '/',
     {
       schema: {
         tags: ['Health'],
@@ -34,9 +34,9 @@ export default async function healthRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // GET /health/detailed
+  // GET /detailed (when registered with /health prefix, becomes /health/detailed)
   fastify.get(
-    '/health/detailed',
+    '/detailed',
     {
       schema: {
         tags: ['Health'],
@@ -145,34 +145,4 @@ export default async function healthRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // GET /
-  fastify.get(
-    '/',
-    {
-      schema: {
-        tags: ['Health'],
-        summary: 'Root endpoint',
-        description: 'Returns basic API information',
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              name: { type: 'string', example: 'Persona API' },
-              version: { type: 'string', example: '1.0.0' },
-              description: { type: 'string' },
-              docs: { type: 'string', description: 'API documentation URL' },
-            },
-          },
-        },
-      },
-    },
-    async () => {
-      return {
-        name: 'Persona API',
-        version: '1.0.0',
-        description: 'Personalized RAG+LLM Chatbot API for dwkim persona',
-        docs: '/documentation',
-      };
-    }
-  );
 }
