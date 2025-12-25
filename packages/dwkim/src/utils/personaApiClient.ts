@@ -215,23 +215,36 @@ export class PersonaApiClient {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const response = await fetch(`${this.baseUrl}/api/v1/search?q=${encodeURIComponent(query)}`);
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}/api/v1/search?q=${encodeURIComponent(query)}`);
+    } catch (error) {
+      handleFetchError(error);
+    }
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Search request failed: ${response.status} - ${error}`);
+      const body = await response.text();
+      handleHttpError(response.status, body);
     }
 
     const result = await response.json();
-    return result.results || [];
+    // API 응답 구조: { success, data: { results: [...] } }
+    return result.data?.results || result.results || [];
   }
 
   async getStatus(): Promise<StatusResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/status`);
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}/api/v1/status`);
+    } catch (error) {
+      handleFetchError(error);
+    }
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Status request failed: ${response.status} - ${error}`);
+      const body = await response.text();
+      handleHttpError(response.status, body);
     }
 
     return response.json();
