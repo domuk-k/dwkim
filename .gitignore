@@ -12,3 +12,4 @@ dist
 .env.production.local
 .vercel
 backup
+.env*.local
