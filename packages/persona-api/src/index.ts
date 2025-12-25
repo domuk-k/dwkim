@@ -1,7 +1,8 @@
 import { config } from 'dotenv';
 import { createServer } from './server';
 
-// 환경 변수 로드
+// 환경 변수 로드 (.env.local 우선, 그다음 .env)
+config({ path: '.env.local' });
 config();
 
 async function startServer() {

@@ -108,7 +108,7 @@ export class DeepAgentService {
         systemPrompt: SYSTEM_PROMPT,
       });
 
-      console.log('DeepAgentService initialized with Gemini 2.5 Flash');
+      console.log('DeepAgentService initialized with Gemini 2.0 Flash (gemini-2.0-flash)');
     } catch (error) {
       console.error('Failed to initialize DeepAgentService:', error);
       throw error;

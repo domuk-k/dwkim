@@ -169,6 +169,31 @@ export async function createServer() {
   await fastify.register(healthRoutes, { prefix: '/health' });
   await fastify.register(chatRoutes, { prefix: '/api/v1' });
 
+  // Root endpoint
+  fastify.get('/', {
+    schema: {
+      tags: ['Health'],
+      summary: 'Root endpoint',
+      description: 'Returns basic API information',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', example: 'Persona API' },
+            version: { type: 'string', example: '1.0.0' },
+            description: { type: 'string' },
+            docs: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async () => ({
+    name: 'Persona API',
+    version: '1.0.0',
+    description: 'Personalized RAG+LLM Chatbot API for dwkim persona',
+    docs: '/docs',
+  }));
+
   // 전역 에러 핸들러
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error(error);
