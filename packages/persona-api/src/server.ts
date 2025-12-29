@@ -8,6 +8,7 @@ import Redis from 'ioredis';
 
 import healthRoutes from './routes/health';
 import chatRoutes from './routes/chat';
+import syncRoutes from './routes/sync';
 import { RateLimiter } from './middleware/rateLimit';
 import { AbuseDetection } from './middleware/abuseDetection';
 
@@ -135,6 +136,7 @@ export async function createServer() {
         { name: 'Health', description: '헬스체크 관련 엔드포인트' },
         { name: 'Chat', description: '채팅 관련 엔드포인트' },
         { name: 'Search', description: '문서 검색 엔드포인트' },
+        { name: 'Sync', description: 'Cogni 노트 동기화 엔드포인트' },
         { name: 'System', description: '시스템 관리 엔드포인트' },
       ],
       securityDefinitions: {
@@ -168,6 +170,7 @@ export async function createServer() {
   // 라우트 등록
   await fastify.register(healthRoutes, { prefix: '/health' });
   await fastify.register(chatRoutes, { prefix: '/api/v1' });
+  await fastify.register(syncRoutes, { prefix: '/api/v1' });
 
   // Root endpoint
   fastify.get('/', {

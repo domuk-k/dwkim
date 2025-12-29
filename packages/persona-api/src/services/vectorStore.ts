@@ -9,9 +9,10 @@ export type DocumentType =
   | 'thoughts'
   | 'experience'
   | 'about'
-  | 'post';
+  | 'post'
+  | 'cogni';  // Cogni 노트 타입 추가
 
-export type DocumentSource = 'persona-api' | 'blog';
+export type DocumentSource = 'persona-api' | 'blog' | 'cogni';
 
 export interface Document {
   id: string;
@@ -26,12 +27,15 @@ export interface Document {
     chunkIndex?: number;
     totalChunks?: number;
     createdAt?: string;
+    path?: string;        // Cogni 노트 파일 경로
+    tags?: string[];      // Cogni 노트 태그
   };
 }
 
 export class VectorStore {
   private vectorStore: QdrantVectorStore | null = null;
   private embeddings: GoogleGenerativeAIEmbeddings | null = null;
+  private qdrantClient: QdrantClient | null = null;
   private initialized = false;
   private collectionName = 'persona_documents';
 
@@ -74,7 +78,7 @@ export class VectorStore {
       console.log(`Connecting to Qdrant: ${url.hostname}:${port} (${isHttps ? 'HTTPS' : 'HTTP'})`);
 
       // QdrantClient 직접 생성 (포트 명시)
-      const qdrantClient = new QdrantClient({
+      this.qdrantClient = new QdrantClient({
         host: url.hostname,
         port,
         https: isHttps,
@@ -83,7 +87,7 @@ export class VectorStore {
       });
 
       const qdrantConfig = {
-        client: qdrantClient,
+        client: this.qdrantClient,
         collectionName: this.collectionName,
       };
 
@@ -332,6 +336,8 @@ export class VectorStore {
         chunkIndex: doc.metadata.chunkIndex,
         totalChunks: doc.metadata.totalChunks,
         createdAt: doc.metadata.createdAt,
+        path: doc.metadata.path,
+        tags: doc.metadata.tags,
       },
     }));
   }
@@ -418,5 +424,119 @@ export class VectorStore {
       provider: 'qdrant',
       collectionName: this.collectionName,
     };
+  }
+
+  /**
+   * 파일 경로 기반으로 문서 삭제
+   * Cogni 노트 동기화에서 사용
+   */
+  async deleteDocumentsByPath(path: string): Promise<number> {
+    if (!this.qdrantClient) {
+      console.warn('Qdrant client not available - skipping delete by path');
+      return 0;
+    }
+
+    try {
+      // 해당 path를 가진 모든 포인트 조회
+      const scrollResult = await this.qdrantClient.scroll(this.collectionName, {
+        filter: {
+          must: [
+            {
+              key: 'path',
+              match: { value: path },
+            },
+          ],
+        },
+        limit: 100,
+        with_payload: false,
+        with_vector: false,
+      });
+
+      if (scrollResult.points.length === 0) {
+        console.log(`No documents found for path: ${path}`);
+        return 0;
+      }
+
+      // 포인트 ID 추출 및 삭제
+      const pointIds = scrollResult.points.map((p) => p.id);
+      await this.qdrantClient.delete(this.collectionName, {
+        points: pointIds as string[],
+      });
+
+      console.log(`Deleted ${pointIds.length} chunks for path: ${path}`);
+      return pointIds.length;
+    } catch (error) {
+      console.error('Failed to delete documents by path:', error);
+      throw new Error(`Failed to delete documents for path: ${path}`);
+    }
+  }
+
+  /**
+   * 문서 업서트 (기존 경로의 문서 삭제 후 새 문서 추가)
+   * Cogni 노트 동기화에서 사용
+   */
+  async upsertDocuments(documents: Document[], path: string): Promise<void> {
+    if (!this.vectorStore) {
+      console.warn('Vector store not available - skipping upsert');
+      return;
+    }
+
+    try {
+      // 1. 기존 문서 삭제
+      await this.deleteDocumentsByPath(path);
+
+      // 2. 새 문서 추가
+      if (documents.length > 0) {
+        await this.addDocuments(documents);
+        console.log(`Upserted ${documents.length} chunks for path: ${path}`);
+      }
+    } catch (error) {
+      console.error('Failed to upsert documents:', error);
+      throw new Error(`Failed to upsert documents for path: ${path}`);
+    }
+  }
+
+  /**
+   * 특정 태그를 가진 문서 목록 조회 (Cogni 동기화 상태 확인용)
+   */
+  async getDocumentsByTag(tag: string, limit: number = 100): Promise<Document[]> {
+    if (!this.qdrantClient) {
+      console.warn('Qdrant client not available');
+      return [];
+    }
+
+    try {
+      const scrollResult = await this.qdrantClient.scroll(this.collectionName, {
+        filter: {
+          must: [
+            {
+              key: 'tags',
+              match: { any: [tag] },
+            },
+          ],
+        },
+        limit,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      return scrollResult.points.map((point) => {
+        const payload = point.payload as Record<string, unknown>;
+        return {
+          id: point.id as string,
+          content: (payload.content as string) || '',
+          metadata: {
+            type: (payload.type as DocumentType) || 'cogni',
+            title: payload.title as string | undefined,
+            path: payload.path as string | undefined,
+            tags: payload.tags as string[] | undefined,
+            source: payload.source as DocumentSource | undefined,
+          },
+        };
+      });
+    } catch (error) {
+      console.error('Failed to get documents by tag:', error);
+      return [];
+    }
   }
 }
