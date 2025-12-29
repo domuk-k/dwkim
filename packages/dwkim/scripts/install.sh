@@ -66,7 +66,7 @@ install_via_npm() {
     npm install -g dwkim
     success "dwkim installed via npm!"
     echo ""
-    echo "Run 'dwkim' to get started, or 'dwkim chat' to chat with AI."
+    echo "Run 'dwkim' to get started!"
 }
 
 # Install binary
@@ -153,7 +153,7 @@ main() {
         echo ""
         success "Installation complete!"
         echo ""
-        echo "Run 'dwkim' to get started, or 'dwkim chat' to chat with AI."
+        echo "Run 'dwkim' to get started!"
     else
         warn "Binary not available for ${platform}"
 
