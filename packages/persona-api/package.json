@@ -19,6 +19,7 @@
     "init-neon:test": "tsx scripts/initNeonData.ts --test",
     "init-neon:retrieval": "tsx scripts/initNeonData.ts --retrieval",
     "init-qdrant": "tsx scripts/initQdrantData.ts",
+    "init-qdrant:clean": "tsx scripts/initQdrantData.ts --clean",
     "init-qdrant:test": "tsx scripts/initQdrantData.ts --test",
     "init-qdrant:retrieval": "tsx scripts/initQdrantData.ts --retrieval",
     "manage": "tsx scripts/manageData.ts",
