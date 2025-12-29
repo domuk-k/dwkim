@@ -27,13 +27,13 @@ curl -fsSL https://raw.githubusercontent.com/domuk-k/dwkim/main/packages/dwkim/s
 ## Usage
 
 ```bash
-# Show profile card
+# 프로필 카드 + AI 채팅
 dwkim
 
-# Start interactive AI chat
-dwkim chat
+# 프로필 카드만
+dwkim profile
 
-# Show help
+# 도움말
 dwkim help
 ```
 
