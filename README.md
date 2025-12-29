@@ -1,22 +1,70 @@
-# dwkim-workspace
+# dwkim
 
-이 저장소는 **dwkim** CLI 도구를 포함한 pnpm workspace 모노레포입니다.
+터미널에서 만나는 개발자 프로필과 AI 어시스턴트
 
-## 📦 Packages
-
-### [dwkim](./packages/dwkim) - CLI 명함 도구
-
-개발자의 프로필 정보를 기반으로 터미널에서 명함을 출력하는 CLI 도구입니다.
+## 사용해 보기
 
 ```bash
 npx dwkim
 ```
 
-### [blog](./packages/blog) - Astro 블로그
+터미널에서 프로필 카드를 확인하고 AI와 대화할 수 있어요.
 
-MDX 기반의 개인 블로그 사이트입니다.
+## 프로젝트 구조
 
-- **Framework**: Astro 5.11+ with static site generation
-- **Content**: Astro Content Collections for MDX processing
-- **Styling**: Custom CSS with mathematical typography support (KaTeX)
-- **Features**: RSS/Atom feeds, sitemap, image optimization, table of contents
+이 저장소는 pnpm workspace 기반 모노레포예요.
+
+| 패키지 | 설명 | 링크 |
+|--------|------|------|
+| [`dwkim`](./packages/dwkim) | CLI 명함 도구 | [![npm](https://img.shields.io/npm/v/dwkim)](https://www.npmjs.com/package/dwkim) |
+| [`persona-api`](./packages/persona-api) | RAG 기반 챗봇 API | [persona-api.fly.dev](https://persona-api.fly.dev) |
+| [`blog`](./packages/blog) | 개인 블로그 | [dwkim.net](https://dwkim.net) |
+
+## 로컬 개발
+
+### 요구사항
+
+- Node.js 18+
+- pnpm 9+
+
+### 설치
+
+```bash
+pnpm install
+```
+
+### 개발 서버 실행
+
+```bash
+# 전체 패키지
+pnpm dev
+
+# 개별 패키지
+pnpm dev:dwkim
+pnpm dev:blog
+```
+
+### 빌드
+
+```bash
+pnpm build
+```
+
+## 기술 스택
+
+**dwkim CLI**
+- TypeScript, esbuild
+- boxen, chalk, ora
+
+**persona-api**
+- Fastify, LangChain
+- Qdrant (Vector DB)
+- OpenAI, Anthropic
+
+**blog**
+- Astro 5
+- MDX, KaTeX, Mermaid
+
+## 라이선스
+
+MIT
