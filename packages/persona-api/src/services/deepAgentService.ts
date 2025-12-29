@@ -2,7 +2,20 @@ import { createDeepAgent } from 'deepagents';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { VectorStore, Document } from './vectorStore';
+
+// 시스템 프롬프트를 파일에서 읽어옴
+function loadSystemPrompt(): string {
+  try {
+    const promptPath = join(__dirname, '../../data/systemPrompt.md');
+    return readFileSync(promptPath, 'utf-8');
+  } catch (error) {
+    console.warn('Failed to load systemPrompt.md, using fallback');
+    return `나는 김동욱이에요. 질문에 답변해드릴게요.`;
+  }
+}
 
 export interface AgentResponse {
   answer: string;
@@ -27,21 +40,12 @@ export interface AgentStreamEvent {
   error?: string;
 }
 
-const SYSTEM_PROMPT = `당신은 dwkim(김동욱)의 개인화된 AI 어시스턴트입니다.
-
-## 역할
-- dwkim에 대해 궁금한 점을 친절하고 전문적으로 답변합니다.
-- 제공된 문서 컨텍스트를 기반으로 정확한 정보를 전달합니다.
-- 한국어로 답변하며, 기술 용어는 영어를 적절히 혼용합니다.
+// 도구 사용 가이드 (시스템 프롬프트에 추가)
+const TOOL_GUIDE = `
 
 ## 도구 사용
-- search_documents: dwkim의 이력서, 경험, 생각, FAQ 등을 검색합니다.
-- 사용자 질문과 관련된 문서를 먼저 검색한 후 답변하세요.
-
-## 답변 스타일
-- 간결하고 핵심적인 답변을 제공합니다.
-- 필요시 구체적인 예시나 경험을 인용합니다.
-- 모르는 내용은 솔직히 인정합니다.
+- search_documents: 나의 이력서, 경험, 생각, FAQ 등을 검색해요.
+- 질문에 답하기 전에 관련 문서를 먼저 검색하세요.
 `;
 
 export class DeepAgentService {
@@ -101,11 +105,12 @@ export class DeepAgentService {
       } as any);
 
       // Deep Agent 생성 (LangGraph 타입 재귀 방지)
+      const systemPrompt = loadSystemPrompt() + TOOL_GUIDE;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.agent = (createDeepAgent as any)({
         model: this.model,
         tools: [searchDocuments],
-        systemPrompt: SYSTEM_PROMPT,
+        systemPrompt,
       });
 
       console.log('DeepAgentService initialized with Gemini 2.0 Flash (gemini-2.0-flash)');
