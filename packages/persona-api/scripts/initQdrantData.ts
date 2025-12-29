@@ -6,14 +6,15 @@ import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Document as LangChainDocument } from '@langchain/core/documents';
 import fs from 'fs/promises';
 import path from 'path';
+import { homedir } from 'os';
 import dotenv from 'dotenv';
 
 // Load .env.local first (for local dev), then .env
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-// Configuration
-const DATA_DIR = path.join(__dirname, '../data');
+// Configuration - Cogni as SSOT
+const COGNI_PERSONA_DIR = path.join(homedir(), '.cogni', 'notes', 'persona');
 const BLOG_ABOUT_DIR = path.join(__dirname, '../../blog/src/content/about');
 const BLOG_POSTS_DIR = path.join(__dirname, '../../blog/src/content/posts');
 const COLLECTION_NAME = 'persona_documents';
@@ -133,47 +134,51 @@ function inferCategory(keywords?: string[]): string {
 }
 
 /**
- * persona-api/data/*.md 처리
+ * ~/.cogni/notes/persona/*.md 처리 (SSOT)
  */
-async function processDataFiles(): Promise<ChunkResult[]> {
-  console.log('📂 Processing persona-api/data files...');
+async function processPersonaFiles(): Promise<ChunkResult[]> {
+  console.log('📂 Processing Cogni persona files...');
 
   let files: string[];
   try {
-    files = await fs.readdir(DATA_DIR);
+    files = await fs.readdir(COGNI_PERSONA_DIR);
   } catch {
-    console.warn('⚠️  data 디렉토리를 찾을 수 없습니다:', DATA_DIR);
+    console.warn('⚠️  Cogni persona 디렉토리를 찾을 수 없습니다:', COGNI_PERSONA_DIR);
     return [];
   }
 
   const results: ChunkResult[] = [];
-  const mdFiles = files.filter((f) => f.endsWith('.md') && f !== 'systemPrompt.md');
+  const mdFiles = files.filter((f) => f.endsWith('.md'));
 
   for (const file of mdFiles) {
-    const content = await fs.readFile(path.join(DATA_DIR, file), 'utf-8');
+    const content = await fs.readFile(path.join(COGNI_PERSONA_DIR, file), 'utf-8');
+    const { frontmatter, body } = parseFrontmatter(content);
+
+    // tags에 persona가 없으면 스킵
+    const tags = (frontmatter.tags as string[]) || [];
+    if (!tags.includes('persona')) {
+      console.log(`  ⏭️  ${file}: skipped (no persona tag)`);
+      continue;
+    }
     const type = path.basename(file, '.md');
+    const title = (frontmatter.title as string) || type;
 
     // resume.md는 섹션 기반 청킹 (## 기준)
     if (type === 'resume') {
-      const chunks = chunkBySection(content);
+      const chunks = chunkBySection(body);
       console.log(`  📄 ${file}: ${chunks.length} chunks (by section)`);
 
       chunks.forEach((chunk, index) => {
         // 섹션 제목 추출 (## 로 시작하는 첫 줄)
-        const sectionTitle = chunk.match(/^##\s+(.+)/m)?.[1] || '김동욱 이력서';
-
-        // 경력 섹션에 자연어 설명 추가 (임베딩 모델의 한국어 의미 연결 보완)
-        let enhancedContent = chunk.trim();
-        // NOTE: 프리앰블 추가는 임베딩 모델 한계로 효과 없음
-        // TODO: 하이브리드 검색 (BM25 + Vector) 또는 쿼리 확장 필요
+        const sectionTitle = chunk.match(/^##\s+(.+)/m)?.[1] || title;
 
         results.push({
-          id: `data_${type}_${index}`,
-          content: enhancedContent,
+          id: `cogni_${type}_${index}`,
+          content: chunk.trim(),
           metadata: {
             type,
             title: sectionTitle,
-            source: 'persona-api',
+            source: 'cogni',
             chunkIndex: index,
             totalChunks: chunks.length,
           },
@@ -182,17 +187,17 @@ async function processDataFiles(): Promise<ChunkResult[]> {
       continue;
     }
 
-    const chunks = chunkByParagraph(content);
+    const chunks = chunkByParagraph(body);
     console.log(`  📄 ${file}: ${chunks.length} chunks`);
 
     chunks.forEach((chunk, index) => {
       results.push({
-        id: `data_${type}_${index}`,
+        id: `cogni_${type}_${index}`,
         content: chunk,
         metadata: {
           type,
-          title: extractTitle(chunk) || type,
-          source: 'persona-api',
+          title: extractTitle(chunk) || title,
+          source: 'cogni',
           chunkIndex: index,
           totalChunks: chunks.length,
         },
@@ -330,17 +335,17 @@ async function initializeDatabase(testMode: boolean = false) {
     }
   }
 
-  // 모든 문서 수집
-  const dataChunks = await processDataFiles();
+  // 모든 문서 수집 (Cogni SSOT)
+  const personaChunks = await processPersonaFiles();
   const aboutChunks = await processAboutFiles();
   const postChunks = await processPostFiles();
 
-  const allChunks = [...dataChunks, ...aboutChunks, ...postChunks];
+  const allChunks = [...personaChunks, ...aboutChunks, ...postChunks];
 
   console.log(`\n📊 총 청크 수: ${allChunks.length}`);
-  console.log(`   - data: ${dataChunks.length}`);
-  console.log(`   - about: ${aboutChunks.length}`);
-  console.log(`   - posts: ${postChunks.length}\n`);
+  console.log(`   - cogni/persona: ${personaChunks.length}`);
+  console.log(`   - blog/about: ${aboutChunks.length}`);
+  console.log(`   - blog/posts: ${postChunks.length}\n`);
 
   if (testMode) {
     console.log('🧪 테스트 모드 - DB 업로드 건너뜀\n');
