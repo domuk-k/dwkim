@@ -4,6 +4,11 @@
   "description": "CLI business card and AI assistant for dwkim",
   "license": "MIT",
   "author": "dannyworks102@gmail.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domuk-k/dwkim.git",
+    "directory": "packages/dwkim"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
