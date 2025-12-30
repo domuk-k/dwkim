@@ -9,11 +9,14 @@ import {
   type StreamEvent,
 } from '../utils/personaApiClient.js';
 
+// Extract sources type from discriminated union
+type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>;
+
 interface Message {
   id: number;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  sources?: StreamEvent['sources'];
+  sources?: SourcesEvent['sources'];
   processingTime?: number;
 }
 
@@ -56,7 +59,7 @@ export function ChatView({ apiUrl }: Props) {
           {
             id: nextId(),
             role: 'system',
-            content: `${icons.robot} dwkim AI 준비 완료\n${icons.book} /help 도움말  •  Ctrl+C 종료`,
+            content: `${icons.book} /help 도움말  •  Ctrl+C 종료`,
           },
         ]);
       })
@@ -173,30 +176,27 @@ ${icons.chat} 예시 질문
       setStreamContent('');
 
       try {
-        let sources: StreamEvent['sources'] = [];
+        let sources: SourcesEvent['sources'] = [];
         let fullContent = '';
         let processingTime = 0;
 
         for await (const event of client.chatStream(trimmed)) {
           switch (event.type) {
             case 'status':
-              setLoadingState({
-                icon: event.icon || '⏳',
-                message: event.message || '처리 중...',
-              });
+              setLoadingState({ icon: event.icon, message: event.message });
               break;
             case 'sources':
-              sources = event.sources || [];
+              sources = event.sources;
               break;
             case 'content':
-              fullContent += event.content || '';
+              fullContent += event.content;
               setStreamContent(fullContent);
               break;
             case 'done':
-              processingTime = event.metadata?.processingTime || 0;
+              processingTime = event.metadata.processingTime;
               break;
             case 'error':
-              throw new ApiError(event.error || '알 수 없는 오류');
+              throw new ApiError(event.error);
           }
         }
 
