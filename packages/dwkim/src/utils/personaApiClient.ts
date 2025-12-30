@@ -101,25 +101,19 @@ export interface StatusResponse {
   };
 }
 
-export interface StreamEvent {
-  type: 'status' | 'sources' | 'content' | 'done' | 'error';
-  // status event
-  tool?: string;
-  message?: string;
-  icon?: string;
-  // sources event
-  sources?: Array<{
-    id: string;
-    content: string;
-    metadata: { type: string; title?: string };
-  }>;
-  // content event
-  content?: string;
-  // done event
-  metadata?: { searchQuery: string; searchResults: number; processingTime: number };
-  // error event
-  error?: string;
-}
+// Discriminated Union: 각 이벤트 타입에 맞는 필드만 허용
+type Source = {
+  id: string;
+  content: string;
+  metadata: { type: string; title?: string };
+};
+
+export type StreamEvent =
+  | { type: 'status'; tool: string; message: string; icon: string }
+  | { type: 'sources'; sources: Source[] }
+  | { type: 'content'; content: string }
+  | { type: 'done'; metadata: { searchQuery: string; searchResults: number; processingTime: number } }
+  | { type: 'error'; error: string };
 
 export class PersonaApiClient {
   constructor(private baseUrl: string) {}
