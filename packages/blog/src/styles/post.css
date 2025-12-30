@@ -96,7 +96,7 @@
 }
 
 .prose th {
-  background: var(--astro-code-background);
+  background: var(--code-bg);
   font-weight: var(--font-weight-bold);
 }
 
@@ -106,7 +106,7 @@
   height: auto;
   display: block;
   margin: 1.25em 0;
-  background-color: var(--astro-code-background);
+  background-color: var(--code-bg);
   transition: opacity 0.3s ease-in-out;
 }
 
@@ -475,11 +475,31 @@
 
 /* Code blocks */
 .prose pre {
-  background-color: var(--astro-code-background);
   border-radius: 8px;
   padding: 1.25em 1.5em;
   margin: 1.25em 0;
   overflow-x: auto;
+}
+
+/* Shiki dual theme - dark mode switching */
+html.dark .astro-code,
+html.dark .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+/* Light mode uses default shiki colors */
+html.light .astro-code,
+html.light .astro-code span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
+}
+
+/* Beige mode uses light theme */
+html.beige .astro-code,
+html.beige .astro-code span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
 }
 
 @media (max-width: 768px) {
