@@ -44,8 +44,26 @@ Check the [demo](https://astro-chiri.netlify.app/) for more details.
 
 ## Commands
 
-- `pnpm new <title>` - Create a new post (use `_title` for drafts)
-- `pnpm update-theme` - Update the theme to the latest version
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | 개발 서버 실행 |
+| `pnpm build` | 정적 사이트 빌드 (sync-cogni 자동 실행) |
+| `pnpm sync-cogni` | Cogni 노트 수동 동기화 |
+| `pnpm new <title>` | 새 포스트 생성 (`_title`로 draft) |
+| `pnpm update-theme` | 테마 최신 버전 업데이트 |
+
+---
+
+## Cogni 통합
+
+블로그 포스트는 `~/.cogni/notes/`에서 관리됩니다 (SSOT).
+
+```
+~/.cogni/notes/  →  tags: [blog]  →  pnpm sync-cogni  →  src/content/posts/
+```
+
+- `src/content/posts/`에 직접 쓰지 마세요 — sync 시 덮어쓰기됨
+- 자세한 내용: [Cogni Integration Architecture](https://github.com/your-repo/cogni/docs/integration-architecture.md)
 
 ## References
 

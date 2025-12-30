@@ -61,6 +61,52 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter; body: st
 }
 
 /**
+ * Obsidian callout 문법을 HTML로 변환
+ *
+ * > [!term] 💡 Title
+ * > Content line 1
+ * > Content line 2
+ *
+ * →
+ *
+ * <div class="callout callout-term">
+ * <div class="callout-title">💡 Title</div>
+ * <div class="callout-content">
+ * <p>Content line 1</p>
+ * <p>Content line 2</p>
+ * </div>
+ * </div>
+ */
+function transformObsidianCallouts(content: string): string {
+  // Obsidian callout 패턴: > [!type] title 으로 시작하는 blockquote
+  const calloutRegex = /^(> \[!(\w+)\]\s*(.*))\n((?:>.*\n?)*)/gm;
+
+  return content.replace(calloutRegex, (_match, _firstLine, type, title, restLines) => {
+    const calloutType = type.toLowerCase();
+    const calloutTitle = title || `💡 ${type.toUpperCase()}`;
+
+    // > 로 시작하는 라인들에서 > 제거하고 내용 추출
+    const contentLines = restLines
+      .split('\n')
+      .filter((line: string) => line.startsWith('>'))
+      .map((line: string) => line.slice(1).trim()) // > 와 앞뒤 공백 제거
+      .filter((line: string) => line.length > 0);
+
+    // 각 라인을 <p>로 감싸기
+    const contentHtml = contentLines.map((line: string) => `<p>${line}</p>`).join('\n');
+
+    return `<div class="callout callout-${calloutType}">
+<div class="callout-title">${calloutTitle}</div>
+<div class="callout-content">
+${contentHtml}
+</div>
+</div>
+
+`;
+  });
+}
+
+/**
  * Cogni frontmatter를 Astro 형식으로 변환
  */
 function convertToAstroFrontmatter(frontmatter: Frontmatter): string {
@@ -155,7 +201,11 @@ function main() {
 
     // Astro 형식으로 변환
     const astroFrontmatter = convertToAstroFrontmatter(frontmatter);
-    const newContent = astroFrontmatter + body;
+
+    // Obsidian callout을 HTML로 변환
+    const transformedBody = transformObsidianCallouts(body);
+
+    const newContent = astroFrontmatter + transformedBody;
 
     writeFileSync(destPath, newContent);
     console.log(`  ✅ ${fileName}${isDraft ? ' (draft)' : ''}`);
