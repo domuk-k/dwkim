@@ -14,18 +14,21 @@
     "build:blog": "pnpm --filter blog build",
     "dev:blog": "pnpm --filter blog dev",
     "lint:blog": "pnpm --filter blog lint",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release:dwkim": "pnpm run build:dwkim && changeset publish",
+    "release:dwkim": "pnpm run build:dwkim && cd packages/dwkim && npx semantic-release --no-ci",
     "prepare": "husky"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.4",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2"
   },
   "lint-staged": {
-    "*.{ts,js,tsx,jsx}": ["eslint --fix", "git add"],
-    "*.{md,json}": ["prettier --write", "git add"]
+    "*.{ts,js,tsx,jsx}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{md,json}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }

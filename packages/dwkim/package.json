@@ -27,10 +27,14 @@
     "react": "^19.2.3"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@types/node": "^20.10.0",
     "@types/react": "^19.2.7",
     "@yao-pkg/pkg": "^6.0.0",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
     "esbuild": "^0.20.0",
+    "semantic-release": "^25.0.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
