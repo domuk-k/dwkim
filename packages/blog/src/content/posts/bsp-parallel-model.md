@@ -21,10 +21,14 @@ pubDate: "2025-01-28"
 
 이 이야기가 **BSP**의 전부예요.
 
-> [!term] 💡 BSP (Bulk Synchronous Parallel)
-> **Bulk**(덩어리) + **Synchronous**(동기화) + **Parallel**(병렬)
-> "덩어리로 묶어서 동기화하는 병렬 처리"
-> 1990년 하버드의 Leslie Valiant 교수가 제안한 병렬 컴퓨팅 모델이에요<sup>[[1]](#ref-1)</sup>.
+<div class="callout callout-term">
+<div class="callout-title">💡 BSP (Bulk Synchronous Parallel)</div>
+<div class="callout-content">
+<p><strong>Bulk</strong>(덩어리) + <strong>Synchronous</strong>(동기화) + <strong>Parallel</strong>(병렬)</p>
+<p>"덩어리로 묶어서 동기화하는 병렬 처리"</p>
+<p>1990년 하버드의 Leslie Valiant 교수가 제안한 병렬 컴퓨팅 모델이에요<sup><a href="#ref-1">[1]</a></sup>.</p>
+</div>
+</div>
 
 ---
 
@@ -42,10 +46,14 @@ LangChain의 DeepAgents 코드를 읽고 있었어요. `Superstep`, `Barrier` �
 
 BSP의 핵심은 **Superstep**이라는 단위예요.
 
-> [!term] 💡 Superstep (슈퍼스텝)
-> **Super**(위의, 초월하는) + **Step**(단계)
-> 여러 작은 단계를 묶은 "상위 단계"예요.
-> 주방 비유: "각자 요리 → 픽업!" 이 한 사이클이에요.
+<div class="callout callout-term">
+<div class="callout-title">💡 Superstep (슈퍼스텝)</div>
+<div class="callout-content">
+<p><strong>Super</strong>(위의, 초월하는) + <strong>Step</strong>(단계)</p>
+<p>여러 작은 단계를 묶은 "상위 단계"예요.</p>
+<p>주방 비유: "각자 요리 → 픽업!" 이 한 사이클이에요.</p>
+</div>
+</div>
 
 하나의 Superstep은 세 단계로 이뤄져요:
 
@@ -66,10 +74,14 @@ BSP의 핵심은 **Superstep**이라는 단위예요.
 └─────────────────────────────────────────┘
 ```
 
-> [!term] 💡 Barrier (배리어)
-> **Barrier** = 장벽, 관문
-> 모두가 도착할 때까지 기다리는 동기화 지점이에요.
-> 주방 비유: 셰프가 "픽업!" 외치는 순간. 모든 요리가 준비될 때까지 접시가 안 나가요.
+<div class="callout callout-term">
+<div class="callout-title">💡 Barrier (배리어)</div>
+<div class="callout-content">
+<p><strong>Barrier</strong> = 장벽, 관문</p>
+<p>모두가 도착할 때까지 기다리는 동기화 지점이에요.</p>
+<p>주방 비유: 셰프가 "픽업!" 외치는 순간. 모든 요리가 준비될 때까지 접시가 안 나가요.</p>
+</div>
+</div>
 
 **핵심 규칙**:
 > Superstep N에서 보낸 메시지는 Superstep N+1에서만 받을 수 있어요.
@@ -110,15 +122,23 @@ flowchart LR
     end
 ```
 
-> [!term] 💡 Channel (채널)
-> **Channel** = 통로, 수로
-> 노드 간 메시지가 흐르는 통로예요.
-> BSP에서 "메시지 전송"에 해당해요.
+<div class="callout callout-term">
+<div class="callout-title">💡 Channel (채널)</div>
+<div class="callout-content">
+<p><strong>Channel</strong> = 통로, 수로</p>
+<p>노드 간 메시지가 흐르는 통로예요.</p>
+<p>BSP에서 "메시지 전송"에 해당해요.</p>
+</div>
+</div>
 
-> [!term] 💡 Reducer (리듀서)
-> **Reduce** = 줄이다, 합치다
-> 여러 결과를 하나로 병합하는 함수예요.
-> BSP의 Barrier에서 일어나는 "상태 통합"이에요.
+<div class="callout callout-term">
+<div class="callout-title">💡 Reducer (리듀서)</div>
+<div class="callout-content">
+<p><strong>Reduce</strong> = 줄이다, 합치다</p>
+<p>여러 결과를 하나로 병합하는 함수예요.</p>
+<p>BSP의 Barrier에서 일어나는 "상태 통합"이에요.</p>
+</div>
+</div>
 
 **제가 파악한 매핑**:
 

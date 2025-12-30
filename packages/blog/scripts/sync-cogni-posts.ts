@@ -20,6 +20,7 @@ interface Frontmatter {
   created?: string;
   description?: string;
   draft?: boolean;
+  slug?: string;
 }
 
 /**
@@ -72,6 +73,11 @@ function convertToAstroFrontmatter(frontmatter: Frontmatter): string {
   // draft 상태 확인 (tags에 draft가 있거나 draft: true)
   if (frontmatter.draft || frontmatter.tags?.includes('draft')) {
     astro.draft = true;
+  }
+
+  // slug가 있으면 추가 (선택적)
+  if (frontmatter.slug) {
+    astro.slug = frontmatter.slug;
   }
 
   // 이미지가 있으면 추가
