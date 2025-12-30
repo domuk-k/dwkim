@@ -39,6 +39,12 @@ import { themeConfig } from '@/config'
         }, circles.length * 100 + 300)
         
         window.ThemeManager.toggle()
+
+        // Track theme toggle event
+        if (window.va) {
+          const currentTheme = document.documentElement.className || 'system'
+          window.va('event', { name: 'theme_toggle', data: { theme: currentTheme } })
+        }
       })
     }
   }

@@ -60,6 +60,11 @@ import { themeConfig } from '@/config'
           button.setAttribute('data-copying', 'true')
           button.innerHTML = copiedIcon
 
+          // Track code copy event
+          if (window.va) {
+            window.va('event', { name: 'code_copy' })
+          }
+
           setTimeout(() => {
             if (!preElement.matches(':hover')) {
               button.style.opacity = '0'
