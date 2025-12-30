@@ -30,7 +30,12 @@ export interface Document {
     path?: string;        // Cogni 노트 파일 경로
     tags?: string[];      // Cogni 노트 태그
   };
+  score?: number;  // 유사도 점수 (0~1, 높을수록 관련성 높음)
 }
+
+// 유사도 점수 threshold (이 값 이하는 관련 없는 것으로 간주)
+// Qdrant 코사인 유사도: 0 = 무관, 1 = 동일
+const RELEVANCE_THRESHOLD = 0.3;
 
 export class VectorStore {
   private vectorStore: QdrantVectorStore | null = null;
@@ -235,12 +240,13 @@ export class VectorStore {
   }
 
   /**
-   * 다양성 검색 (키워드 부스팅 + 중복 제거)
+   * 다양성 검색 (키워드 부스팅 + 중복 제거 + 유사도 필터링)
    *
    * 한국어 임베딩 모델의 의미 매칭 한계를 보완:
-   * 1. 넓은 범위의 similarity search
-   * 2. 제목에 쿼리 키워드 포함된 문서 우선
-   * 3. 동일 문서의 중복 청크 제거
+   * 1. 넓은 범위의 similarity search with score
+   * 2. 유사도 threshold 이하는 제외 (관련 없는 문서 필터링)
+   * 3. 제목에 쿼리 키워드 포함된 문서 우선
+   * 4. 동일 문서의 중복 청크 제거
    */
   async searchDiverse(
     query: string,
@@ -253,15 +259,24 @@ export class VectorStore {
     }
 
     try {
-      // 1. 넓은 범위에서 후보 검색 (한국어 임베딩 한계 보완)
+      // 1. 넓은 범위에서 후보 검색 (점수 포함)
       const fetchK = Math.max(topK * 5, 30);
-      const results = await this.vectorStore.similaritySearch(query, fetchK, filter);
+      const resultsWithScore = await this.vectorStore.similaritySearchWithScore(query, fetchK, filter);
 
-      console.log(`VectorStore: Fetched ${results.length} candidates for query: ${query}`);
+      console.log(`VectorStore: Fetched ${resultsWithScore.length} candidates for query: "${query}"`);
 
-      // 2. 키워드 부스팅: 제목에 쿼리 포함된 문서 우선
+      // 2. 유사도 threshold 필터링 (관련 없는 문서 제외)
+      const relevantResults = resultsWithScore.filter(([, score]) => score >= RELEVANCE_THRESHOLD);
+      console.log(`VectorStore: ${relevantResults.length}/${resultsWithScore.length} passed threshold (>=${RELEVANCE_THRESHOLD})`);
+
+      if (relevantResults.length === 0) {
+        console.log('VectorStore: No relevant results found');
+        return [];
+      }
+
+      // 3. 키워드 부스팅: 제목에 쿼리 포함된 문서 우선
       const queryLower = query.toLowerCase();
-      const boostedResults = [...results].sort((a, b) => {
+      const boostedResults = [...relevantResults].sort(([a], [b]) => {
         const aTitle = (a.metadata.title || '').toLowerCase();
         const bTitle = (b.metadata.title || '').toLowerCase();
         const aMatch = aTitle.includes(queryLower) ? 1 : 0;
@@ -269,9 +284,9 @@ export class VectorStore {
         return bMatch - aMatch;
       });
 
-      // 3. 동일 문서 중복 제거 (첫 번째 청크만 유지)
+      // 4. 동일 문서 중복 제거 (첫 번째 청크만 유지)
       const seen = new Set<string>();
-      const diverseResults = boostedResults.filter((doc) => {
+      const diverseResults = boostedResults.filter(([doc]) => {
         const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50);
         if (seen.has(key)) return false;
         seen.add(key);
@@ -279,7 +294,7 @@ export class VectorStore {
       }).slice(0, topK);
 
       console.log(`VectorStore: Returning ${diverseResults.length} diverse results`);
-      return this.mapResults(diverseResults);
+      return this.mapResultsWithScore(diverseResults);
     } catch (error) {
       console.error('Diverse search failed:', error);
       return this.getMockResults(query);
@@ -339,6 +354,27 @@ export class VectorStore {
         path: doc.metadata.path,
         tags: doc.metadata.tags,
       },
+    }));
+  }
+
+  private mapResultsWithScore(results: [LangChainDocument, number][]): Document[] {
+    return results.map(([doc, score], index) => ({
+      id: doc.metadata.docId || `result-${index}`,
+      content: doc.pageContent,
+      metadata: {
+        type: doc.metadata.type || 'experience',
+        title: doc.metadata.title,
+        category: doc.metadata.category,
+        source: doc.metadata.source,
+        pubDate: doc.metadata.pubDate,
+        keywords: doc.metadata.keywords,
+        chunkIndex: doc.metadata.chunkIndex,
+        totalChunks: doc.metadata.totalChunks,
+        createdAt: doc.metadata.createdAt,
+        path: doc.metadata.path,
+        tags: doc.metadata.tags,
+      },
+      score: Math.round(score * 100) / 100,  // 소수점 2자리
     }));
   }
 
