@@ -1,0 +1,27 @@
+# dwkim's blog
+
+> Developer & Marathon Runner. AI 에이전트와 함께하는 개발, 러닝, 그리고 생각을 기록하는 블로그.
+
+## About
+
+dwkim은 소프트웨어 엔지니어이자 마라톤 러너입니다. AI 에이전트를 활용한 개발 방식, 프로젝트 수행 경험, 그리고 삶에 대한 생각을 공유합니다.
+
+## Blog Posts
+
+- [에이전트와 자연어로 소통하며 만드는 블로그](/building-with-ai-agent): Claude Code를 활용해 블로그를 만들고 개선해나가는 과정에 대한 기록
+- [클로드 코드와 다면기](/claude-code-and-simul): 터미널 4개를 띄워놓고 AI 에이전트와 함께 일하는 것은 마치 프로기사가 다면기를 두는 것과 같다
+- [능선 위에서](/local-maxima): 로컬 미니마 개념을 통해 삶의 방향과 최적화에 대해 생각해보기
+- [프로젝트 수행 프로세스에 대한 나의 멘탈모델](/project-process-mental-model): 현상 파악부터 회고까지, 핵심적인 의사결정 지점들
+- [Working with Agents](/working-with-agents): AI 에이전트와 함께 일하는 방법에 대한 가이드
+
+## Topics
+
+- AI 에이전트와 개발: Claude Code, AI 활용 개발 방식
+- 프로젝트 관리: 멘탈모델, 프로세스, 멘토링
+- 마라톤/러닝: 훈련, 레이스 경험
+- 삶과 방향: 로컬 미니마, 최적화, 경력
+
+## Contact
+
+- Website: https://blog.dwkim.me
+- Twitter: @dwkimm
