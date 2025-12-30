@@ -17,16 +17,18 @@
   "scripts": {
     "build": "node script/build.js",
     "build:binary": "pkg dist/index.js --targets node20-linux-x64,node20-macos-x64,node20-macos-arm64,node20-win-x64 --output dist/bin/dwkim",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/index.tsx",
     "lint": "tsc"
   },
   "dependencies": {
-    "boxen": "^8.0.1",
-    "chalk": "^5.4.1",
-    "ora": "^9.0.0"
+    "@catppuccin/palette": "^1.7.1",
+    "ink": "^6.6.0",
+    "ink-text-input": "^6.0.0",
+    "react": "^19.2.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
+    "@types/react": "^19.2.7",
     "@yao-pkg/pkg": "^6.0.0",
     "esbuild": "^0.20.0",
     "tsx": "^4.20.3",
