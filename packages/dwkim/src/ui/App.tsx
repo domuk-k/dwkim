@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Static } from 'ink';
+import { Box } from 'ink';
 import { ProfileCard, ProfileBanner } from './ProfileCard.js';
 import { ChatView } from './ChatView.js';
 
@@ -17,14 +17,10 @@ export function App({ mode }: Props) {
     return <ProfileCard />;
   }
 
-  // 채팅 모드: 간소화된 배너 + 채팅
+  // 채팅 모드: 배너 + 채팅
   return (
     <Box flexDirection="column">
-      {/* 상단 고정 배너 (한 번만 렌더링) */}
-      <Static items={['banner']}>
-        {() => <ProfileBanner key="banner" />}
-      </Static>
-
+      <ProfileBanner />
       <ChatView apiUrl={API_URL} />
     </Box>
   );
