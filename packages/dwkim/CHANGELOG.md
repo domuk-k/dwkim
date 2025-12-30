@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.0...dwkim-v1.0.1) (2025-12-30)
+
+### Bug Fixes
+
+* **dwkim:** enable NPM_CONFIG_PROVENANCE and simplify README ([078063e](https://github.com/domuk-k/dwkim/commit/078063e58f35b42c24877426e00ebd757d445cba))
+
 ## 1.0.0 (2025-12-30)
 
 ### ⚠ BREAKING CHANGES
