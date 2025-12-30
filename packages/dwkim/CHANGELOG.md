@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.2...dwkim-v1.0.3) (2025-12-30)
+
+### Bug Fixes
+
+* **dwkim:** add repository field for npm provenance verification ([4bc615d](https://github.com/domuk-k/dwkim/commit/4bc615d2007b5e246902f9a0c7a91e6a6a09829b))
+
 ## [1.0.2](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.1...dwkim-v1.0.2) (2025-12-30)
 
 ### Bug Fixes
