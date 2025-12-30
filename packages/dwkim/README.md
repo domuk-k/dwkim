@@ -1,78 +1,40 @@
 # dwkim
 
-CLI business card and AI assistant for dwkim.
+터미널에서 바로 만나는 개발자 프로필 & AI 어시스턴트
 
-## Installation
-
-### Quick Start (npx)
+## 설치
 
 ```bash
 npx dwkim
 ```
 
-### Install Globally
-
+전역 설치를 원한다면:
 ```bash
 npm install -g dwkim
-# or
-pnpm add -g dwkim
 ```
 
-### Curl Install (Linux/macOS)
+## 사용법
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/domuk-k/dwkim/main/packages/dwkim/scripts/install.sh | bash
+dwkim           # 프로필 + AI 채팅
+dwkim profile   # 프로필만 보기
+dwkim help      # 도움말
 ```
 
-## Usage
+### 채팅 명령어
 
-```bash
-# 프로필 카드 + AI 채팅
-dwkim
-
-# 프로필 카드만
-dwkim profile
-
-# 도움말
-dwkim help
+```
+/help     도움말
+/status   서버 상태 확인
+/clear    대화 초기화
 ```
 
-### Chat Commands
+## 환경 변수
 
-Inside the chat mode, you can use:
+| 변수 | 설명 | 기본값 |
+|------|------|--------|
+| `DWKIM_API_URL` | API 서버 주소 | https://persona-api.fly.dev |
 
-- `/help` - Show available commands
-- `/status` - Check API server status
-- `/search <query>` - Search documents directly
-
-### Environment Variables
-
-- `DWKIM_API_URL` - Custom API endpoint (default: https://persona-api.fly.dev)
-- `DWKIM_NO_STREAM` - Set to `1` to disable streaming mode
-
-## Features
-
-- **Profile Card**: Display developer information in a beautiful terminal card
-- **AI Chat**: Interactive chat with RAG-powered AI assistant
-- **Streaming**: Real-time streaming responses for a better UX
-- **Cross-platform**: Works on Linux, macOS, and Windows
-
-## Development
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run in dev mode
-pnpm dev
-
-# Build
-pnpm build
-
-# Build binaries (requires @yao-pkg/pkg)
-pnpm build:binary
-```
-
-## License
+## 라이선스
 
 MIT
