@@ -11,6 +11,9 @@ import chatRoutes from './routes/chat';
 import syncRoutes from './routes/sync';
 import { RateLimiter } from './middleware/rateLimit';
 import { AbuseDetection } from './middleware/abuseDetection';
+import { initConversationStore } from './services/conversationStore';
+import { initContactService } from './services/contactService';
+import { initConversationLimiter } from './services/conversationLimiter';
 
 export async function createServer() {
   const fastify = Fastify({
@@ -56,6 +59,11 @@ export async function createServer() {
   } else {
     console.log('ℹ️  No REDIS_URL provided, running without cache');
   }
+
+  // 서비스 초기화 (Redis 선택적)
+  initConversationStore(redisClient);
+  initContactService(redisClient);
+  initConversationLimiter(redisClient);
 
   // Rate Limiting (Redis 선택적)
   const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
