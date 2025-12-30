@@ -102,14 +102,22 @@ export interface StatusResponse {
 }
 
 export interface StreamEvent {
-  type: 'sources' | 'content' | 'done' | 'error';
+  type: 'status' | 'sources' | 'content' | 'done' | 'error';
+  // status event
+  tool?: string;
+  message?: string;
+  icon?: string;
+  // sources event
   sources?: Array<{
     id: string;
     content: string;
     metadata: { type: string; title?: string };
   }>;
+  // content event
   content?: string;
+  // done event
   metadata?: { searchQuery: string; searchResults: number; processingTime: number };
+  // error event
   error?: string;
 }
 
