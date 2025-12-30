@@ -1,14 +1,16 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import { theme } from './theme.js';
-import { profile, icons } from './data.js';
+import React from "react";
+import { Box, Text } from "ink";
+import { theme } from "./theme.js";
+import { profile, icons } from "./data.js";
 
 // 웰컴 배너
 export function ProfileBanner() {
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
       <Box>
-        <Text bold color={theme.lavender}>{profile.name}</Text>
+        <Text bold color={theme.lavender}>
+          {profile.name}
+        </Text>
         <Text color={theme.muted}> · </Text>
         <Text color={theme.subtext}>{profile.title}</Text>
       </Box>
@@ -47,7 +49,7 @@ export function ProfileCard() {
       </Box>
 
       <Box marginY={1}>
-        <Text color={theme.surface}>{'─'.repeat(52)}</Text>
+        <Text color={theme.surface}>{"─".repeat(52)}</Text>
       </Box>
 
       <Box flexDirection="column" gap={0}>
@@ -58,11 +60,11 @@ export function ProfileCard() {
       </Box>
 
       <Box marginY={1}>
-        <Text color={theme.surface}>{'─'.repeat(52)}</Text>
+        <Text color={theme.surface}>{"─".repeat(52)}</Text>
       </Box>
 
       <Text italic color={theme.muted}>
-        "{profile.quote}"
+        {profile.quote}
       </Text>
     </Box>
   );
