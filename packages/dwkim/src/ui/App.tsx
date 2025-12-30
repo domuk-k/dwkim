@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box } from 'ink';
-import { ProfileCard, ProfileBanner } from './ProfileCard.js';
+import { ProfileCard } from './ProfileCard.js';
 import { ChatView } from './ChatView.js';
 
 const DEFAULT_API_URL = 'https://persona-api.fly.dev';
@@ -17,11 +16,6 @@ export function App({ mode }: Props) {
     return <ProfileCard />;
   }
 
-  // 채팅 모드: 배너 + 채팅
-  return (
-    <Box flexDirection="column">
-      <ProfileBanner />
-      <ChatView apiUrl={API_URL} />
-    </Box>
-  );
+  // 채팅 모드 (배너는 ChatView 내부 Static에서 렌더링)
+  return <ChatView apiUrl={API_URL} />;
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, Static, useInput, useApp, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import { theme } from './theme.js';
-import { icons } from './data.js';
+import { icons, profile } from './data.js';
 import {
   PersonaApiClient,
   ApiError,
@@ -14,7 +14,7 @@ type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>;
 
 interface Message {
   id: number;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'banner';
   content: string;
   sources?: SourcesEvent['sources'];
   processingTime?: number;
@@ -36,7 +36,10 @@ export function ChatView({ apiUrl }: Props) {
   const { stdout } = useStdout();
   const termWidth = stdout?.columns || 80;
   const [client] = useState(() => new PersonaApiClient(apiUrl));
-  const [messages, setMessages] = useState<Message[]>([]);
+  // 배너를 첫 번째 메시지로 포함 (Static에서 한 번만 렌더링됨)
+  const [messages, setMessages] = useState<Message[]>([
+    { id: 0, role: 'banner', content: '' },
+  ]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<Status>('connecting');
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
@@ -294,6 +297,29 @@ const MessageBubble = React.memo(function MessageBubble({
 }: {
   message: Message;
 }) {
+  // 배너 렌더링
+  if (message.role === 'banner') {
+    return (
+      <Box flexDirection="column" paddingX={1} paddingY={1}>
+        <Box>
+          <Text bold color={theme.lavender}>
+            {profile.name}
+          </Text>
+          <Text color={theme.muted}> · </Text>
+          <Text color={theme.subtext}>{profile.title}</Text>
+        </Box>
+        <Box>
+          <Text color={theme.muted}>{profile.bio}</Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text italic color={theme.success}>
+            {profile.quote}
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
