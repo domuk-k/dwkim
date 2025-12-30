@@ -3,25 +3,19 @@ import { Box, Text } from 'ink';
 import { theme } from './theme.js';
 import { profile, icons } from './data.js';
 
-// Claude Code 스타일 웰컴 배너
+// 웰컴 배너
 export function ProfileBanner() {
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-      {/* 상단: 로고 + 이름/타이틀 */}
       <Box>
-        <Text color={theme.lavender}>{'▐▛██▜▌'}</Text>
-        <Text>   </Text>
-        <Text bold color={theme.text}>{profile.name}</Text>
+        <Text bold color={theme.lavender}>{profile.name}</Text>
         <Text color={theme.muted}> · </Text>
         <Text color={theme.subtext}>{profile.title}</Text>
       </Box>
       <Box>
-        <Text color={theme.lavender}>{'▝▜████▛▘'}</Text>
-        <Text> </Text>
         <Text color={theme.muted}>{profile.bio}</Text>
       </Box>
 
-      {/* Quote */}
       <Box marginTop={1}>
         <Text italic color={theme.success}>
           "{profile.quote}"
