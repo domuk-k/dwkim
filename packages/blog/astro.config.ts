@@ -33,7 +33,11 @@ export default defineConfig({
   },
   markdown: {
     shikiConfig: {
-      theme: 'css-variables',
+      themes: {
+        light: 'one-light',
+        dark: 'one-dark-pro'
+      },
+      defaultColor: false,
       wrap: false
     },
     remarkPlugins: [remarkMath, remarkDirective, remarkEmbeddedMedia, remarkReadingTime, remarkTOC],
