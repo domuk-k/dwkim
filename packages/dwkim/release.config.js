@@ -43,13 +43,8 @@ export default {
     ],
     // 3. Update CHANGELOG.md
     '@semantic-release/changelog',
-    // 4. Publish to npm with provenance (OIDC)
-    [
-      '@semantic-release/npm',
-      {
-        provenance: true,
-      },
-    ],
+    // 4. Publish to npm with provenance (OIDC) - pnpm monorepo compatible
+    '@anolilab/semantic-release-pnpm',
     // 5. Commit version bump and changelog
     [
       '@semantic-release/git',
