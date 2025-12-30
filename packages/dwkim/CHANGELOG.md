@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.1...dwkim-v1.0.2) (2025-12-30)
+
+### Bug Fixes
+
+* **dwkim:** use @anolilab/semantic-release-pnpm for OIDC monorepo support ([e1507f4](https://github.com/domuk-k/dwkim/commit/e1507f41f498c8777d8aed7db6f1a3df629b1570))
+
 ## [1.0.1](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.0...dwkim-v1.0.1) (2025-12-30)
 
 ### Bug Fixes
