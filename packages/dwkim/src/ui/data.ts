@@ -22,6 +22,6 @@ export const profile = {
   github: 'https://github.com/domuk-k',
   website: 'https://domuk-k.vercel.app',
   project: 'https://github.com/domuk-k/dwkim',
-  bio: 'Problem Solver, Marathon Runner, Opensource committer, casual Yogi',
-  quote: 'Customer Centric, Focus on what you can control',
+  bio: 'Problem Solver 🧩 · Marathon Runner 🏃 · Opensource 💻 · casual Yogi 🧘',
+  quote: 'Own my agency',
 } as const;
