@@ -110,6 +110,7 @@ type Source = {
 };
 
 export type StreamEvent =
+  | { type: 'session'; sessionId: string }
   | { type: 'status'; tool: string; message: string; icon: string }
   | { type: 'sources'; sources: Source[] }
   | { type: 'content'; content: string }
@@ -126,7 +127,17 @@ export type StreamEvent =
   | { type: 'error'; error: string };
 
 export class PersonaApiClient {
+  private abortController: AbortController | null = null;
+
   constructor(private baseUrl: string) {}
+
+  // 현재 스트리밍 요청 취소
+  abort(): void {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+  }
 
   async checkHealth(): Promise<void> {
     const response = await fetch(`${this.baseUrl}/health`);
@@ -173,7 +184,11 @@ export class PersonaApiClient {
     };
   }
 
-  async *chatStream(message: string): AsyncGenerator<StreamEvent> {
+  async *chatStream(message: string, sessionId?: string): AsyncGenerator<StreamEvent> {
+    // 이전 요청 취소
+    this.abort();
+    this.abortController = new AbortController();
+
     let response: Response;
 
     try {
@@ -182,9 +197,13 @@ export class PersonaApiClient {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, sessionId }),
+        signal: this.abortController.signal,
       });
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return; // 취소된 요청은 조용히 종료
+      }
       handleFetchError(error);
     }
 
@@ -221,8 +240,14 @@ export class PersonaApiClient {
           }
         }
       }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return; // 취소된 요청은 조용히 종료
+      }
+      throw error;
     } finally {
       reader.releaseLock();
+      this.abortController = null;
     }
   }
 
