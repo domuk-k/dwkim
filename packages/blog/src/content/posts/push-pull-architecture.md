@@ -1,6 +1,6 @@
 ---
 title: "밀 것인가, 당길 것인가"
-description: "분산 시스템의 Push/Pull을 뜯다 황금비와 뇌과학을 만났어요. 시스템 설계부터 인간 인지까지."
+description: "Push/Pull을 파고들다 뇌과학, 인지과학까지 연결해본 기록."
 pubDate: "2025-12-30"
 ---
 
@@ -8,31 +8,31 @@ pubDate: "2025-12-30"
 
 ## 전화와 문자의 차이
 
-> 친구가 소식을 전하는 두 가지 방법이 있어요.
+> 친구가 소식을 전하는 두 가지 방법이 있다.
 >
-> **첫 번째**: 갑자기 전화가 와요. "야, 나 합격했어!"
-> → 즉각적이에요. 하지만 내가 뭘 하고 있든 끊겨요.
+> **첫 번째**: 갑자기 전화가 온다. "야, 나 합격했어!"
+> → 즉각적이다. 하지만 내가 뭘 하고 있든 끊긴다.
 >
-> **두 번째**: 문자가 와요. 나중에 시간 날 때 확인해요.
-> → 내 타이밍이에요. 하지만 늦게 알 수도 있어요.
+> **두 번째**: 문자가 온다. 나중에 시간 날 때 확인한다.
+> → 내 타이밍이다. 하지만 늦게 알 수도 있다.
 
-이게 **Push**와 **Pull**의 전부예요.
+이게 **Push**와 **Pull**의 전부다.
 
 <div class="callout callout-term">
 <div class="callout-title">💡 Push / Pull</div>
 <div class="callout-content">
-<p>**Push** = 밀다. 정보가 나에게 "밀려와요".</p>
-<p>**Pull** = 당기다. 내가 정보를 "당겨와요".</p>
-<p>시스템 설계의 가장 근본적인 선택지 중 하나예요.</p>
+<p>**Push** = 밀다. 정보가 나에게 "밀려온다".</p>
+<p>**Pull** = 당기다. 내가 정보를 "당겨온다".</p>
+<p>시스템 설계의 가장 근본적인 선택지 중 하나다.</p>
 </div>
 </div>
 
 
 ---
 
-## 코드에서 질문이 생겼어요
+## 코드에서 질문이 생겼다
 
-분산 시스템을 설계하다 보면 항상 이 질문을 만나요.
+분산 시스템을 설계하다 보면 항상 이 질문을 만난다.
 
 ```
 Webhook vs Polling?
@@ -42,59 +42,112 @@ Kafka consumer: push or pull?
 
 > "언제 밀고, 언제 당겨야 하지?"
 
-파고들었어요. 그리고 황금비를 만났어요<sup>[[1]](#ref-1)</sup>.
+이 질문을 파고들었다. 뇌과학, 인지과학까지 연결해보려고 찾아보는 게 흥미로웠다.
 
 ---
 
 ## 황금비의 비밀
 
-2011년, Van Houdt는 분산 시스템에서 Push와 Pull을 수학적으로 비교했어요<sup>[[1]](#ref-1)</sup>.
+2011년, Van Houdt는 분산 시스템에서 Push와 Pull을 수학적으로 비교했다<sup>[[1]](#ref-1)</sup>.
 
-결론이 아름다웠어요:
+결론은 단순하다:
+
+> **한가하면 Push, 바쁘면 Pull**
+
+```mermaid
+graph LR
+    subgraph 부하 낮음
+        A["🚀 Push 효율 ↑"]
+    end
+    subgraph 경계점
+        B["⚖️ ~60%"]
+    end
+    subgraph 부하 높음
+        C["🎯 Pull 효율 ↑"]
+    end
+    A --> B --> C
+```
+
+구체적으로 생각해보자:
+
+| 시나리오 | 부하 | 최적 전략 | 이유 |
+|----------|------|----------|------|
+| 서버 100대, 요청 30개/초 | 30% | **Push** | 여유로우니 미리 알려두는 게 이득 |
+| 서버 100대, 요청 80개/초 | 80% | **Pull** | 바쁘니 필요할 때만 찾는 게 이득 |
+
+직관적으로도 맞다. 한가할 때는 바로바로 알려주는 게 좋지만, 바쁠 때는 "필요할 때 가져가"가 낫다.
+
+<details>
+<summary><strong>🔬 수학적 배경 (접기/펼치기)</strong></summary>
+
+### λ(람다)란?
 
 $$
-\text{Push가 우월} \iff \lambda < \varphi - 1
+\lambda = \frac{\text{단위 시간당 요청 수}}{\text{시스템 처리 용량}}
 $$
 
-여기서 $\varphi$는 **황금비**예요:
+- $\lambda = 0.3$ → 시스템이 **30%** 사용 중
+- $\lambda = 0.9$ → 시스템이 **90%** 사용 중 (과부하 직전)
+
+### 황금비와의 연결
+
+Van Houdt의 분석 결과:
 
 $$
-\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618
+\text{Push가 우월} \iff \lambda < \varphi - 1 \approx 0.618
 $$
+
+여기서 $\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618$는 **황금비**다.
 
 <div class="callout callout-term">
 <div class="callout-title">💡 황금비 (Golden Ratio)</div>
 <div class="callout-content">
 <p>자연과 예술에서 반복적으로 나타나는 비율.</p>
-<p>피보나치 수열의 극한값이기도 해요.</p>
-<p>분산 시스템의 최적점에서도 등장한다니, 신기하죠?</p>
+<p>피보나치 수열의 극한값이기도 하다.</p>
+<p>분산 시스템의 최적점에서도 등장한다니, 신기하다.</p>
 </div>
 </div>
 
 
-풀어서 쓰면 $\varphi - 1 \approx 0.618$이에요.
+### ⚠️ 모델의 한계
 
-**해석**:
-- 시스템 부하($\lambda$)가 낮을 때 → **Push**가 효율적
-- 시스템 부하가 높아질수록 → **Pull**이 효율적
+이 0.618이라는 숫자는 **특정 가정** 하에서 도출됐다:
 
-직관적으로도 맞아요. 한가할 때는 바로바로 알려주는 게 좋지만, 바쁠 때는 "필요할 때 가져가"가 더 나아요.
+| 논문의 가정 | 현실 |
+|------------|------|
+| **균등 분포** — 모든 노드에 요청이 고르게 | **파레토/멱법칙** — 소수가 대부분 트래픽 |
+| **랜덤 그래프** — 노드 간 연결이 무작위 | **계층적/클러스터링** — 실제 네트워크는 구조적 |
+| **동질적 시스템** — 모든 노드가 동일 | **이질적** — 노드마다 성능 차이 |
 
-더 일반적인 공식도 있어요:
+**결론**: 0.618은 참고값일 뿐, 시스템마다 경계점은 다르다.
 
-$$
-\text{Push 우월} \iff 2\lambda < (R + 1)^2 + 4(R + 1) - (R + 1)
-$$
+### 하이브리드는 답이 아니다?
 
-$R$은 프로브 레이트예요. 복잡해 보이지만, 결국 **"상황에 따라 최적점이 달라진다"**는 거예요.
+흥미로운 발견: Van Houdt는 **하이브리드 전략(Push+Pull 혼합)이 순수 전략보다 항상 열등**하다고 증명했다<sup>[[1]](#ref-1)</sup>.
+
+> "단순히 섞는다고 좋아지지 않는다"
+
+이건 직관에 반하지만, 최소한 이 모델에서는 그렇다. 런타임에 전략을 전환하는 오버헤드가 있기 때문이다.
+
+### 최신 연구 동향 (2024-2025)
+
+| 연구 | 접근법 | 핵심 아이디어 |
+|------|--------|--------------|
+| **ClusterBalance** (2025)<sup>[[7]](#ref-7)</sup> | 실시간 클러스터링 | 워크로드 패턴을 분석해 동적 분배 |
+| **ALB-TP** (2025)<sup>[[8]](#ref-8)</sup> | 예측 기반 | GRU-Attention으로 트래픽 예측 후 전략 결정 |
+| **DeFlow** (2024)<sup>[[9]](#ref-9)</sup> | 플로우 크기별 차별화 | 대용량은 throughput, 소용량은 latency 최적화 |
+
+최신 연구들은 **"상황을 예측해서 미리 전략을 선택"**하는 방향으로 가고 있다. 런타임 전환보다 예측이 효율적이라는 것이다.
+
+</details>
 
 ---
 
-## 뇌가 먼저 알았어요
+## 뇌가 먼저 알았다
 
-재밌는 건, 우리 뇌도 Push/Pull로 작동해요.
+재밌는 건, 우리 뇌도 Push/Pull로 작동한다.
 
-인지과학에서는 이걸 **외인성/내인성 주의**라고 불러요<sup>[[2]](#ref-2)</sup>.
+인지과학에서는 이걸 **외인성/내인성 주의**라고 부른다<sup>[[2]](#ref-2)</sup>.
 
 | 구분 | Push (외인성) | Pull (내인성) |
 |------|--------------|--------------|
@@ -107,17 +160,17 @@ $$
 t_{\text{exogenous}} \approx 100\text{ms} \quad \ll \quad t_{\text{endogenous}} \approx 300\text{ms}
 $$
 
-Push가 3배 빨라요. 뇌가 외부 자극에 먼저 반응하도록 설계된 거예요. 생존에 유리하니까요.
+Push가 3배 빠르다. 뇌가 외부 자극에 먼저 반응하도록 설계된 것이다. 생존에 유리하니까.
 
-> 호랑이가 나타나면 "생각"하기 전에 "반응"해야 해요.
+> 호랑이가 나타나면 "생각"하기 전에 "반응"해야 한다.
 
-하지만 대가가 있어요:
+하지만 대가가 있다:
 
 <div class="callout callout-term">
 <div class="callout-title">💡 Notification Fatigue (알림 피로)</div>
 <div class="callout-content">
 <p>과도한 Push 알림이 인지 부하를 높이고,</p>
-<p>결국 무시하거나 비활성화하게 만드는 현상이에요.</p>
+<p>결국 무시하거나 비활성화하게 만드는 현상이다.</p>
 </div>
 </div>
 
@@ -127,26 +180,26 @@ Push가 3배 빨라요. 뇌가 외부 자극에 먼저 반응하도록 설계된
 - 2020년 이후 알림량 **97% 증가**
 - 사용자의 **47%**가 첫 주 내에 알림을 꺼버림
 
-뇌는 Push에 빠르게 반응하지만, 과부하가 오면 **시스템을 꺼버려요**.
+뇌는 Push에 빠르게 반응하지만, 과부하가 오면 **시스템을 꺼버린다**.
 
 ---
 
 ## 1953년, 슈퍼마켓에서
 
-Toyota의 Taiichi Ohno는 미국 슈퍼마켓을 보고 깨달았어요<sup>[[4]](#ref-4)</sup>.
+Toyota의 Taiichi Ohno는 미국 슈퍼마켓을 보고 깨달았다<sup>[[4]](#ref-4)</sup>.
 
 > "고객이 선반에서 물건을 **당겨간다**.
 > 빈 자리가 생기면 그때 **채운다**.
 > 미리 밀어넣지 않는다."
 
-이게 **Pull 시스템**의 시작이에요.
+이게 **Pull 시스템**의 시작이다.
 
 <div class="callout callout-term">
 <div class="callout-title">💡 Kanban (칸반)</div>
 <div class="callout-content">
-<p>일본어로 "신호판"이라는 뜻이에요.</p>
+<p>일본어로 "신호판"이라는 뜻이다.</p>
 <p>필요할 때만 생산을 시작하는 Pull 기반 시스템.</p>
-<p>Toyota Production System의 핵심이에요.</p>
+<p>Toyota Production System의 핵심이다.</p>
 </div>
 </div>
 
@@ -154,7 +207,7 @@ Toyota의 Taiichi Ohno는 미국 슈퍼마켓을 보고 깨달았어요<sup>[[4]
 **Push 생산**: 예측해서 미리 만들어 둠 → 재고 쌓임
 **Pull 생산**: 필요할 때 만듦 → 낭비 최소화
 
-소프트웨어 개발에서도 마찬가지예요:
+소프트웨어 개발에서도 마찬가지다:
 
 | Push | Pull |
 |------|------|
@@ -180,7 +233,7 @@ Toyota의 Taiichi Ohno는 미국 슈퍼마켓을 보고 깨달았어요<sup>[[4]
                     제어권 중요
 ```
 
-| 패턴 | Push/Pull | 언제 쓰나요 |
+| 패턴 | Push/Pull | 언제 쓰나 |
 |------|-----------|-----------|
 | Webhook | Push | 이벤트 발생 즉시 알아야 할 때 |
 | SSE | Push | 서버 → 클라이언트 단방향 스트림 |
@@ -188,7 +241,7 @@ Toyota의 Taiichi Ohno는 미국 슈퍼마켓을 보고 깨달았어요<sup>[[4]
 | Long Polling | 하이브리드 | 실시간성과 호환성 둘 다 필요할 때 |
 | Kafka Consumer | Pull | 소비자가 자기 속도로 처리할 때 |
 
-핵심 격언이 있어요:
+핵심 격언:
 
 > **"Use push when timing matters.**
 > **Use pull when control matters.**
@@ -198,29 +251,29 @@ Toyota의 Taiichi Ohno는 미국 슈퍼마켓을 보고 깨달았어요<sup>[[4]
 
 ## Observer에서 Pub/Sub으로
 
-코드 레벨에서도 Push/Pull이 진화했어요.
+코드 레벨에서도 Push/Pull이 진화했다.
 
 **Observer 패턴** (1994, GoF):
 ```
 Subject ──직접 알림──→ Observer
 ```
-- 둘이 서로를 알아요
-- 동기적이에요
-- 같은 프로세스 안에서 동작해요
+- 둘이 서로를 안다
+- 동기적이다
+- 같은 프로세스 안에서 동작한다
 
 **Pub/Sub 패턴**:
 ```
 Publisher ──→ [Broker] ──→ Subscriber
 ```
-- 서로 몰라요
-- 비동기적이에요
-- 분산 환경에서 동작해요
+- 서로 모른다
+- 비동기적이다
+- 분산 환경에서 동작한다
 
 <div class="callout callout-term">
 <div class="callout-title">💡 Decoupling (디커플링)</div>
 <div class="callout-content">
 <p>컴포넌트 간 의존성을 줄이는 것.</p>
-<p>Observer → Pub/Sub으로 가면서 디커플링이 강해졌어요.</p>
+<p>Observer → Pub/Sub으로 가면서 디커플링이 강해졌다.</p>
 </div>
 </div>
 
@@ -235,7 +288,7 @@ $$
 
 ## Polling vs Interrupt
 
-하드웨어 레벨에서도 같은 고민이 있어요<sup>[[5]](#ref-5)</sup>.
+하드웨어 레벨에서도 같은 고민이 있다<sup>[[5]](#ref-5)</sup>.
 
 | | Polling (Pull) | Interrupt (Push) |
 |---|---|---|
@@ -257,26 +310,26 @@ void ISR() {  // Interrupt Service Routine
 }
 ```
 
-> "Interrupt가 더 효율적이지만, Polling이 더 예측 가능해요."
+> "Interrupt가 더 효율적이지만, Polling이 더 예측 가능하다."
 
-현대 시스템은 둘을 섞어요. 기본은 Interrupt, 과부하 시 Polling으로 전환하는 **Interrupt Coalescing** 같은 기법이 있어요.
+현대 시스템은 둘을 섞는다. 기본은 Interrupt, 과부하 시 Polling으로 전환하는 **Interrupt Coalescing** 같은 기법이 있다.
 
 ---
 
-## 인간은 Pull을 원해요
+## 인간은 Pull을 원한다
 
-2024년 HCI 연구<sup>[[6]](#ref-6)</sup>가 재밌는 걸 발견했어요.
+2024년 HCI 연구<sup>[[6]](#ref-6)</sup>가 재밌는 걸 발견했다.
 
 > **Proactive(Push) 모드**: 성능 ↑, 인지 부하 ↓
 > **Reactive(Pull) 모드**: 성능 ↓, 하지만 사용자가 선호
 
-효율은 Push가 높아요. 하지만 인간은 **통제감**을 원해요.
+효율은 Push가 높다. 하지만 인간은 **통제감**을 원한다.
 
 $$
 \text{User Satisfaction} = f(\text{Efficiency}, \text{Control})
 $$
 
-효율만 높인다고 만족도가 올라가지 않아요. 통제감이 떨어지면 불안해져요.
+효율만 높인다고 만족도가 올라가지 않는다. 통제감이 떨어지면 불안해진다.
 
 그래서 최고의 시스템은:
 1. **기본은 Pull** — 사용자가 원할 때 정보를 가져감
@@ -287,21 +340,21 @@ $$
 
 ## 마치며
 
-Webhook을 붙이다가 시작된 질문이 황금비와 뇌과학까지 이어졌어요.
+Webhook을 붙이다가 시작된 질문이 황금비와 뇌과학까지 이어졌다.
 
-**"밀 것인가, 당길 것인가"**는 단순한 기술 선택이 아니에요.
+**"밀 것인가, 당길 것인가"**는 단순한 기술 선택이 아니다.
 
 - 수학적으로는 **부하율과 황금비**의 관계
 - 인지적으로는 **반사 vs 의도**의 균형
 - 철학적으로는 **효율 vs 통제**의 트레이드오프
 
-Toyota의 Ohno가 슈퍼마켓에서 본 것, Valiant가 수식으로 증명한 것, 인지과학자들이 뇌에서 발견한 것 — 결국 같은 이야기예요.
+Toyota의 Ohno가 슈퍼마켓에서 본 것, Van Houdt가 수식으로 증명한 것, 인지과학자들이 뇌에서 발견한 것 — 결국 같은 이야기다.
 
-> **타이밍이 중요하면 밀어요.**
-> **통제가 중요하면 당겨요.**
-> **회복력이 중요하면 섞어요.**
+> **타이밍이 중요하면 민다.**
+> **통제가 중요하면 당긴다.**
+> **회복력이 중요하면 섞는다.**
 
-시스템도, 조직도, 뇌도 이 원칙을 따라요.
+시스템도, 조직도, 뇌도 이 원칙을 따른다.
 
 ---
 
@@ -318,6 +371,12 @@ Toyota의 Ohno가 슈퍼마켓에서 본 것, Valiant가 수식으로 증명한 
 <span id="ref-5">[5]</span> Silberschatz et al., *"Operating System Concepts"*, Wiley, 10th Edition
 
 <span id="ref-6">[6]</span> de Jong et al., [*"Comparison of proactive and reactive interaction modes"*](https://www.sciencedirect.com/science/article/abs/pii/S0003687024000462), Applied Ergonomics, 2024
+
+<span id="ref-7">[7]</span> [*"Cluster Balance: Adaptive Load Balancing in Distributed Systems via Real-Time Clustering"*](https://www.researchgate.net/publication/391708506), ResearchGate, 2025
+
+<span id="ref-8">[8]</span> [*"ALB-TP: Adaptive Load Balancing based on Traffic Prediction using GRU-Attention for Software-Defined DCNs"*](https://www.sciencedirect.com/science/article/abs/pii/S1084804524002807), Journal of Network and Computer Applications, 2025
+
+<span id="ref-9">[9]</span> [*"DeFlow: Differential flowlet switching for load balancing in datacenter networks"*](https://www.sciencedirect.com/science/article/abs/pii/S1389128624008120), Computer Networks, 2024
 
 ---
 
