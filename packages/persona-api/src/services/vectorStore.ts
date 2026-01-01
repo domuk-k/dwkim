@@ -576,3 +576,54 @@ export class VectorStore {
     }
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Singleton Pattern
+// ─────────────────────────────────────────────────────────────
+
+let instance: VectorStore | null = null;
+let initializationPromise: Promise<void> | null = null;
+
+/**
+ * VectorStore 싱글턴 인스턴스 반환
+ * 여러 모듈에서 동일한 인스턴스를 공유하여 리소스 절약
+ */
+export function getVectorStore(): VectorStore {
+  if (!instance) {
+    instance = new VectorStore();
+  }
+  return instance;
+}
+
+/**
+ * VectorStore 초기화 (race condition 방지)
+ * 여러 곳에서 동시에 호출해도 한 번만 초기화됨
+ */
+export async function initVectorStore(): Promise<void> {
+  if (initializationPromise) {
+    // 이미 초기화 중이면 기존 Promise 재사용
+    return initializationPromise;
+  }
+
+  const store = getVectorStore();
+  if (store['initialized']) {
+    // 이미 초기화 완료됨
+    return;
+  }
+
+  // 초기화 시작
+  initializationPromise = store.initialize().finally(() => {
+    initializationPromise = null;
+  });
+
+  return initializationPromise;
+}
+
+/**
+ * 테스트용 싱글턴 리셋
+ * 프로덕션 코드에서는 사용하지 말 것
+ */
+export function resetVectorStore(): void {
+  instance = null;
+  initializationPromise = null;
+}

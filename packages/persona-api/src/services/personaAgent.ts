@@ -7,11 +7,18 @@
  * Features:
  * - RAG 검색 (search_documents)
  * - 연락처 수집 (collect_contact) with HITL interrupt
+ *
+ * ⚠️ 타입 캐스트 사용 이유:
+ * - LangChain의 복잡한 제네릭 타입으로 TS2589 (무한 타입 재귀) 발생
+ * - deepagents의 ReactAgent가 Runnable 인터페이스를 완전히 구현하지 않음
+ * - 런타임에서는 정상 동작하므로 `as any`로 타입 호환성 확보
  */
 import { createDeepAgent } from 'deepagents';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { MemorySaver } from '@langchain/langgraph-checkpoint';
+import type { Runnable } from '@langchain/core/runnables';
+import type { BaseMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -20,6 +27,18 @@ import { VectorStore, Document } from './vectorStore';
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
+
+// DeepAgent 입출력 타입
+interface AgentInput {
+  messages: Array<{ role: string; content: string }>;
+}
+
+interface AgentOutput {
+  messages: BaseMessage[];
+}
+
+// DeepAgent 타입: Runnable로 정의
+type DeepAgentType = Runnable<AgentInput, AgentOutput>;
 
 export interface AgentResponse {
   answer: string;
@@ -30,7 +49,22 @@ export interface AgentResponse {
 
 // Discriminated Union: 각 이벤트 타입에 맞는 필드만 허용
 export type AgentStreamEvent =
-  | { type: 'status'; tool: string; message: string; icon: string }
+  | {
+      type: 'status';
+      tool: string;
+      message: string;
+      icon: string;
+      phase?: 'started' | 'progress' | 'completed';
+      details?: Record<string, unknown>;
+    }
+  | {
+      type: 'tool_call';
+      tool: 'search_documents' | 'collect_contact';
+      phase: 'started' | 'executing' | 'completed' | 'error';
+      displayName: string;
+      icon: string;
+      metadata?: { query?: string; resultCount?: number; error?: string };
+    }
   | { type: 'sources'; sources: Document[] }
   | { type: 'content'; content: string }
   | { type: 'done'; metadata: AgentResponse['metadata'] }
@@ -52,10 +86,25 @@ function loadSystemPrompt(): string {
 const TOOL_GUIDE = `
 
 ## 도구 사용
-- search_documents: 나의 이력서, 경험, 생각, FAQ 등을 검색해요.
-- collect_contact: 사용자가 연락처를 제공하면 수집해요. 강요하지 마세요.
-- 질문에 답하기 전에 관련 문서를 먼저 검색하세요.
-- 대화가 5회 이상이고 사용자가 관심을 보이면 자연스럽게 연락처를 물어볼 수 있어요.
+
+### search_documents
+dwkim의 이력서, 경험, 생각, FAQ 등을 검색해요.
+
+**검색 전략** (중요!):
+- "어떤 사람이야?", "자기소개 해줘" 같은 일반 질문
+  → 여러 검색 실행: "이력서", "경력 요약", "개발 철학" 등
+- "React 경험?" 같은 특정 질문
+  → 타겟 검색: "React 프로젝트", "프론트엔드 경험"
+- 원본 질문이 모호하면 더 구체적인 검색어로 변환해서 검색해요
+
+### collect_contact
+사용자가 연락처를 제공하면 수집해요. 강요하지 마세요.
+대화가 5회 이상이고 사용자가 관심을 보이면 자연스럽게 연락처를 물어볼 수 있어요.
+
+## 메타 질문 처리 (대화 자체에 대한 질문)
+- "내가 뭘 물어봤지?", "우리 대화 요약해줘" 같은 질문
+  → 문서 검색하지 말고 대화 기록을 참고해서 답변해요
+- 이런 질문에 FAQ나 문서 내용으로 답하면 안 돼요!
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -65,8 +114,8 @@ const TOOL_GUIDE = `
 const vectorStore = new VectorStore();
 const checkpointer = new MemorySaver();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let agent: any = null;
+// DeepAgent 타입: Runnable로 정의 (langchain/core 버전 충돌로 인해 런타임 타입으로 유지)
+let agent: DeepAgentType | null = null;
 let initialized = false;
 
 /**
@@ -89,7 +138,9 @@ export async function initPersonaAgent(): Promise<void> {
   });
 
   // RAG 검색 도구
-  const searchDocuments = new DynamicStructuredTool({
+  // Note: `as any` required due to LangChain's complex generic types causing TS2589
+  // (infinite type instantiation). This is a known LangChain type system limitation.
+  const searchDocuments = new (DynamicStructuredTool as any)({
     name: 'search_documents',
     description: 'dwkim의 이력서, 경험, 생각, FAQ 등 개인 문서를 검색합니다.',
     schema: z.object({
@@ -108,11 +159,11 @@ export async function initPersonaAgent(): Promise<void> {
         return '검색 중 오류가 발생했습니다.';
       }
     },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  });
 
   // 연락처 수집 도구 (HITL 대상)
-  const collectContact = new DynamicStructuredTool({
+  // Note: Same TS2589 workaround as above
+  const collectContact = new (DynamicStructuredTool as any)({
     name: 'collect_contact',
     description: '사용자가 자발적으로 연락처를 제공할 때 수집합니다. dwkim에게 전달됩니다.',
     schema: z.object({
@@ -122,8 +173,6 @@ export async function initPersonaAgent(): Promise<void> {
     }),
     func: async (input: { email: string; name?: string; message?: string }): Promise<string> => {
       try {
-        // 실제 저장은 chat.ts에서 sessionId와 함께 처리
-        // 여기서는 도구 호출 확인용
         console.log('📧 Contact collected via tool:', input.email);
         return `감사합니다! ${input.name || ''}님의 연락처(${input.email})를 dwkim에게 전달할게요. 24시간 내로 연락드릴게요! 😊`;
       } catch (error) {
@@ -131,18 +180,16 @@ export async function initPersonaAgent(): Promise<void> {
         return '연락처 저장 중 문제가 발생했어요. 다시 시도해주세요.';
       }
     },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  });
 
   // Deep Agent 생성
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Note: ReactAgent from deepagents doesn't fully implement Runnable interface,
+  // but runtime behavior is correct. Using `as any` for type compatibility.
   agent = (createDeepAgent as any)({
     model,
     tools: [searchDocuments, collectContact],
     systemPrompt: loadSystemPrompt() + TOOL_GUIDE,
     checkpointer,
-    // HITL: collect_contact 호출 시 사용자 확인 (향후 활성화)
-    // interruptOn: { collect_contact: true },
   });
 
   initialized = true;
@@ -201,16 +248,10 @@ export async function* queryPersonaStream(
   }
 
   const startTime = Date.now();
+  let sources: Document[] = [];
 
-  // Step 1: 검색 시작
-  yield { type: 'status', tool: 'search', message: '관련 문서 검색 중...', icon: '🔍' };
-
-  const sources = await vectorStore.searchDiverse(message, 5);
-  yield { type: 'sources', sources };
-  yield { type: 'status', tool: 'search', message: `${sources.length}개 문서 발견`, icon: '📄' };
-
-  // Step 2: 답변 생성 시작
-  yield { type: 'status', tool: 'generate', message: '답변 생성 중...', icon: '✍️' };
+  // Agent가 검색 전략을 결정하도록 함 (사전 검색 제거)
+  yield { type: 'status', tool: 'thinking', message: '질문 분석 중...', icon: '🤔' };
 
   // Agent 스트리밍 실행
   const config = sessionId ? { configurable: { thread_id: sessionId } } : undefined;
@@ -221,10 +262,121 @@ export async function* queryPersonaStream(
 
   for await (const chunk of stream) {
     if (chunk && typeof chunk === 'object') {
-      for (const [, value] of Object.entries(chunk)) {
+      for (const [nodeKey, value] of Object.entries(chunk)) {
+        // Agent 노드: Tool 호출 시작 감지
+        if (nodeKey === 'agent' && value && typeof value === 'object') {
+          const messages = (value as { messages?: unknown[] }).messages;
+          if (Array.isArray(messages)) {
+            for (const msg of messages) {
+              if (msg && typeof msg === 'object' && 'tool_calls' in msg) {
+                const toolCalls = (msg as { tool_calls?: unknown[] }).tool_calls;
+                if (Array.isArray(toolCalls)) {
+                  for (const toolCall of toolCalls) {
+                    if (toolCall && typeof toolCall === 'object' && 'name' in toolCall) {
+                      const toolName = (toolCall as { name: string }).name;
+                      const toolArgs = (toolCall as { args?: Record<string, unknown> }).args;
+
+                      if (toolName === 'search_documents') {
+                        const query = toolArgs?.query as string | undefined;
+                        yield {
+                          type: 'tool_call',
+                          tool: 'search_documents',
+                          phase: 'started',
+                          displayName: '문서 검색',
+                          icon: '🔍',
+                          metadata: { query },
+                        };
+                      } else if (toolName === 'collect_contact') {
+                        yield {
+                          type: 'tool_call',
+                          tool: 'collect_contact',
+                          phase: 'started',
+                          displayName: '연락처 수집',
+                          icon: '📧',
+                        };
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Tools 노드: Tool 실행 완료 감지
+        if (nodeKey === 'tools' && value && typeof value === 'object') {
+          const toolMessages = (value as { messages?: unknown[] }).messages;
+          if (Array.isArray(toolMessages)) {
+            for (const toolMsg of toolMessages) {
+              if (toolMsg && typeof toolMsg === 'object' && 'name' in toolMsg) {
+                const toolName = (toolMsg as { name: string }).name;
+                const content = (toolMsg as { content?: string }).content;
+
+                if (toolName === 'search_documents') {
+                  if (content && content !== '관련 문서를 찾지 못했습니다.') {
+                    // 결과 수 추정 (문서 구분자 기준)
+                    const resultCount = content.split('\n\n---\n\n').length;
+                    yield {
+                      type: 'tool_call',
+                      tool: 'search_documents',
+                      phase: 'completed',
+                      displayName: '문서 검색',
+                      icon: '✓',
+                      metadata: { resultCount },
+                    };
+                  } else {
+                    yield {
+                      type: 'tool_call',
+                      tool: 'search_documents',
+                      phase: 'completed',
+                      displayName: '문서 검색',
+                      icon: '✓',
+                      metadata: { resultCount: 0 },
+                    };
+                  }
+                } else if (toolName === 'collect_contact') {
+                  if (content && !content.includes('문제가 발생')) {
+                    yield {
+                      type: 'tool_call',
+                      tool: 'collect_contact',
+                      phase: 'completed',
+                      displayName: '연락처 수집',
+                      icon: '✓',
+                    };
+                  } else {
+                    yield {
+                      type: 'tool_call',
+                      tool: 'collect_contact',
+                      phase: 'error',
+                      displayName: '연락처 수집',
+                      icon: '✗',
+                      metadata: { error: content || 'Unknown error' },
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 최종 응답 추출
         if (value && typeof value === 'object' && 'content' in value) {
           const content = (value as { content: unknown }).content;
           if (typeof content === 'string' && content.length > 0) {
+            // 첫 콘텐츠 전에 sources 조회 (UI용)
+            if (sources.length === 0) {
+              sources = await vectorStore.searchDiverse(message, 3);
+              if (sources.length > 0) {
+                yield { type: 'sources', sources };
+              }
+              yield {
+                type: 'status',
+                tool: 'generate',
+                message: '답변 생성 중...',
+                icon: '✍️',
+                phase: 'started',
+              };
+            }
             yield { type: 'content', content };
           }
         }

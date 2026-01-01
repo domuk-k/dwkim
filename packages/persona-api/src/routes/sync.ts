@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { createHash } from 'crypto';
-import { VectorStore, Document, DocumentType } from '../services/vectorStore';
+import { getVectorStore, initVectorStore, Document, DocumentType } from '../services/vectorStore';
 import matter from 'gray-matter';
 
 // 경로 기반 UUID 생성 (동일 경로+인덱스는 동일 UUID)
@@ -118,11 +118,10 @@ function createDocuments(
 }
 
 export default async function syncRoutes(fastify: FastifyInstance) {
-  const vectorStore = new VectorStore();
-
   // 초기화
   try {
-    await vectorStore.initialize();
+    // VectorStore 싱글턴 초기화
+    await initVectorStore();
     console.log('Vector store initialized for sync routes');
   } catch (error) {
     console.error('Failed to initialize vector store for sync:', error);
@@ -174,6 +173,8 @@ export default async function syncRoutes(fastify: FastifyInstance) {
         const { path, content, action } = validated;
 
         console.log(`Sync request: ${action} for ${path}`);
+
+        const vectorStore = getVectorStore();
 
         if (action === 'delete') {
           // 삭제 요청
@@ -282,6 +283,7 @@ export default async function syncRoutes(fastify: FastifyInstance) {
       try {
         const { tag = 'persona' } = request.query as { tag?: string };
 
+        const vectorStore = getVectorStore();
         const documents = await vectorStore.getDocumentsByTag(tag);
 
         // 고유 경로 추출
