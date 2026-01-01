@@ -18,6 +18,7 @@ interface Message {
   content: string;
   sources?: SourcesEvent['sources'];
   processingTime?: number;
+  shouldSuggestContact?: boolean;
 }
 
 type Status = 'idle' | 'connecting' | 'loading' | 'error';
@@ -45,6 +46,9 @@ export function ChatView({ apiUrl }: Props) {
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [streamContent, setStreamContent] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
   const messageIdRef = useRef(0);
 
   const nextId = () => ++messageIdRef.current;
@@ -77,10 +81,15 @@ export function ChatView({ apiUrl }: Props) {
     };
   }, [client]);
 
-  // Ctrl+C 처리
+  // 키보드 처리 (Ctrl+C, ESC)
   useInput((input, key) => {
     if (key.ctrl && input === 'c') {
       exit();
+    }
+    // ESC로 이메일 입력 취소
+    if (key.escape && showEmailInput) {
+      setShowEmailInput(false);
+      setEmailInput('');
     }
   });
 
@@ -182,6 +191,7 @@ ${icons.chat} 예시 질문
         let sources: SourcesEvent['sources'] = [];
         let fullContent = '';
         let processingTime = 0;
+        let shouldSuggestContact = false;
 
         for await (const event of client.chatStream(trimmed)) {
           switch (event.type) {
@@ -197,6 +207,7 @@ ${icons.chat} 예시 질문
               break;
             case 'done':
               processingTime = event.metadata.processingTime;
+              shouldSuggestContact = event.metadata.shouldSuggestContact ?? false;
               break;
             case 'error':
               throw new ApiError(event.error);
@@ -211,11 +222,17 @@ ${icons.chat} 예시 질문
             content: fullContent,
             sources,
             processingTime,
+            shouldSuggestContact,
           },
         ]);
         setStreamContent('');
         setLoadingState(null);
         setStatus('idle');
+
+        // 5회 이상 대화 시 이메일 입력 UI 표시
+        if (shouldSuggestContact) {
+          setShowEmailInput(true);
+        }
       } catch (error) {
         const message =
           error instanceof ApiError ? error.message : '오류가 발생했습니다.';
@@ -234,6 +251,80 @@ ${icons.chat} 예시 질문
     },
     [client, status, handleCommand]
   );
+
+  // 이메일 제출 핸들러
+  const handleEmailSubmit = useCallback(
+    async (email: string) => {
+      const trimmedEmail = email.trim();
+
+      // 빈 입력 시 건너뛰기
+      if (!trimmedEmail) {
+        setShowEmailInput(false);
+        setEmailInput('');
+        return;
+      }
+
+      if (emailSubmitting) return;
+
+      // 간단한 이메일 형식 검증
+      if (!trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: 'system',
+            content: `${icons.error} 올바른 이메일 주소를 입력해주세요.`,
+          },
+        ]);
+        return;
+      }
+
+      setEmailSubmitting(true);
+
+      try {
+        const response = await fetch(`${apiUrl}/api/v1/contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmedEmail }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: nextId(),
+              role: 'system',
+              content: `${icons.check} ${result.message}`,
+            },
+          ]);
+          setShowEmailInput(false);
+          setEmailInput('');
+        } else {
+          throw new Error(result.error || '이메일 전송 실패');
+        }
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: 'system',
+            content: `${icons.error} 이메일 전송에 실패했어요. 다시 시도해주세요.`,
+          },
+        ]);
+      } finally {
+        setEmailSubmitting(false);
+      }
+    },
+    [apiUrl, emailSubmitting]
+  );
+
+  // 이메일 입력 취소
+  const handleEmailCancel = useCallback(() => {
+    setShowEmailInput(false);
+    setEmailInput('');
+  }, []);
 
   const statusIndicator: Record<Status, string> = {
     connecting: `${icons.spinner} 연결 중...`,
@@ -272,8 +363,42 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
+      {/* 이메일 입력 UI (HITL 패턴) */}
+      {showEmailInput && status === 'idle' && (
+        <Box flexDirection="column" marginTop={1} paddingX={1}>
+          <Box
+            borderStyle="round"
+            borderColor={theme.lavender}
+            paddingX={2}
+            paddingY={1}
+            flexDirection="column"
+          >
+            <Text color={theme.lavender}>
+              📧 더 깊은 이야기가 필요하신 것 같아요!
+            </Text>
+            <Text color={theme.muted} dimColor>
+              이메일 남겨주시면 동욱이 직접 연락드릴게요.
+            </Text>
+            <Box marginTop={1}>
+              <Text color={theme.primary}>이메일: </Text>
+              <TextInput
+                value={emailInput}
+                onChange={setEmailInput}
+                onSubmit={handleEmailSubmit}
+                placeholder="your@email.com"
+              />
+            </Box>
+            <Box marginTop={1}>
+              <Text color={theme.muted} dimColor>
+                Enter: 전송 • ESC/빈값 Enter: 건너뛰기
+              </Text>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
       {/* 입력 영역 (위아래 선) */}
-      {status !== 'connecting' && status !== 'error' && (
+      {status !== 'connecting' && status !== 'error' && !showEmailInput && (
         <Box flexDirection="column" marginTop={1}>
           <Text color={theme.surface}>{'─'.repeat(termWidth - 2)}</Text>
           <Box paddingX={1}>

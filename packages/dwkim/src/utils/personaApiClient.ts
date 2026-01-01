@@ -75,6 +75,7 @@ export interface ChatResponse {
     content: string;
   }>;
   processingTime: number;
+  shouldSuggestContact?: boolean;
 }
 
 export interface SearchResult {
@@ -112,7 +113,16 @@ export type StreamEvent =
   | { type: 'status'; tool: string; message: string; icon: string }
   | { type: 'sources'; sources: Source[] }
   | { type: 'content'; content: string }
-  | { type: 'done'; metadata: { searchQuery: string; searchResults: number; processingTime: number } }
+  | {
+      type: 'done';
+      metadata: {
+        searchQuery: string;
+        searchResults: number;
+        processingTime: number;
+        shouldSuggestContact?: boolean;
+        messageCount?: number;
+      };
+    }
   | { type: 'error'; error: string };
 
 export class PersonaApiClient {
