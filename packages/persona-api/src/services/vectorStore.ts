@@ -1,7 +1,7 @@
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Document as LangChainDocument } from '@langchain/core/documents';
+import { VoyageEmbeddings } from './voyageEmbeddings';
 
 export type DocumentType =
   | 'resume'
@@ -39,17 +39,16 @@ const RELEVANCE_THRESHOLD = 0.3;
 
 export class VectorStore {
   private vectorStore: QdrantVectorStore | null = null;
-  private embeddings: GoogleGenerativeAIEmbeddings | null = null;
+  private embeddings: VoyageEmbeddings | null = null;
   private qdrantClient: QdrantClient | null = null;
   private initialized = false;
   private collectionName = 'persona_documents';
 
   constructor() {
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-    if (apiKey) {
-      this.embeddings = new GoogleGenerativeAIEmbeddings({
-        apiKey,
-        model: 'text-embedding-004',
+    // Voyage multilingual-2: 한국어에 최적화된 API 기반 임베딩
+    if (process.env.VOYAGE_API_KEY) {
+      this.embeddings = new VoyageEmbeddings({
+        modelName: 'voyage-multilingual-2',
       });
     }
   }
@@ -71,7 +70,7 @@ export class VectorStore {
       }
 
       if (!this.embeddings) {
-        throw new Error('Google API key required for embeddings');
+        throw new Error('Embeddings not initialized');
       }
 
       // Qdrant 클라이언트 설정
@@ -461,6 +460,7 @@ export class VectorStore {
       collectionName: this.collectionName,
     };
   }
+
 
   /**
    * 파일 경로 기반으로 문서 삭제
