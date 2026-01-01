@@ -1,3 +1,15 @@
+## [1.1.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.3...dwkim-v1.1.0) (2026-01-01)
+
+### Features
+
+* **blog:** add BSP parallel model post with callout support ([1942aa2](https://github.com/domuk-k/dwkim/commit/1942aa2e6537ff65ab80050278d0d0d116e9ccdd))
+* **blog:** add Obsidian callout to HTML transform in sync-cogni ([a06dadb](https://github.com/domuk-k/dwkim/commit/a06dadb1e2db065928c29b16bb4c69b6f2869efc))
+* **dwkim,persona-api:** add HITL email collection pattern ([b0c5ff7](https://github.com/domuk-k/dwkim/commit/b0c5ff702c14b039166f2f609012d66a3ee08660))
+
+### Bug Fixes
+
+* **blog:** correct pubDate for recent posts ([edfab43](https://github.com/domuk-k/dwkim/commit/edfab438b15faeb9e8b84a65c6752f04062c18db))
+
 ## [1.0.3](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.2...dwkim-v1.0.3) (2025-12-30)
 
 ### Bug Fixes
