@@ -2,12 +2,12 @@
 
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Document as LangChainDocument } from '@langchain/core/documents';
 import fs from 'fs/promises';
 import path from 'path';
 import { homedir } from 'os';
 import dotenv from 'dotenv';
+import { VoyageEmbeddings } from '../src/services/voyageEmbeddings';
 
 // Load .env.local first (for local dev), then .env
 dotenv.config({ path: '.env.local' });
@@ -164,26 +164,47 @@ async function processPersonaFiles(): Promise<ChunkResult[]> {
     const title = (frontmatter.title as string) || type;
 
     // resume.md는 섹션 기반 청킹 (## 기준)
-    if (type === 'resume') {
-      const chunks = chunkBySection(body);
-      console.log(`  📄 ${file}: ${chunks.length} chunks (by section)`);
+    // 100-questions.md는 질문별 청킹 (### Q 기준)
+    if (type === 'resume' || type === '100-questions') {
+      const delimiter = type === '100-questions' ? /(?=^### Q\d+)/m : /(?=^## )/m;
+      const chunks = body.split(delimiter).filter((s) => s.trim().length > 0);
 
-      chunks.forEach((chunk, index) => {
-        // 섹션 제목 추출 (## 로 시작하는 첫 줄)
-        const sectionTitle = chunk.match(/^##\s+(.+)/m)?.[1] || title;
+      let validIndex = 0;
+      let skippedCount = 0;
+      chunks.forEach((chunk) => {
+        // 제목 추출: 100-questions는 ### Q, resume는 ##
+        const titleMatch = type === '100-questions'
+          ? chunk.match(/^### (Q\d+\..+)/m)
+          : chunk.match(/^##\s+(.+)/m);
+        const sectionTitle = titleMatch?.[1] || title;
+
+        // [?] 플레이스홀더만 있는 답변 스킵 (노이즈 제거)
+        if (type === '100-questions') {
+          const content = chunk.replace(/^### Q\d+\..+\n+/m, '').trim();
+          if (content === '[?]' || content.length < 20) {
+            skippedCount++;
+            return; // 답변이 없거나 너무 짧으면 스킵
+          }
+        }
 
         results.push({
-          id: `cogni_${type}_${index}`,
+          id: `cogni_${type}_${validIndex}`,
           content: chunk.trim(),
           metadata: {
             type,
             title: sectionTitle,
             source: 'cogni',
-            chunkIndex: index,
+            chunkIndex: validIndex,
             totalChunks: chunks.length,
           },
         });
+        validIndex++;
       });
+
+      const chunkInfo = type === '100-questions'
+        ? `${validIndex} valid, ${skippedCount} skipped`
+        : `${validIndex} chunks`;
+      console.log(`  📄 ${file}: ${chunkInfo}`);
       continue;
     }
 
@@ -292,7 +313,6 @@ async function initializeDatabase(testMode: boolean = false) {
   console.log('\n🚀 Qdrant 초기화 시작...\n');
 
   const qdrantUrl = process.env.QDRANT_URL;
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 
   // 테스트 모드가 아닐 때만 환경변수 체크
   if (!testMode) {
@@ -300,9 +320,8 @@ async function initializeDatabase(testMode: boolean = false) {
       console.error('❌ QDRANT_URL 환경변수가 필요합니다');
       process.exit(1);
     }
-
-    if (!apiKey) {
-      console.error('❌ GOOGLE_API_KEY 또는 GEMINI_API_KEY 환경변수가 필요합니다');
+    if (!process.env.VOYAGE_API_KEY) {
+      console.error('❌ VOYAGE_API_KEY 환경변수가 필요합니다');
       process.exit(1);
     }
   }
@@ -330,11 +349,10 @@ async function initializeDatabase(testMode: boolean = false) {
     return;
   }
 
-  // Embeddings 초기화
-  console.log('🔧 임베딩 모델 초기화...');
-  const embeddings = new GoogleGenerativeAIEmbeddings({
-    apiKey,
-    model: 'text-embedding-004',
+  // Embeddings 초기화 (Voyage multilingual-2)
+  console.log('🔧 Voyage multilingual-2 임베딩 초기화...');
+  const embeddings = new VoyageEmbeddings({
+    modelName: 'voyage-multilingual-2',
   });
 
   // Qdrant 클라이언트 설정
@@ -396,16 +414,15 @@ async function testRetrieval() {
   console.log('\n🔍 검색 테스트 시작...\n');
 
   const qdrantUrl = process.env.QDRANT_URL;
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 
-  if (!qdrantUrl || !apiKey) {
-    console.error('❌ QDRANT_URL과 API 키가 필요합니다');
+  if (!qdrantUrl) {
+    console.error('❌ QDRANT_URL이 필요합니다');
     return;
   }
 
-  const embeddings = new GoogleGenerativeAIEmbeddings({
-    apiKey,
-    model: 'text-embedding-004',
+  // Voyage multilingual-2 사용
+  const embeddings = new VoyageEmbeddings({
+    modelName: 'voyage-multilingual-2',
   });
 
   // Qdrant 클라이언트 설정
@@ -432,10 +449,10 @@ async function testRetrieval() {
   );
 
   const testQueries = [
+    '취미가 뭐야?',
+    '코드 리뷰에서 중요하게 보는 것은?',
     '기술 스택이 뭔가요?',
     '어떤 프로젝트를 했나요?',
-    'AI에 대한 생각은?',
-    '개발 철학이 있나요?',
   ];
 
   console.log('📌 일반 검색 (Similarity Search):');
