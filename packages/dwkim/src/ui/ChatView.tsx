@@ -23,9 +23,19 @@ interface Message {
 
 type Status = 'idle' | 'connecting' | 'loading' | 'error';
 
+interface ToolCallState {
+  tool: string;
+  displayName: string;
+  icon: string;
+  phase: 'started' | 'executing' | 'completed' | 'error';
+  query?: string;
+  resultCount?: number;
+}
+
 interface LoadingState {
   icon: string;
   message: string;
+  toolCalls: ToolCallState[];
 }
 
 interface Props {
@@ -205,7 +215,7 @@ ${icons.chat} 예시 질문
         { id: nextId(), role: 'user', content: trimmed },
       ]);
       setStatus('loading');
-      setLoadingState({ icon: '⏳', message: '처리 중...' });
+      setLoadingState({ icon: '⏳', message: '처리 중...', toolCalls: [] });
       setStreamContent('');
 
       try {
@@ -221,7 +231,35 @@ ${icons.chat} 예시 질문
               setSessionId(event.sessionId);
               break;
             case 'status':
-              setLoadingState({ icon: event.icon, message: event.message });
+              setLoadingState((prev) => ({
+                icon: event.icon,
+                message: event.message,
+                toolCalls: prev?.toolCalls || [],
+              }));
+              break;
+            case 'tool_call':
+              setLoadingState((prev) => {
+                const toolCalls = [...(prev?.toolCalls || [])];
+                const existingIdx = toolCalls.findIndex((t) => t.tool === event.tool);
+                const toolState: ToolCallState = {
+                  tool: event.tool,
+                  displayName: event.displayName,
+                  icon: event.icon,
+                  phase: event.phase,
+                  query: event.metadata?.query,
+                  resultCount: event.metadata?.resultCount,
+                };
+                if (existingIdx >= 0) {
+                  toolCalls[existingIdx] = toolState;
+                } else {
+                  toolCalls.push(toolState);
+                }
+                return {
+                  icon: prev?.icon || '🔧',
+                  message: prev?.message || event.displayName,
+                  toolCalls,
+                };
+              });
               break;
             case 'sources':
               sources = event.sources;
@@ -372,10 +410,26 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 상태 표시 */}
+      {/* 상태 표시 (tool_call 포함) */}
       {status !== 'idle' && status !== 'error' && (
-        <Box marginY={1}>
+        <Box flexDirection="column" marginY={1}>
           <Text color={theme.info}>{statusIndicator[status]}</Text>
+          {loadingState?.toolCalls && loadingState.toolCalls.length > 0 && (
+            <Box flexDirection="column" marginLeft={2} marginTop={0}>
+              {loadingState.toolCalls.map((tool) => (
+                <Box key={tool.tool}>
+                  <Text color={tool.phase === 'completed' ? theme.success : theme.muted}>
+                    {tool.phase === 'completed' ? '✓' : tool.phase === 'error' ? '✗' : '○'}{' '}
+                    {tool.displayName}
+                    {tool.query && <Text dimColor> "{tool.query}"</Text>}
+                    {tool.resultCount !== undefined && (
+                      <Text dimColor> → {tool.resultCount}건</Text>
+                    )}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+          )}
         </Box>
       )}
 
