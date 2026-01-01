@@ -410,7 +410,9 @@ export default async function chatRoutes(fastify: FastifyInstance) {
       try {
         const validatedData = ChatRequestSchema.parse(request.body);
         const { message, sessionId: inputSessionId, conversationHistory = [] } = validatedData;
-        const sessionId = inputSessionId || ConversationStore.generateSessionId(request.ip);
+        const clientIp = request.ip;
+        const sessionId = inputSessionId || ConversationStore.generateSessionId(clientIp);
+        const conversationStore = getConversationStore();
 
         // SSE 헤더 설정
         reply.raw.writeHead(200, {
@@ -420,9 +422,16 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           'Access-Control-Allow-Origin': '*',
         });
 
+        // 사용자 메시지 저장
+        await conversationStore.addMessage(sessionId, 'user', message);
+        let fullAnswer = '';
+
         // DeepAgent (PersonaAgent) 또는 RAG 엔진 사용
         if (useDeepAgent && isPersonaAgentReady()) {
           for await (const event of queryPersonaStream(message, sessionId)) {
+            if (event.type === 'content') {
+              fullAnswer += event.content;
+            }
             const data = JSON.stringify(event);
             reply.raw.write(`data: ${data}\n\n`);
           }
@@ -433,11 +442,34 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           }));
 
           for await (const event of ragEngine.processQueryStream(message, history)) {
+            if (event.type === 'content') {
+              fullAnswer += event.content;
+            }
+            // done 이벤트에 shouldSuggestContact 추가
+            if (event.type === 'done') {
+              const messageCount = await conversationStore.getMessageCount(sessionId);
+              const shouldSuggestContact = messageCount >= THRESHOLDS.SUGGEST_CONTACT;
+              const enrichedEvent = {
+                ...event,
+                metadata: {
+                  ...event.metadata,
+                  shouldSuggestContact,
+                  messageCount,
+                },
+              };
+              reply.raw.write(`data: ${JSON.stringify(enrichedEvent)}\n\n`);
+              continue;
+            }
             const data = JSON.stringify(event);
             reply.raw.write(`data: ${data}\n\n`);
           }
         } else {
           reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '엔진이 초기화되지 않았습니다.' })}\n\n`);
+        }
+
+        // 어시스턴트 응답 저장
+        if (fullAnswer) {
+          await conversationStore.addMessage(sessionId, 'assistant', fullAnswer);
         }
 
         reply.raw.end();
