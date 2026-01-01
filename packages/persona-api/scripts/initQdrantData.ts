@@ -13,10 +13,10 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-// Configuration - Cogni as SSOT
+// Configuration - Cogni as SSOT (Single Source of Truth)
+// about 콘텐츠도 cogni/persona에 tags: [persona]로 통합됨
 const COGNI_PERSONA_DIR = path.join(homedir(), '.cogni', 'notes', 'persona');
-const BLOG_ABOUT_DIR = path.join(__dirname, '../../blog/src/content/about');
-const BLOG_POSTS_DIR = path.join(__dirname, '../../blog/src/content/posts');
+const COGNI_NOTES_DIR = path.join(homedir(), '.cogni', 'notes');
 const COLLECTION_NAME = 'persona_documents';
 
 interface ChunkResult {
@@ -26,7 +26,7 @@ interface ChunkResult {
     type: string;
     title: string;
     category?: string;
-    source: 'persona-api' | 'blog';
+    source: 'cogni';
     pubDate?: string;
     keywords?: string[];
     chunkIndex: number;
@@ -209,98 +209,70 @@ async function processPersonaFiles(): Promise<ChunkResult[]> {
 }
 
 /**
- * blog/src/content/about/*.md 처리
+ * Cogni notes에서 tags: [blog]인 파일 처리
+ * (블로그 포스트로 발행된 노트들)
  */
-async function processAboutFiles(): Promise<ChunkResult[]> {
-  console.log('📂 Processing blog/about files...');
-
-  let files: string[];
-  try {
-    files = await fs.readdir(BLOG_ABOUT_DIR);
-  } catch {
-    console.warn('⚠️  about 디렉토리를 찾을 수 없습니다:', BLOG_ABOUT_DIR);
-    return [];
-  }
+async function processBlogNotes(): Promise<ChunkResult[]> {
+  console.log('📂 Processing Cogni blog notes...');
 
   const results: ChunkResult[] = [];
-  const mdFiles = files.filter((f) => f.endsWith('.md'));
 
-  for (const file of mdFiles) {
-    const content = await fs.readFile(path.join(BLOG_ABOUT_DIR, file), 'utf-8');
+  // 재귀적으로 모든 md 파일 찾기
+  async function findMdFiles(dir: string): Promise<string[]> {
+    const files: string[] = [];
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          files.push(...(await findMdFiles(fullPath)));
+        } else if (entry.name.endsWith('.md')) {
+          files.push(fullPath);
+        }
+      }
+    } catch {
+      // 디렉토리 없음
+    }
+    return files;
+  }
+
+  const mdFiles = await findMdFiles(COGNI_NOTES_DIR);
+
+  for (const filePath of mdFiles) {
+    // persona 디렉토리는 이미 processPersonaFiles에서 처리하므로 스킵
+    if (filePath.includes('/persona/')) continue;
+
+    const content = await fs.readFile(filePath, 'utf-8');
     const { frontmatter, body } = parseFrontmatter(content);
+
+    // tags에 blog가 있는지 확인
+    const tags = (frontmatter.tags as string[]) || [];
+    if (!tags.includes('blog')) continue;
 
     // rag: false인 경우 스킵
     if (frontmatter.rag === false || frontmatter.rag === 'false') {
-      console.log(`  ⏭️  ${file}: skipped (rag: false)`);
+      console.log(`  ⏭️  ${path.basename(filePath)}: skipped (rag: false)`);
       continue;
     }
 
-    const category = path.basename(file, '.md');
-
-    console.log(`  📄 ${file}: 1 chunk (whole document)`);
-
-    // About 파일은 짧으므로 전체 문서를 하나의 청크로
-    results.push({
-      id: `about_${category}_0`,
-      content: body.trim(),
-      metadata: {
-        type: 'about',
-        title: (frontmatter.title as string) || category,
-        category,
-        source: 'blog',
-        chunkIndex: 0,
-        totalChunks: 1,
-      },
-    });
-  }
-
-  return results;
-}
-
-/**
- * blog/src/content/posts/*.md 처리
- */
-async function processPostFiles(): Promise<ChunkResult[]> {
-  console.log('📂 Processing blog/posts files...');
-
-  let files: string[];
-  try {
-    files = await fs.readdir(BLOG_POSTS_DIR);
-  } catch {
-    console.warn('⚠️  posts 디렉토리를 찾을 수 없습니다:', BLOG_POSTS_DIR);
-    return [];
-  }
-
-  const results: ChunkResult[] = [];
-  const mdFiles = files.filter((f) => f.endsWith('.md'));
-
-  for (const file of mdFiles) {
-    const content = await fs.readFile(path.join(BLOG_POSTS_DIR, file), 'utf-8');
-    const { frontmatter, body } = parseFrontmatter(content);
-
-    // rag: false인 경우 스킵
-    if (frontmatter.rag === false || frontmatter.rag === 'false') {
-      console.log(`  ⏭️  ${file}: skipped (rag: false)`);
-      continue;
-    }
-
-    const slug = path.basename(file, '.md');
+    const slug = path.basename(filePath, '.md');
     const keywords = frontmatter.keywords as string[] | undefined;
 
     // 섹션 기반 청킹
     const chunks = chunkBySection(body);
 
-    console.log(`  📄 ${file}: ${chunks.length} chunks`);
+    console.log(`  📄 ${path.basename(filePath)}: ${chunks.length} chunks`);
 
     chunks.forEach((chunk, index) => {
       results.push({
-        id: `post_${slug}_${index}`,
+        id: `blog_${slug}_${index}`,
         content: chunk.trim(),
         metadata: {
-          type: 'post',
+          type: 'blog',
           title: (frontmatter.title as string) || slug,
           category: inferCategory(keywords),
-          source: 'blog',
+          source: 'cogni',
           pubDate: frontmatter.pubDate as string,
           keywords,
           chunkIndex: index,
@@ -337,15 +309,13 @@ async function initializeDatabase(testMode: boolean = false) {
 
   // 모든 문서 수집 (Cogni SSOT)
   const personaChunks = await processPersonaFiles();
-  const aboutChunks = await processAboutFiles();
-  const postChunks = await processPostFiles();
+  const blogChunks = await processBlogNotes();
 
-  const allChunks = [...personaChunks, ...aboutChunks, ...postChunks];
+  const allChunks = [...personaChunks, ...blogChunks];
 
   console.log(`\n📊 총 청크 수: ${allChunks.length}`);
   console.log(`   - cogni/persona: ${personaChunks.length}`);
-  console.log(`   - blog/about: ${aboutChunks.length}`);
-  console.log(`   - blog/posts: ${postChunks.length}\n`);
+  console.log(`   - cogni/blog: ${blogChunks.length}\n`);
 
   if (testMode) {
     console.log('🧪 테스트 모드 - DB 업로드 건너뜀\n');
