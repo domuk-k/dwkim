@@ -99,15 +99,19 @@ export class LLMService {
         ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
         : this.systemPrompt;
 
-      const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+      // 전체 대화 히스토리를 LLM 메시지 형식으로 변환
+      const llmMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: systemMessage },
+        ...messages.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        })),
+      ];
 
       if (this.llmProvider === 'openrouter' && this.openRouterClient) {
         const response = await this.openRouterClient.chat.completions.create({
           model: this.model,
-          messages: [
-            { role: 'system', content: systemMessage },
-            { role: 'user', content: userMessage },
-          ],
+          messages: llmMessages,
         });
 
         const content = response.choices[0]?.message?.content || '';
@@ -123,9 +127,12 @@ export class LLMService {
         };
       }
 
-      // Gemini fallback
+      // Gemini fallback (대화 히스토리를 텍스트로 변환)
       if (this.geminiClient) {
-        const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
+        const conversationText = messages
+          .map(msg => `${msg.role === 'user' ? '사용자' : '어시스턴트'}: ${msg.content}`)
+          .join('\n\n');
+        const fullPrompt = `${systemMessage}\n\n${conversationText}`;
         const response = await this.geminiClient.invoke(fullPrompt);
         const content = typeof response.content === 'string'
           ? response.content
@@ -167,15 +174,19 @@ export class LLMService {
         ? `${this.systemPrompt}\n\n관련 컨텍스트:\n${context}`
         : this.systemPrompt;
 
-      const userMessage = messages.find(msg => msg.role === 'user')?.content || '';
+      // 전체 대화 히스토리를 LLM 메시지 형식으로 변환
+      const llmMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: systemMessage },
+        ...messages.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        })),
+      ];
 
       if (this.llmProvider === 'openrouter' && this.openRouterClient) {
         const stream = await this.openRouterClient.chat.completions.create({
           model: this.model,
-          messages: [
-            { role: 'system', content: systemMessage },
-            { role: 'user', content: userMessage },
-          ],
+          messages: llmMessages,
           stream: true,
         });
 
@@ -193,9 +204,12 @@ export class LLMService {
         return;
       }
 
-      // Gemini fallback
+      // Gemini fallback (대화 히스토리를 텍스트로 변환)
       if (this.geminiClient) {
-        const fullPrompt = `${systemMessage}\n\n사용자: ${userMessage}`;
+        const conversationText = messages
+          .map(msg => `${msg.role === 'user' ? '사용자' : '어시스턴트'}: ${msg.content}`)
+          .join('\n\n');
+        const fullPrompt = `${systemMessage}\n\n${conversationText}`;
         const stream = await this.geminiClient.stream(fullPrompt);
 
         for await (const chunk of stream) {

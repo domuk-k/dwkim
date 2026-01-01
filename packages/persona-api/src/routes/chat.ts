@@ -409,7 +409,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const validatedData = ChatRequestSchema.parse(request.body);
-        const { message, sessionId: inputSessionId, conversationHistory = [] } = validatedData;
+        const { message, sessionId: inputSessionId, conversationHistory: clientHistory = [] } = validatedData;
         const clientIp = request.ip;
         const sessionId = inputSessionId || ConversationStore.generateSessionId(clientIp);
         const conversationStore = getConversationStore();
@@ -422,9 +422,27 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           'Access-Control-Allow-Origin': '*',
         });
 
-        // 사용자 메시지 저장
+        // 히스토리 결정: sessionId 있으면 서버 히스토리, 없으면 클라이언트 히스토리
+        let history: ChatMessage[];
+        if (inputSessionId) {
+          // 서버 히스토리 사용 (세션 ID가 제공된 경우)
+          history = await conversationStore.getHistory(sessionId);
+        } else if (clientHistory.length > 0) {
+          // 클라이언트 히스토리 사용 (기존 호환성)
+          history = clientHistory.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+        } else {
+          history = [];
+        }
+
+        // 사용자 메시지 저장 (서버 히스토리)
         await conversationStore.addMessage(sessionId, 'user', message);
         let fullAnswer = '';
+
+        // 연결 시작 이벤트 (sessionId 포함)
+        reply.raw.write(`data: ${JSON.stringify({ type: 'session', sessionId })}\n\n`);
 
         // DeepAgent (PersonaAgent) 또는 RAG 엔진 사용
         if (useDeepAgent && isPersonaAgentReady()) {
@@ -436,11 +454,6 @@ export default async function chatRoutes(fastify: FastifyInstance) {
             reply.raw.write(`data: ${data}\n\n`);
           }
         } else if (ragEngine) {
-          const history: ChatMessage[] = conversationHistory.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          }));
-
           for await (const event of ragEngine.processQueryStream(message, history)) {
             if (event.type === 'content') {
               fullAnswer += event.content;
