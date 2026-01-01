@@ -1,35 +1,52 @@
 import { RAGEngine } from '../services/ragEngine';
 import { Document } from '../services/vectorStore';
+import * as vectorStoreModule from '../services/vectorStore';
 
 // Mock dependencies
-jest.mock('../services/vectorStore');
+jest.mock('../services/vectorStore', () => {
+  const actual = jest.requireActual('../services/vectorStore');
+  return {
+    ...actual,
+    getVectorStore: jest.fn(),
+    initVectorStore: jest.fn(),
+    resetVectorStore: jest.fn(),
+  };
+});
 jest.mock('../services/llmService');
 
 describe('RAGEngine', () => {
   let ragEngine: RAGEngine;
+  let mockVectorStore: any;
 
   beforeEach(() => {
+    // Mock vector store instance
+    mockVectorStore = {
+      initialize: jest.fn().mockResolvedValue(undefined),
+      searchDiverse: jest.fn().mockResolvedValue([]),
+      addDocument: jest.fn().mockResolvedValue(undefined),
+      deleteDocument: jest.fn().mockResolvedValue(undefined),
+    };
+
+    (vectorStoreModule.getVectorStore as jest.Mock).mockReturnValue(mockVectorStore);
+    (vectorStoreModule.initVectorStore as jest.Mock).mockResolvedValue(undefined);
+
     ragEngine = new RAGEngine();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('initialization', () => {
     it('should initialize successfully', async () => {
-      const mockInitialize = jest.fn().mockResolvedValue(undefined);
-      jest
-        .spyOn(ragEngine['vectorStore'], 'initialize')
-        .mockImplementation(mockInitialize);
-
       await expect(ragEngine.initialize()).resolves.not.toThrow();
-      expect(mockInitialize).toHaveBeenCalled();
+      expect(vectorStoreModule.initVectorStore).toHaveBeenCalled();
     });
 
     it('should handle initialization errors', async () => {
-      const mockInitialize = jest
-        .fn()
-        .mockRejectedValue(new Error('Vector store error'));
-      jest
-        .spyOn(ragEngine['vectorStore'], 'initialize')
-        .mockImplementation(mockInitialize);
+      (vectorStoreModule.initVectorStore as jest.Mock).mockRejectedValue(
+        new Error('Vector store error')
+      );
 
       await expect(ragEngine.initialize()).rejects.toThrow(
         'Vector store error'
@@ -39,10 +56,6 @@ describe('RAGEngine', () => {
 
   describe('processQuery', () => {
     beforeEach(async () => {
-      // Mock successful initialization
-      jest
-        .spyOn(ragEngine['vectorStore'], 'initialize')
-        .mockResolvedValue(undefined);
       await ragEngine.initialize();
     });
 
@@ -69,9 +82,7 @@ describe('RAGEngine', () => {
       };
 
       // Mock vector store search
-      jest
-        .spyOn(ragEngine['vectorStore'], 'search')
-        .mockResolvedValue(mockDocuments);
+      mockVectorStore.searchDiverse.mockResolvedValue(mockDocuments);
 
       // Mock LLM service
       jest
@@ -99,7 +110,7 @@ describe('RAGEngine', () => {
       };
 
       // Mock empty search results
-      jest.spyOn(ragEngine['vectorStore'], 'search').mockResolvedValue([]);
+      mockVectorStore.searchDiverse.mockResolvedValue([]);
       jest
         .spyOn(ragEngine['llmService'], 'chat')
         .mockResolvedValue(mockLLMResponse);
@@ -112,9 +123,7 @@ describe('RAGEngine', () => {
     });
 
     it('should handle processing errors', async () => {
-      jest
-        .spyOn(ragEngine['vectorStore'], 'search')
-        .mockRejectedValue(new Error('Search failed'));
+      mockVectorStore.searchDiverse.mockRejectedValue(new Error('Search failed'));
 
       await expect(ragEngine.processQuery('Test query')).rejects.toThrow(
         'Failed to process query with RAG engine'
@@ -124,9 +133,6 @@ describe('RAGEngine', () => {
 
   describe('document management', () => {
     beforeEach(async () => {
-      jest
-        .spyOn(ragEngine['vectorStore'], 'initialize')
-        .mockResolvedValue(undefined);
       await ragEngine.initialize();
     });
 
@@ -140,23 +146,13 @@ describe('RAGEngine', () => {
         },
       };
 
-      const mockAddDocument = jest.fn().mockResolvedValue(undefined);
-      jest
-        .spyOn(ragEngine['vectorStore'], 'addDocument')
-        .mockImplementation(mockAddDocument);
-
       await expect(ragEngine.addDocument(document)).resolves.not.toThrow();
-      expect(mockAddDocument).toHaveBeenCalledWith(document);
+      expect(mockVectorStore.addDocument).toHaveBeenCalledWith(document);
     });
 
     it('should delete document successfully', async () => {
-      const mockDeleteDocument = jest.fn().mockResolvedValue(undefined);
-      jest
-        .spyOn(ragEngine['vectorStore'], 'deleteDocument')
-        .mockImplementation(mockDeleteDocument);
-
       await expect(ragEngine.deleteDocument('test-doc')).resolves.not.toThrow();
-      expect(mockDeleteDocument).toHaveBeenCalledWith('test-doc');
+      expect(mockVectorStore.deleteDocument).toHaveBeenCalledWith('test-doc');
     });
 
     it('should search documents successfully', async () => {
@@ -168,15 +164,12 @@ describe('RAGEngine', () => {
         },
       ];
 
-      const mockSearch = jest.fn().mockResolvedValue(mockDocuments);
-      jest
-        .spyOn(ragEngine['vectorStore'], 'search')
-        .mockImplementation(mockSearch);
+      mockVectorStore.searchDiverse.mockResolvedValue(mockDocuments);
 
       const result = await ragEngine.searchDocuments('test query', 5);
 
       expect(result).toEqual(mockDocuments);
-      expect(mockSearch).toHaveBeenCalledWith('test query', 5);
+      expect(mockVectorStore.searchDiverse).toHaveBeenCalledWith('test query', 5);
     });
   });
 

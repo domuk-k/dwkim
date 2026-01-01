@@ -1,4 +1,4 @@
-import { VectorStore, Document } from './vectorStore';
+import { getVectorStore, initVectorStore, Document } from './vectorStore';
 import { LLMService } from './llmService';
 import type { ChatMessage } from './llmService';
 
@@ -21,18 +21,19 @@ export interface RAGStreamEvent {
   type: 'sources' | 'content' | 'done' | 'error';
   sources?: Document[];
   content?: string;
-  metadata?: RAGResponse['metadata'];
+  metadata?: RAGResponse['metadata'] & {
+    shouldSuggestContact?: boolean;
+    messageCount?: number;
+  };
   error?: string;
 }
 
 export class RAGEngine {
-  private vectorStore: VectorStore;
   private llmService: LLMService;
   private maxSearchResults: number;
   private contextWindow: number;
 
   constructor() {
-    this.vectorStore = new VectorStore();
     this.llmService = new LLMService();
     this.maxSearchResults = parseInt(process.env.MAX_SEARCH_RESULTS || '5');
     this.contextWindow = parseInt(process.env.CONTEXT_WINDOW || '4000');
@@ -40,7 +41,8 @@ export class RAGEngine {
 
   async initialize(): Promise<void> {
     try {
-      await this.vectorStore.initialize();
+      // VectorStore 싱글턴 초기화
+      await initVectorStore();
       console.log('RAG Engine initialized successfully');
     } catch (error) {
       console.error('Failed to initialize RAG Engine:', error);
@@ -59,7 +61,8 @@ export class RAGEngine {
 
       // 1. 다양성 검색으로 관련 문서 찾기 (중복 청크 제거)
       console.log('Searching for relevant documents...');
-      const searchResults = await this.vectorStore.searchDiverse(
+      const vectorStore = getVectorStore();
+      const searchResults = await vectorStore.searchDiverse(
         query,
         this.maxSearchResults
       );
@@ -109,7 +112,8 @@ export class RAGEngine {
       console.log('RAG Engine streaming query:', query);
 
       // 1. 다양성 검색 (중복 청크 제거)
-      const searchResults = await this.vectorStore.searchDiverse(
+      const vectorStore = getVectorStore();
+      const searchResults = await vectorStore.searchDiverse(
         query,
         this.maxSearchResults
       );
@@ -175,7 +179,8 @@ export class RAGEngine {
 
   async addDocument(document: Document): Promise<void> {
     try {
-      await this.vectorStore.addDocument(document);
+      const vectorStore = getVectorStore();
+      await vectorStore.addDocument(document);
     } catch (error) {
       console.error('Failed to add document to RAG engine:', error);
       throw error;
@@ -184,7 +189,8 @@ export class RAGEngine {
 
   async deleteDocument(id: string): Promise<void> {
     try {
-      await this.vectorStore.deleteDocument(id);
+      const vectorStore = getVectorStore();
+      await vectorStore.deleteDocument(id);
     } catch (error) {
       console.error('Failed to delete document from RAG engine:', error);
       throw error;
@@ -193,7 +199,8 @@ export class RAGEngine {
 
   async searchDocuments(query: string, topK: number = 5): Promise<Document[]> {
     try {
-      return await this.vectorStore.searchDiverse(query, topK);
+      const vectorStore = getVectorStore();
+      return await vectorStore.searchDiverse(query, topK);
     } catch (error) {
       console.error('Document search failed:', error);
       throw error;

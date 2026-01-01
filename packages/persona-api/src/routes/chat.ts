@@ -1,363 +1,163 @@
+/**
+ * Chat Routes - 슬림화된 라우트 정의
+ *
+ * 비즈니스 로직은 ChatService로 분리됨
+ * 라우트는 입출력 처리와 에러 핸들링만 담당
+ */
+
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { RAGEngine } from '../services/ragEngine';
 import {
-  initPersonaAgent,
-  queryPersona,
-  queryPersonaStream,
-  isPersonaAgentReady,
-} from '../services/personaAgent';
-import type { RAGResponse } from '../services/ragEngine';
-import type { ChatMessage } from '../services/llmService';
-import {
-  logChatResponse,
-  logChatError,
-  generateRequestId,
-  type ChatLogEntry,
-} from '../services/chatLogger';
+  createChatService,
+  ChatRequestSchema,
+  type ChatContext,
+} from '../services/chatService';
 import {
   getConversationStore,
-  ConversationStore,
 } from '../services/conversationStore';
 import {
   getConversationLimiter,
-  THRESHOLDS,
 } from '../services/conversationLimiter';
 import {
   getContactService,
-  type ContactInfo,
 } from '../services/contactService';
 
-// Feature flag: USE_DEEP_AGENT=1 to enable DeepAgents
+// Feature flag
 const USE_DEEP_AGENT = process.env.USE_DEEP_AGENT === '1';
 
-// 요청 스키마
-const ChatRequestSchema = z.object({
-  message: z.string().min(1).max(1000),
-  sessionId: z.string().optional(),  // 서버사이드 히스토리용
-  conversationHistory: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string(),
-      })
-    )
-    .optional(),
-  options: z
-    .object({
-      maxSearchResults: z.number().min(1).max(10).optional(),
-      includeSources: z.boolean().optional(),
-    })
-    .optional(),
-});
+// ─────────────────────────────────────────────────────────────
+// OpenAPI Schemas
+// ─────────────────────────────────────────────────────────────
 
-// THRESHOLDS는 conversationLimiter에서 import
-// THRESHOLDS.SUGGEST_CONTACT = 5, THRESHOLDS.BLOCK_IP = 30
+const chatBodySchema = {
+  type: 'object',
+  required: ['message'],
+  properties: {
+    message: {
+      type: 'string',
+      description: '사용자 메시지',
+      minLength: 1,
+      maxLength: 1000,
+    },
+    sessionId: {
+      type: 'string',
+      description: '세션 ID (서버사이드 히스토리용)',
+    },
+    conversationHistory: {
+      type: 'array',
+      description: '대화 히스토리 (레거시)',
+      items: {
+        type: 'object',
+        properties: {
+          role: { type: 'string', enum: ['user', 'assistant'] },
+          content: { type: 'string' },
+        },
+      },
+    },
+    options: {
+      type: 'object',
+      properties: {
+        maxSearchResults: {
+          type: 'number',
+          minimum: 1,
+          maximum: 10,
+          default: 5,
+        },
+        includeSources: {
+          type: 'boolean',
+          default: true,
+        },
+      },
+    },
+  },
+};
 
-// 응답 스키마
-export const ChatResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.object({
-    answer: z.string(),
-    sessionId: z.string().optional(),  // 세션 ID (히스토리 추적용)
-    shouldSuggestContact: z.boolean().optional(),  // n회 질문 후 연락 제안
-    sources: z
-      .array(
-        z.object({
-          id: z.string(),
-          content: z.string(),
-          metadata: z.object({
-            type: z.string(),
-            title: z.string().optional(),
-            category: z.string().optional(),
-          }),
-          score: z.number().optional(),
-        })
-      )
-      .optional(),
-    usage: z.object({
-      promptTokens: z.number(),
-      completionTokens: z.number(),
-      totalTokens: z.number(),
-    }),
-    metadata: z.object({
-      searchQuery: z.string(),
-      searchResults: z.number(),
-      processingTime: z.number(),
-    }),
-  }),
-  error: z.string().optional(),
-});
+const chatResponseSchema = {
+  type: 'object',
+  properties: {
+    success: { type: 'boolean' },
+    data: {
+      type: 'object',
+      properties: {
+        answer: { type: 'string' },
+        sessionId: { type: 'string' },
+        shouldSuggestContact: { type: 'boolean' },
+        sources: { type: 'array' },
+        usage: {
+          type: 'object',
+          properties: {
+            promptTokens: { type: 'number' },
+            completionTokens: { type: 'number' },
+            totalTokens: { type: 'number' },
+          },
+        },
+        metadata: {
+          type: 'object',
+          properties: {
+            searchQuery: { type: 'string' },
+            searchResults: { type: 'number' },
+            processingTime: { type: 'number' },
+          },
+        },
+      },
+    },
+    error: { type: 'string' },
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// Routes
+// ─────────────────────────────────────────────────────────────
 
 export default async function chatRoutes(fastify: FastifyInstance) {
-  const ragEngine = new RAGEngine();
-  let useDeepAgent = USE_DEEP_AGENT;
+  // ChatService 생성 (DI 패턴 - 싱글턴 없이 직접 인스턴스 관리)
+  const conversationStore = getConversationStore();
+  const conversationLimiter = getConversationLimiter();
+  const contactService = getContactService();
 
-  // 엔진 초기화
-  try {
-    if (USE_DEEP_AGENT) {
-      await initPersonaAgent();
-      console.log('PersonaAgent initialized (Gemini 2.0 Flash + LangGraph)');
-    } else {
-      await ragEngine.initialize();
-      console.log('RAG Engine initialized for chat routes');
-    }
-  } catch (error) {
-    console.error('Failed to initialize engine:', error);
-    useDeepAgent = false;
-    // 초기화 실패 시에도 서버는 계속 실행 (Mock 응답 사용)
-  }
+  const chatService = await createChatService(
+    conversationStore,
+    conversationLimiter,
+    contactService,
+    USE_DEEP_AGENT
+  );
 
-  // 채팅 엔드포인트
+  // Helper: context 추출
+  const getContext = (request: FastifyRequest): ChatContext => ({
+    clientIp: request.ip,
+    userAgent: request.headers['user-agent'],
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // POST /chat - 일반 채팅
+  // ─────────────────────────────────────────────────────────────
   fastify.post(
     '/chat',
     {
       schema: {
         description: '개인화된 RAG 기반 채팅 API',
         tags: ['Chat'],
-        body: {
-          type: 'object',
-          required: ['message'],
-          properties: {
-            message: {
-              type: 'string',
-              description: '사용자 메시지',
-              minLength: 1,
-              maxLength: 1000,
-            },
-            conversationHistory: {
-              type: 'array',
-              description: '대화 히스토리',
-              items: {
-                type: 'object',
-                properties: {
-                  role: {
-                    type: 'string',
-                    enum: ['user', 'assistant'],
-                  },
-                  content: { type: 'string' },
-                },
-              },
-            },
-            options: {
-              type: 'object',
-              properties: {
-                maxSearchResults: {
-                  type: 'number',
-                  minimum: 1,
-                  maximum: 10,
-                  default: 5,
-                },
-                includeSources: {
-                  type: 'boolean',
-                  default: true,
-                },
-              },
-            },
-          },
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              data: {
-                type: 'object',
-                properties: {
-                  answer: { type: 'string' },
-                  sources: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        id: { type: 'string' },
-                        content: { type: 'string' },
-                        metadata: {
-                          type: 'object',
-                          properties: {
-                            type: { type: 'string' },
-                            title: { type: 'string' },
-                            category: { type: 'string' },
-                          },
-                        },
-                      },
-                    },
-                  },
-                  usage: {
-                    type: 'object',
-                    properties: {
-                      promptTokens: { type: 'number' },
-                      completionTokens: { type: 'number' },
-                      totalTokens: { type: 'number' },
-                    },
-                  },
-                  metadata: {
-                    type: 'object',
-                    properties: {
-                      searchQuery: { type: 'string' },
-                      searchResults: { type: 'number' },
-                      processingTime: { type: 'number' },
-                    },
-                  },
-                },
-              },
-              error: { type: 'string' },
-            },
-          },
-        },
+        body: chatBodySchema,
+        response: { 200: chatResponseSchema },
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const requestId = generateRequestId();
-      const startTime = Date.now();
-      const clientIp = request.ip;
-      const userAgent = request.headers['user-agent'];
-      const conversationStore = getConversationStore();
-      const conversationLimiter = getConversationLimiter();
+      const context = getContext(request);
 
       try {
         // IP 차단 확인
-        const blockStatus = await conversationLimiter.isBlocked(clientIp);
-        if (blockStatus.blocked) {
-          return reply.status(429).send({
-            success: false,
-            error: 'conversation_limit_exceeded',
-            message: conversationLimiter.generateFriendlyBlockMessage(),
-            expiresAt: blockStatus.expiresAt,
-            canProvideContact: true, // 연락처 제공 기회
-          });
+        const blocked = await chatService.checkBlocked(context.clientIp);
+        if (blocked) {
+          return reply.status(429).send(blocked);
         }
 
         // 입력 검증
         const validatedData = ChatRequestSchema.parse(request.body);
-        const {
-          message,
-          sessionId: inputSessionId,
-          conversationHistory: clientHistory = [],
-          options = {},
-        } = validatedData;
 
-        // 세션 ID 결정: 클라이언트 제공 → IP 기반 생성
-        const sessionId = inputSessionId || ConversationStore.generateSessionId(clientIp);
-
-        // 히스토리 결정: sessionId 있으면 서버 히스토리, 없으면 클라이언트 히스토리
-        let history: ChatMessage[];
-        if (inputSessionId) {
-          // 서버 히스토리 사용
-          history = await conversationStore.getHistory(sessionId);
-        } else if (clientHistory.length > 0) {
-          // 클라이언트 히스토리 사용 (기존 호환성)
-          history = clientHistory.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          }));
-        } else {
-          history = [];
-        }
-
-        // 사용자 메시지 저장 (서버 히스토리)
-        await conversationStore.addMessage(sessionId, 'user', message);
-
-        // 로그 엔트리 기본 정보
-        const logEntry: ChatLogEntry = {
-          requestId,
-          timestamp: new Date().toISOString(),
-          clientIp,
-          userAgent,
-          request: {
-            message,
-            historyLength: history.length,
-          },
-          engine: 'rag',
-        };
-
-        // 응답 생성 헬퍼
-        const sendResponse = async (answer: string, sources: unknown[], usage: unknown, metadata: unknown) => {
-          // 어시스턴트 응답 저장
-          await conversationStore.addMessage(sessionId, 'assistant', answer);
-
-          // 메시지 카운트로 상태 결정
-          const messageCount = await conversationStore.getMessageCount(sessionId);
-          const shouldSuggestContact = messageCount >= THRESHOLDS.SUGGEST_CONTACT;
-          const shouldBlockAfterThis = messageCount >= THRESHOLDS.BLOCK_IP;
-
-          // 30회 도달 시 IP 차단 예약 (다음 요청부터 적용)
-          if (shouldBlockAfterThis) {
-            await conversationLimiter.blockIp(clientIp);
-            console.log(`🚫 Conversation limit reached for ${clientIp} (${messageCount} messages)`);
-          }
-
-          return reply.send({
-            success: true,
-            data: {
-              answer,
-              sessionId,
-              shouldSuggestContact,
-              // 30회 도달 시 추가 정보
-              ...(shouldBlockAfterThis && {
-                conversationLimitReached: true,
-                contactSuggestionMessage: conversationLimiter.generateFriendlyBlockMessage(),
-              }),
-              sources: options.includeSources !== false ? sources : [],
-              usage,
-              metadata,
-            },
-          });
-        };
-
-        // DeepAgent (PersonaAgent) 또는 RAG 엔진 사용
-        if (useDeepAgent && isPersonaAgentReady()) {
-          logEntry.engine = 'deepagent';
-
-          // sessionId가 있으면 LangGraph가 히스토리 자동 관리
-          const response = await queryPersona(message, sessionId);
-
-          const processingTimeMs = Date.now() - startTime;
-          logEntry.response = {
-            answerPreview: response.answer.slice(0, 100),
-            sourcesCount: response.sources.length,
-            processingTimeMs,
-          };
-          logChatResponse(logEntry);
-
-          return sendResponse(response.answer, response.sources, response.usage, response.metadata);
-        }
-
-        // Fallback: RAG 엔진 사용
-        if (!ragEngine) {
-          logEntry.engine = 'mock';
-          const mockAnswer = `안녕하세요! dwkim의 AI 어시스턴트입니다. 현재 엔진이 초기화 중이므로 Mock 응답을 드립니다.\n\n질문: ${message}`;
-
-          logEntry.response = {
-            answerPreview: mockAnswer.slice(0, 100),
-            sourcesCount: 0,
-            processingTimeMs: Date.now() - startTime,
-          };
-          logChatResponse(logEntry);
-
-          return sendResponse(
-            mockAnswer,
-            [],
-            { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-            { searchQuery: message, searchResults: 0, processingTime: 0 }
-          );
-        }
-
-        // RAG 엔진으로 쿼리 처리
-        const response: RAGResponse = await ragEngine.processQuery(message, history);
-
-        const processingTimeMs = Date.now() - startTime;
-        logEntry.response = {
-          answerPreview: response.answer.slice(0, 100),
-          sourcesCount: response.sources.length,
-          processingTimeMs,
-        };
-        logChatResponse(logEntry);
-
-        return sendResponse(response.answer, response.sources, response.usage, response.metadata);
+        // 채팅 처리
+        const response = await chatService.handleChat(validatedData, context);
+        return reply.send(response);
       } catch (error) {
-        logChatError(requestId, clientIp, 'Chat API error', error);
-
         if (error instanceof z.ZodError) {
           return reply.status(400).send({
             success: false,
@@ -366,6 +166,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           });
         }
 
+        console.error('Chat API error:', error);
         return reply.status(500).send({
           success: false,
           error: '서버 내부 오류가 발생했습니다.',
@@ -374,45 +175,23 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // 스트리밍 채팅 엔드포인트 (SSE)
+  // ─────────────────────────────────────────────────────────────
+  // POST /chat/stream - 스트리밍 채팅 (SSE)
+  // ─────────────────────────────────────────────────────────────
   fastify.post(
     '/chat/stream',
     {
       schema: {
         description: '스트리밍 RAG 채팅 API (Server-Sent Events)',
         tags: ['Chat'],
-        body: {
-          type: 'object',
-          required: ['message'],
-          properties: {
-            message: {
-              type: 'string',
-              description: '사용자 메시지',
-              minLength: 1,
-              maxLength: 1000,
-            },
-            conversationHistory: {
-              type: 'array',
-              description: '대화 히스토리',
-              items: {
-                type: 'object',
-                properties: {
-                  role: { type: 'string', enum: ['user', 'assistant'] },
-                  content: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
+        body: chatBodySchema,
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
+      const context = getContext(request);
+
       try {
         const validatedData = ChatRequestSchema.parse(request.body);
-        const { message, sessionId: inputSessionId, conversationHistory: clientHistory = [] } = validatedData;
-        const clientIp = request.ip;
-        const sessionId = inputSessionId || ConversationStore.generateSessionId(clientIp);
-        const conversationStore = getConversationStore();
 
         // SSE 헤더 설정
         reply.raw.writeHead(200, {
@@ -422,67 +201,9 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           'Access-Control-Allow-Origin': '*',
         });
 
-        // 히스토리 결정: sessionId 있으면 서버 히스토리, 없으면 클라이언트 히스토리
-        let history: ChatMessage[];
-        if (inputSessionId) {
-          // 서버 히스토리 사용 (세션 ID가 제공된 경우)
-          history = await conversationStore.getHistory(sessionId);
-        } else if (clientHistory.length > 0) {
-          // 클라이언트 히스토리 사용 (기존 호환성)
-          history = clientHistory.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          }));
-        } else {
-          history = [];
-        }
-
-        // 사용자 메시지 저장 (서버 히스토리)
-        await conversationStore.addMessage(sessionId, 'user', message);
-        let fullAnswer = '';
-
-        // 연결 시작 이벤트 (sessionId 포함)
-        reply.raw.write(`data: ${JSON.stringify({ type: 'session', sessionId })}\n\n`);
-
-        // DeepAgent (PersonaAgent) 또는 RAG 엔진 사용
-        if (useDeepAgent && isPersonaAgentReady()) {
-          for await (const event of queryPersonaStream(message, sessionId)) {
-            if (event.type === 'content') {
-              fullAnswer += event.content;
-            }
-            const data = JSON.stringify(event);
-            reply.raw.write(`data: ${data}\n\n`);
-          }
-        } else if (ragEngine) {
-          for await (const event of ragEngine.processQueryStream(message, history)) {
-            if (event.type === 'content') {
-              fullAnswer += event.content;
-            }
-            // done 이벤트에 shouldSuggestContact 추가
-            if (event.type === 'done') {
-              const messageCount = await conversationStore.getMessageCount(sessionId);
-              const shouldSuggestContact = messageCount >= THRESHOLDS.SUGGEST_CONTACT;
-              const enrichedEvent = {
-                ...event,
-                metadata: {
-                  ...event.metadata,
-                  shouldSuggestContact,
-                  messageCount,
-                },
-              };
-              reply.raw.write(`data: ${JSON.stringify(enrichedEvent)}\n\n`);
-              continue;
-            }
-            const data = JSON.stringify(event);
-            reply.raw.write(`data: ${data}\n\n`);
-          }
-        } else {
-          reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '엔진이 초기화되지 않았습니다.' })}\n\n`);
-        }
-
-        // 어시스턴트 응답 저장
-        if (fullAnswer) {
-          await conversationStore.addMessage(sessionId, 'assistant', fullAnswer);
+        // 스트리밍 처리
+        for await (const event of chatService.handleStreamChat(validatedData, context)) {
+          reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
         }
 
         reply.raw.end();
@@ -502,7 +223,9 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // 문서 검색 엔드포인트
+  // ─────────────────────────────────────────────────────────────
+  // GET /search - 문서 검색
+  // ─────────────────────────────────────────────────────────────
   fastify.get(
     '/search',
     {
@@ -532,22 +255,14 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const { q, limit = 5 } = request.query as { q: string; limit?: number };
-
-        if (!ragEngine) {
-          return reply.status(503).send({
-            success: false,
-            error: 'RAG 엔진이 초기화되지 않았습니다.',
-          });
-        }
-
-        const documents = await ragEngine.searchDocuments(q, limit);
+        const results = await chatService.searchDocuments(q, limit);
 
         return reply.send({
           success: true,
           data: {
             query: q,
-            results: documents,
-            count: documents.length,
+            results,
+            count: results.length,
           },
         });
       } catch (error) {
@@ -560,7 +275,9 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // 엔진 상태 확인 엔드포인트
+  // ─────────────────────────────────────────────────────────────
+  // GET /status - 엔진 상태
+  // ─────────────────────────────────────────────────────────────
   fastify.get(
     '/status',
     {
@@ -571,23 +288,12 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        if (!ragEngine) {
-          return reply.send({
-            success: false,
-            data: {
-              status: 'not_initialized',
-              message: 'RAG 엔진이 초기화되지 않았습니다.',
-            },
-          });
-        }
-
-        const status = await ragEngine.getEngineStatus();
+        const status = await chatService.getEngineStatus();
 
         return reply.send({
-          success: true,
+          success: status.status === 'ready',
           data: {
-            status: 'ready',
-            components: status,
+            ...status,
             timestamp: new Date().toISOString(),
           },
         });
@@ -601,7 +307,9 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // 연락처 수집 엔드포인트
+  // ─────────────────────────────────────────────────────────────
+  // POST /contact - 연락처 수집
+  // ─────────────────────────────────────────────────────────────
   fastify.post(
     '/contact',
     {
@@ -643,6 +351,8 @@ export default async function chatRoutes(fastify: FastifyInstance) {
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
+      const context = getContext(request);
+
       try {
         const body = request.body as {
           email: string;
@@ -651,43 +361,17 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           sessionId?: string;
         };
 
-        const clientIp = request.ip;
-        const conversationStore = getConversationStore();
-        const contactService = getContactService();
-        const conversationLimiter = getConversationLimiter();
+        const result = await chatService.collectContact(
+          body.email,
+          context,
+          {
+            name: body.name,
+            message: body.message,
+            sessionId: body.sessionId,
+          }
+        );
 
-        // 세션 ID 결정
-        const sessionId = body.sessionId || ConversationStore.generateSessionId(clientIp);
-        const messageCount = await conversationStore.getMessageCount(sessionId);
-
-        // 차단 상태 확인
-        const blockStatus = await conversationLimiter.isBlocked(clientIp);
-        const trigger = blockStatus.blocked ? 'block_interrupt' : 'engagement';
-
-        // 연락처 저장
-        const contactInfo: ContactInfo = {
-          email: body.email,
-          name: body.name,
-          message: body.message,
-          sessionId,
-          clientIp,
-          messageCount,
-          collectedAt: new Date().toISOString(),
-          trigger,
-        };
-
-        await contactService.saveContact(contactInfo);
-
-        // 차단 중이었다면 차단 해제 (선의의 사용자)
-        if (blockStatus.blocked) {
-          await conversationLimiter.unblockIp(clientIp);
-          console.log(`✅ IP unblocked after contact collection: ${clientIp}`);
-        }
-
-        return reply.send({
-          success: true,
-          message: `감사합니다! ${body.name || ''}님, dwkim이 24시간 내로 ${body.email}로 연락드릴게요! 😊`,
-        });
+        return reply.send(result);
       } catch (error) {
         console.error('Contact collection error:', error);
         return reply.status(500).send({
