@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.1.0...dwkim-v1.2.0) (2026-01-01)
+
+### Features
+
+* **dwkim:** add streaming abort with ESC key ([7b42248](https://github.com/domuk-k/dwkim/commit/7b42248ab3657291fcad88c7d65681447ac4d71e))
+* **persona-api:** conversation memory with full history ([c5c863c](https://github.com/domuk-k/dwkim/commit/c5c863c9d7c854adf658bac694dcc08c38b2ce7c))
+
 ## [1.1.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.0.3...dwkim-v1.1.0) (2026-01-01)
 
 ### Features
