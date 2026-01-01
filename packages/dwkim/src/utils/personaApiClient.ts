@@ -111,7 +111,22 @@ type Source = {
 
 export type StreamEvent =
   | { type: 'session'; sessionId: string }
-  | { type: 'status'; tool: string; message: string; icon: string }
+  | {
+      type: 'status';
+      tool: string;
+      message: string;
+      icon: string;
+      phase?: 'started' | 'progress' | 'completed';
+      details?: Record<string, unknown>;
+    }
+  | {
+      type: 'tool_call';
+      tool: 'search_documents' | 'collect_contact';
+      phase: 'started' | 'executing' | 'completed' | 'error';
+      displayName: string;
+      icon: string;
+      metadata?: { query?: string; resultCount?: number; error?: string };
+    }
   | { type: 'sources'; sources: Source[] }
   | { type: 'content'; content: string }
   | {
