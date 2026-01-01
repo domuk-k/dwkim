@@ -49,6 +49,7 @@ export function ChatView({ apiUrl }: Props) {
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const messageIdRef = useRef(0);
 
   const nextId = () => ++messageIdRef.current;
@@ -86,10 +87,25 @@ export function ChatView({ apiUrl }: Props) {
     if (key.ctrl && input === 'c') {
       exit();
     }
-    // ESC로 이메일 입력 취소
-    if (key.escape && showEmailInput) {
-      setShowEmailInput(false);
-      setEmailInput('');
+    // ESC 처리
+    if (key.escape) {
+      // 스트리밍 중이면 취소
+      if (status === 'loading') {
+        client.abort();
+        setStatus('idle');
+        setLoadingState(null);
+        setStreamContent('');
+        setMessages((prev) => [
+          ...prev,
+          { id: nextId(), role: 'system', content: '⏹ 취소됨' },
+        ]);
+        return;
+      }
+      // 이메일 입력 중이면 취소
+      if (showEmailInput) {
+        setShowEmailInput(false);
+        setEmailInput('');
+      }
     }
   });
 
@@ -110,6 +126,10 @@ ${icons.book} 명령어
   /help     도움말
   /status   서버 상태
   /clear    초기화
+
+${icons.chat} 단축키
+  ESC       응답 취소
+  Ctrl+C    종료
 
 ${icons.chat} 예시 질문
   어떤 기술을 사용하나요?
@@ -142,6 +162,7 @@ ${icons.chat} 예시 질문
           break;
 
         case 'clear':
+          setSessionId(undefined); // 세션 ID 초기화 (새 대화 시작)
           setMessages([
             {
               id: nextId(),
@@ -193,8 +214,12 @@ ${icons.chat} 예시 질문
         let processingTime = 0;
         let shouldSuggestContact = false;
 
-        for await (const event of client.chatStream(trimmed)) {
+        for await (const event of client.chatStream(trimmed, sessionId)) {
           switch (event.type) {
+            case 'session':
+              // 첫 요청 시 서버에서 받은 sessionId 저장 (이후 요청에 사용)
+              setSessionId(event.sessionId);
+              break;
             case 'status':
               setLoadingState({ icon: event.icon, message: event.message });
               break;
@@ -249,7 +274,7 @@ ${icons.chat} 예시 질문
         setStatus('idle');
       }
     },
-    [client, status, handleCommand]
+    [client, status, sessionId, handleCommand]
   );
 
   // 이메일 제출 핸들러
