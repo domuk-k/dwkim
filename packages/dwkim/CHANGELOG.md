@@ -1,3 +1,13 @@
+## [1.3.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.2.0...dwkim-v1.3.0) (2026-01-01)
+
+### Features
+
+* **persona-api:** replace BGE-M3 with Voyage multilingual-2 ([e78ee5c](https://github.com/domuk-k/dwkim/commit/e78ee5c3dbadc17dd3b865da51676b87a43f2d69))
+
+### Bug Fixes
+
+* **dwkim:** include sessionId in contact endpoint request ([b457389](https://github.com/domuk-k/dwkim/commit/b4573892d0b590005c7162fd1710ffb57190fad0))
+
 ## [1.2.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.1.0...dwkim-v1.2.0) (2026-01-01)
 
 ### Features
