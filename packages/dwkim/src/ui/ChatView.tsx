@@ -310,7 +310,7 @@ ${icons.chat} 예시 질문
         const response = await fetch(`${apiUrl}/api/v1/contact`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: trimmedEmail }),
+          body: JSON.stringify({ email: trimmedEmail, sessionId }),
         });
 
         const result = await response.json();
