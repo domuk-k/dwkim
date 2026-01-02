@@ -1,3 +1,10 @@
+## [1.6.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.5.0...dwkim-v1.6.0) (2026-01-02)
+
+### Features
+
+* **dwkim:** add markdown rendering for chat responses ([0a1ce83](https://github.com/domuk-k/dwkim/commit/0a1ce83dc66d3d5746f1c4dc1909f6f37ad94875))
+* **persona-api:** add Query Rewriting, Device ID personalization, A2UI ([82e020e](https://github.com/domuk-k/dwkim/commit/82e020e17c1b3269a283cae3d3fed7467a724814))
+
 ## [1.5.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.4.0...dwkim-v1.5.0) (2026-01-02)
 
 ### Features
