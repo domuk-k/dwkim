@@ -8,6 +8,7 @@ import {
   ApiError,
   type StreamEvent,
 } from '../utils/personaApiClient.js';
+import { shouldShowEmailPrompt, setHideEmailPrompt } from '../utils/config.js';
 
 // Extract sources type from discriminated union
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>;
@@ -111,10 +112,15 @@ export function ChatView({ apiUrl }: Props) {
         ]);
         return;
       }
-      // 이메일 입력 중이면 취소
+      // 이메일 입력 중이면 다시보지않기
       if (showEmailInput) {
+        setHideEmailPrompt(true);
         setShowEmailInput(false);
         setEmailInput('');
+        setMessages((prev) => [
+          ...prev,
+          { id: nextId(), role: 'system', content: `${icons.info} 이메일 안내를 더 이상 표시하지 않아요.` },
+        ]);
       }
     }
   });
@@ -292,8 +298,8 @@ ${icons.chat} 예시 질문
         setLoadingState(null);
         setStatus('idle');
 
-        // 5회 이상 대화 시 이메일 입력 UI 표시
-        if (shouldSuggestContact) {
+        // 5회 이상 대화 시 이메일 입력 UI 표시 (다시보지않기 설정 안 한 경우만)
+        if (shouldSuggestContact && shouldShowEmailPrompt()) {
           setShowEmailInput(true);
         }
       } catch (error) {
@@ -469,7 +475,7 @@ ${icons.chat} 예시 질문
             </Box>
             <Box marginTop={1}>
               <Text color={theme.muted} dimColor>
-                Enter: 전송 • ESC/빈값 Enter: 건너뛰기
+                Enter: 전송 • 빈값 Enter: 넘어가기 • ESC: 다시보지않기
               </Text>
             </Box>
           </Box>
