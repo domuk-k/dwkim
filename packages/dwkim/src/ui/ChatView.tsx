@@ -3,6 +3,7 @@ import { Box, Text, Static, useInput, useApp, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import { theme } from './theme.js';
 import { icons, profile } from './data.js';
+import { MarkdownText } from './MarkdownText.js';
 import {
   PersonaApiClient,
   ApiError,
@@ -412,7 +413,7 @@ ${icons.chat} 예시 질문
       {/* 스트리밍 응답 */}
       {streamContent && (
         <Box marginTop={1} marginLeft={2}>
-          <Text color={theme.text}>{streamContent}</Text>
+          <MarkdownText color={theme.text}>{streamContent}</MarkdownText>
         </Box>
       )}
 
@@ -538,12 +539,16 @@ const MessageBubble = React.memo(function MessageBubble({
       {/* 메시지 본문 */}
       <Box marginLeft={isUser ? 0 : 2}>
         {isUser && <Text color={theme.lavender}>{icons.arrow} </Text>}
-        <Text
-          color={isUser ? theme.lavender : isSystem ? theme.muted : theme.text}
-          dimColor={isSystem}
-        >
-          {message.content}
-        </Text>
+        {message.role === 'assistant' ? (
+          <MarkdownText color={theme.text}>{message.content}</MarkdownText>
+        ) : (
+          <Text
+            color={isUser ? theme.lavender : theme.muted}
+            dimColor={isSystem}
+          >
+            {message.content}
+          </Text>
+        )}
       </Box>
 
       {/* 소스 (간략화) */}

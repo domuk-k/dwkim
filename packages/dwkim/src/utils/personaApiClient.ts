@@ -1,3 +1,5 @@
+import { getDeviceId } from './deviceId.js';
+
 // 사용자 친화적 에러 클래스
 export class ApiError extends Error {
   constructor(
@@ -129,6 +131,7 @@ export type StreamEvent =
     }
   | { type: 'sources'; sources: Source[] }
   | { type: 'content'; content: string }
+  | { type: 'clarification'; suggestedQuestions: string[] }
   | {
       type: 'done';
       metadata: {
@@ -137,14 +140,32 @@ export type StreamEvent =
         processingTime: number;
         shouldSuggestContact?: boolean;
         messageCount?: number;
+        originalQuery?: string;
+        rewriteMethod?: string;
       };
     }
   | { type: 'error'; error: string };
 
 export class PersonaApiClient {
   private abortController: AbortController | null = null;
+  private deviceId: string;
 
-  constructor(private baseUrl: string) {}
+  constructor(private baseUrl: string) {
+    this.deviceId = getDeviceId();
+  }
+
+  /**
+   * 공통 헤더 (Device ID 포함)
+   */
+  private getHeaders(contentType?: string): HeadersInit {
+    const headers: HeadersInit = {
+      'X-Device-ID': this.deviceId,
+    };
+    if (contentType) {
+      headers['Content-Type'] = contentType;
+    }
+    return headers;
+  }
 
   // 현재 스트리밍 요청 취소
   abort(): void {
@@ -155,7 +176,9 @@ export class PersonaApiClient {
   }
 
   async checkHealth(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/health`);
+    const response = await fetch(`${this.baseUrl}/health`, {
+      headers: this.getHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status}`);
     }
@@ -167,9 +190,7 @@ export class PersonaApiClient {
     try {
       response = await fetch(`${this.baseUrl}/api/v1/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders('application/json'),
         body: JSON.stringify({ message }),
       });
     } catch (error) {
@@ -209,9 +230,7 @@ export class PersonaApiClient {
     try {
       response = await fetch(`${this.baseUrl}/api/v1/chat/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders('application/json'),
         body: JSON.stringify({ message, sessionId }),
         signal: this.abortController.signal,
       });
@@ -270,7 +289,9 @@ export class PersonaApiClient {
     let response: Response;
 
     try {
-      response = await fetch(`${this.baseUrl}/api/v1/search?q=${encodeURIComponent(query)}`);
+      response = await fetch(`${this.baseUrl}/api/v1/search?q=${encodeURIComponent(query)}`, {
+        headers: this.getHeaders(),
+      });
     } catch (error) {
       handleFetchError(error);
     }
@@ -289,7 +310,9 @@ export class PersonaApiClient {
     let response: Response;
 
     try {
-      response = await fetch(`${this.baseUrl}/api/v1/status`);
+      response = await fetch(`${this.baseUrl}/api/v1/status`, {
+        headers: this.getHeaders(),
+      });
     } catch (error) {
       handleFetchError(error);
     }
