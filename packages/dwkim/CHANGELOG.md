@@ -1,3 +1,14 @@
+## [1.4.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.3.0...dwkim-v1.4.0) (2026-01-02)
+
+### Features
+
+* **dwkim:** update streaming event types ([895169b](https://github.com/domuk-k/dwkim/commit/895169baea8c6074cec20d3c1d4ae1b814cac1b7))
+
+### Refactoring
+
+* **persona-api:** apply IRedisClient abstraction to services ([6f11040](https://github.com/domuk-k/dwkim/commit/6f110408b4e8e4ee5843c9265bc63d3154899e4b))
+* **persona-api:** DI pattern, type safety improvements ([c14c9c5](https://github.com/domuk-k/dwkim/commit/c14c9c59900c37bee8777c9ebf45b18d713efaa5))
+
 ## [1.3.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.2.0...dwkim-v1.3.0) (2026-01-01)
 
 ### Features
