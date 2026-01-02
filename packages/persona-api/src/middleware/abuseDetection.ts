@@ -273,6 +273,44 @@ export class AbuseDetection {
     }
   }
 
+  /**
+   * Graceful shutdown 시 memory 데이터를 Redis로 동기화
+   */
+  async syncToRedis(): Promise<void> {
+    if (this.memoryBlacklist.size === 0 && this.memorySuspiciousCount.size === 0) {
+      console.log('AbuseDetection: No memory data to sync');
+      return;
+    }
+
+    let synced = 0;
+
+    // Blacklist 동기화
+    for (const ip of this.memoryBlacklist) {
+      try {
+        await this.redis.sadd('abuse:blacklist', ip);
+        synced++;
+      } catch (error) {
+        console.error(`AbuseDetection: Failed to sync blacklist ${ip}:`, error);
+      }
+    }
+
+    // Suspicious count 동기화
+    for (const [ip, count] of this.memorySuspiciousCount.entries()) {
+      try {
+        const key = `abuse:${ip}`;
+        await this.redis.incrby(key, count);
+        await this.redis.expire(key, 3600); // 1시간
+        synced++;
+      } catch (error) {
+        console.error(`AbuseDetection: Failed to sync count ${ip}:`, error);
+      }
+    }
+
+    console.log(`AbuseDetection: Synced ${synced} entries to Redis`);
+    this.memoryBlacklist.clear();
+    this.memorySuspiciousCount.clear();
+  }
+
   async recordViolation(identifier: string, reason: string): Promise<void> {
     try {
       const errorKey = `abuse_errors:${identifier}`;

@@ -5,9 +5,13 @@ import { createServer } from './server';
 config({ path: '.env.local' });
 config();
 
+// Graceful shutdown 함수 참조 (startServer에서 설정)
+let gracefulShutdown: (() => Promise<void>) | null = null;
+
 async function startServer() {
   try {
-    const server = await createServer();
+    const { server, gracefulShutdown: shutdown } = await createServer();
+    gracefulShutdown = shutdown;
 
     const port = parseInt(process.env.PORT || '3000');
     const host = process.env.HOST || '0.0.0.0';
@@ -24,16 +28,23 @@ async function startServer() {
   }
 }
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM 신호를 받았습니다. 서버를 종료합니다...');
-  process.exit(0);
-});
+// Graceful shutdown handler
+async function handleShutdown(signal: string) {
+  console.log(`${signal} 신호를 받았습니다. Graceful shutdown 시작...`);
 
-process.on('SIGINT', () => {
-  console.log('SIGINT 신호를 받았습니다. 서버를 종료합니다...');
+  if (gracefulShutdown) {
+    try {
+      await gracefulShutdown();
+    } catch (error) {
+      console.error('Graceful shutdown 중 오류:', error);
+    }
+  }
+
   process.exit(0);
-});
+}
+
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+process.on('SIGINT', () => handleShutdown('SIGINT'));
 
 // 예상치 못한 오류 처리
 process.on('uncaughtException', (error) => {
