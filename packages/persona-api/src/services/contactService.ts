@@ -3,7 +3,7 @@
  *
  * 관심있는 사용자의 연락처 수집 및 알림
  */
-import Redis from 'ioredis';
+import type { IRedisClient } from '../infra/redis';
 import { chatLogger } from './chatLogger';
 
 export interface ContactInfo {
@@ -28,11 +28,11 @@ const CONTACT_KEY_PREFIX = 'contact:';
 const CONTACT_TTL_SECONDS = 60 * 60 * 24 * 30; // 30일
 
 export class ContactService {
-  private redis: Redis | null = null;
+  private redis: IRedisClient | null = null;
   private memoryStore: Map<string, ContactInfo> = new Map();
   private discordWebhookUrl: string | null = null;
 
-  constructor(redis?: Redis | null) {
+  constructor(redis?: IRedisClient | null) {
     this.redis = redis || null;
     this.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || null;
 
@@ -184,7 +184,7 @@ export class ContactService {
 // 전역 인스턴스
 let contactService: ContactService | null = null;
 
-export function initContactService(redis?: Redis | null): ContactService {
+export function initContactService(redis?: IRedisClient | null): ContactService {
   contactService = new ContactService(redis);
   return contactService;
 }

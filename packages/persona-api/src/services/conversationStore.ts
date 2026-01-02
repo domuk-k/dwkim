@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import type { IRedisClient } from '../infra/redis';
 import type { ChatMessage } from './llmService';
 
 /**
@@ -20,10 +20,10 @@ export interface ConversationSession {
 }
 
 export class ConversationStore {
-  private redis: Redis | null = null;
+  private redis: IRedisClient | null = null;
   private memoryStore: Map<string, ConversationSession> = new Map();
 
-  constructor(redis?: Redis | null) {
+  constructor(redis?: IRedisClient | null) {
     this.redis = redis || null;
     if (this.redis) {
       console.log('ConversationStore: Using Redis backend');
@@ -156,7 +156,7 @@ export class ConversationStore {
 // 전역 인스턴스 (서버 초기화 시 설정)
 let conversationStore: ConversationStore | null = null;
 
-export function initConversationStore(redis?: Redis | null): ConversationStore {
+export function initConversationStore(redis?: IRedisClient | null): ConversationStore {
   conversationStore = new ConversationStore(redis);
   return conversationStore;
 }
