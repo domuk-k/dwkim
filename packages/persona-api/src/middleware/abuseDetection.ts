@@ -44,6 +44,16 @@ export class AbuseDetection {
   private redis: Redis;
   private options: Required<AbuseDetectionOptions>;
 
+  // Circuit breaker state
+  private consecutiveFailures = 0;
+  private readonly maxConsecutiveFailures = 3;
+  private circuitOpenUntil = 0;
+  private readonly circuitResetMs = 30000; // 30초
+
+  // In-memory fallback
+  private memoryBlacklist = new Set<string>();
+  private memorySuspiciousCount = new Map<string, number>();
+
   constructor(redis: Redis, options: AbuseDetectionOptions) {
     this.redis = redis;
     this.options = {
@@ -52,18 +62,62 @@ export class AbuseDetection {
     };
   }
 
+  private isCircuitOpen(): boolean {
+    if (this.circuitOpenUntil > Date.now()) {
+      return true;
+    }
+    if (this.circuitOpenUntil > 0) {
+      this.consecutiveFailures = 0;
+      this.circuitOpenUntil = 0;
+    }
+    return false;
+  }
+
+  private recordRedisFailure(): void {
+    this.consecutiveFailures++;
+    if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+      this.circuitOpenUntil = Date.now() + this.circuitResetMs;
+      console.warn('AbuseDetection: Circuit opened due to consecutive Redis failures');
+    }
+  }
+
+  private recordRedisSuccess(): void {
+    this.consecutiveFailures = 0;
+  }
+
+  private isMemoryBlacklisted(ip: string): boolean {
+    return this.memoryBlacklist.has(ip);
+  }
+
+  private recordMemorySuspiciousActivity(ip: string): void {
+    const count = (this.memorySuspiciousCount.get(ip) || 0) + 1;
+    this.memorySuspiciousCount.set(ip, count);
+    if (count >= 5) {
+      this.memoryBlacklist.add(ip);
+      console.warn('AbuseDetection: IP added to memory blacklist:', ip);
+    }
+  }
+
   private getClientIP(request: FastifyRequest): string {
     const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown';
     return Array.isArray(ip) ? ip[0] : ip;
   }
 
   private async isBlacklisted(ip: string): Promise<boolean> {
+    // Circuit이 열려있으면 memory fallback
+    if (this.isCircuitOpen()) {
+      return this.isMemoryBlacklisted(ip);
+    }
+
     try {
       const result = await this.redis.sismember('abuse:blacklist', ip);
+      this.recordRedisSuccess();
       return result === 1;
     } catch (error) {
       console.error('Blacklist check failed:', error);
-      return false;
+      this.recordRedisFailure();
+      // Redis 실패 시 memory blacklist 확인
+      return this.isMemoryBlacklisted(ip);
     }
   }
 
@@ -72,6 +126,13 @@ export class AbuseDetection {
     type: string,
     reason: string
   ): Promise<void> {
+    // Circuit이 열려있으면 memory fallback
+    if (this.isCircuitOpen()) {
+      this.recordMemorySuspiciousActivity(ip);
+      console.warn('Suspicious activity recorded (memory):', { ip, type, reason });
+      return;
+    }
+
     try {
       const key = `abuse:${ip}`;
       const count = await this.redis.incr(key);
@@ -85,9 +146,11 @@ export class AbuseDetection {
       if (count >= 5) {
         await this.redis.sadd('abuse:blacklist', ip);
         await this.redis.expire('abuse:blacklist', 24 * 3600); // 24시간 블랙리스트
+        this.memoryBlacklist.add(ip); // memory에도 동기화
         console.error('IP added to blacklist:', { ip, type, reason, count });
       }
 
+      this.recordRedisSuccess();
       console.warn('Suspicious activity recorded:', {
         ip,
         type,
@@ -96,6 +159,9 @@ export class AbuseDetection {
       });
     } catch (error) {
       console.error('Failed to record suspicious activity:', error);
+      this.recordRedisFailure();
+      // Redis 실패해도 memory에는 기록
+      this.recordMemorySuspiciousActivity(ip);
     }
   }
 
@@ -186,7 +252,24 @@ export class AbuseDetection {
       return true;
     } catch (error) {
       console.error('Abuse detection error:', error);
-      return true; // 오류 시 요청 허용 (서비스 가용성 우선)
+      this.recordRedisFailure();
+      // Redis 완전 실패 시에도 memory blacklist 확인 (fail-open 방지)
+      if (this.isMemoryBlacklisted(clientIP)) {
+        console.warn('Blocked request from memory blacklisted IP:', { ip: clientIP });
+        reply.status(403).send({ error: 'Access denied' });
+        return false;
+      }
+      // 입력 검증은 Redis 없이도 동작 가능
+      if (request.method === 'POST' && request.body) {
+        const body = JSON.stringify(request.body);
+        const validationResult = this.validateInput(body);
+        if (!validationResult.isValid) {
+          this.recordMemorySuspiciousActivity(clientIP);
+          reply.status(400).send({ error: validationResult.reason });
+          return false;
+        }
+      }
+      return true; // 기본 검증 통과 시에만 허용
     }
   }
 

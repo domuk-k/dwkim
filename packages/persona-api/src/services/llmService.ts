@@ -148,10 +148,59 @@ export class LLMService {
     } catch (error) {
       console.error('LLM API call failed:', error);
       return {
-        content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        content: this.getErrorMessage(error),
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       };
     }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    // OpenAI/OpenRouter 에러 타입 분석
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      const errorObj = error as { status?: number; code?: string };
+
+      // Rate limit 에러
+      if (errorObj.status === 429 || message.includes('rate limit') || message.includes('too many requests')) {
+        return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+      }
+
+      // 인증 에러
+      if (errorObj.status === 401 || message.includes('invalid api key') || message.includes('authentication')) {
+        console.error('LLM API key issue detected');
+        return '서비스 설정에 문제가 있습니다. 관리자에게 문의해주세요.';
+      }
+
+      // 결제/할당량 에러
+      if (errorObj.status === 402 || message.includes('insufficient') || message.includes('quota') || message.includes('billing')) {
+        console.error('LLM billing/quota issue detected');
+        return '서비스 이용량이 초과되었습니다. 관리자에게 문의해주세요.';
+      }
+
+      // 콘텐츠 정책 위반
+      if (message.includes('content policy') || message.includes('safety') || message.includes('blocked')) {
+        return '입력 내용을 확인해주세요. 일부 내용이 제한될 수 있습니다.';
+      }
+
+      // 모델 관련 에러
+      if (message.includes('model') && (message.includes('not found') || message.includes('unavailable'))) {
+        console.error('LLM model configuration issue');
+        return '서비스 설정에 문제가 있습니다. 관리자에게 문의해주세요.';
+      }
+
+      // 타임아웃
+      if (message.includes('timeout') || message.includes('timed out')) {
+        return '응답 시간이 초과되었습니다. 다시 시도해주세요.';
+      }
+
+      // 네트워크 에러
+      if (message.includes('network') || message.includes('connection') || message.includes('econnrefused')) {
+        return '네트워크 연결에 문제가 있습니다. 잠시 후 다시 시도해주세요.';
+      }
+    }
+
+    // 기본 에러 메시지
+    return '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
   }
 
   async *chatStream(
