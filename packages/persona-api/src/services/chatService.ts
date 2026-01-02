@@ -89,6 +89,7 @@ export type ChatStreamEvent =
 export interface ChatContext {
   clientIp: string;
   userAgent?: string;
+  deviceId?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

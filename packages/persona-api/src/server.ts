@@ -14,6 +14,7 @@ import { AbuseDetection } from './middleware/abuseDetection';
 import { initConversationStore } from './services/conversationStore';
 import { initContactService } from './services/contactService';
 import { initConversationLimiter } from './services/conversationLimiter';
+import { initDeviceService } from './services/deviceService';
 import { createRedisClient, type IRedisClient } from './infra/redis';
 
 export async function createServer() {
@@ -73,6 +74,7 @@ export async function createServer() {
   initConversationStore(serviceRedisClient);
   initContactService(serviceRedisClient);
   initConversationLimiter(serviceRedisClient);
+  initDeviceService(serviceRedisClient);
 
   // Rate Limiting (Redis 선택적)
   const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {

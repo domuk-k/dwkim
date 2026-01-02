@@ -1,0 +1,163 @@
+/**
+ * QueryRewriter 단위 테스트
+ *
+ * 테스트 범위:
+ * - 대명사 치환 (직접 매핑)
+ * - 문맥 기반 대명사 해석
+ * - 접속사 오탐 방지 (그러나, 그래서 등)
+ * - 짧은 쿼리 확장
+ * - 모호한 쿼리 감지
+ */
+
+import { QueryRewriter } from '../services/queryRewriter';
+import type { ChatMessage } from '../services/llmService';
+
+describe('QueryRewriter', () => {
+  let rewriter: QueryRewriter;
+
+  beforeEach(() => {
+    rewriter = new QueryRewriter();
+  });
+
+  describe('rewrite - 대명사 치환', () => {
+    it('should replace "그가" with "김동욱이"', () => {
+      const result = rewriter.rewrite('그가 어디서 일해?');
+      expect(result.rewritten).toContain('김동욱이');
+      expect(result.method).toBe('rule');
+      // changes는 여러 치환을 하나의 문자열로 합침
+      expect(result.changes.some(c => c.includes('그가 → 김동욱이'))).toBe(true);
+    });
+
+    it('should replace "그는" with "김동욱은"', () => {
+      const result = rewriter.rewrite('그는 무엇을 공부했지?');
+      expect(result.rewritten).toContain('김동욱은');
+    });
+
+    it('should replace "그의" with "김동욱의"', () => {
+      const result = rewriter.rewrite('그의 기술 스택은?');
+      expect(result.rewritten).toContain('김동욱의');
+    });
+
+    it('should replace multiple pronouns', () => {
+      const result = rewriter.rewrite('그가 만들었고 그의 프로젝트야');
+      expect(result.rewritten).toContain('김동욱이');
+      expect(result.rewritten).toContain('김동욱의');
+    });
+  });
+
+  describe('rewrite - 접속사 오탐 방지', () => {
+    it('should NOT replace "그러나" (conjunction)', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '김동욱에 대해 알려줘' }];
+      const result = rewriter.rewrite('그러나 AI가 더 좋아', history);
+      expect(result.rewritten).toContain('그러나');
+      expect(result.rewritten).not.toContain('김동욱러나');
+    });
+
+    it('should NOT replace "그래서" (conjunction)', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '김동욱에 대해 알려줘' }];
+      const result = rewriter.rewrite('그래서 뭘 했지?', history);
+      expect(result.rewritten).toContain('그래서');
+    });
+
+    it('should NOT replace "그리고" (conjunction)', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '김동욱에 대해 알려줘' }];
+      const result = rewriter.rewrite('그리고 또 뭐 있어?', history);
+      expect(result.rewritten).toContain('그리고');
+    });
+
+    it('should NOT replace "그렇게" (adverb)', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '김동욱에 대해 알려줘' }];
+      const result = rewriter.rewrite('그렇게 했어?', history);
+      expect(result.rewritten).toContain('그렇게');
+    });
+
+    it('should NOT replace "그런데" (conjunction)', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '김동욱에 대해 알려줘' }];
+      const result = rewriter.rewrite('그런데 경력은?', history);
+      expect(result.rewritten).toContain('그런데');
+    });
+  });
+
+  describe('rewrite - 문맥 기반 대명사 해석', () => {
+    it('should replace standalone "그" when context mentions 김동욱', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '김동욱에 대해 알려줘' }];
+      const result = rewriter.rewrite('그를 만나려면?', history);
+      expect(result.rewritten).toContain('김동욱');
+    });
+
+    it('should NOT replace "그" when no context about 김동욱', () => {
+      const history: ChatMessage[] = [{ role: 'user', content: '날씨가 좋네' }];
+      const result = rewriter.rewrite('그 사람은 누구?', history);
+      // 문맥에 김동욱 언급이 없으면 치환하지 않음 (기본 맥락만 추가)
+      expect(result.changes).not.toContain('문맥 대명사');
+    });
+  });
+
+  describe('rewrite - 짧은 쿼리 확장', () => {
+    it('should expand short query "경력"', () => {
+      const result = rewriter.rewrite('경력');
+      expect(result.rewritten).toContain('김동욱');
+      expect(result.rewritten).toContain('직장');
+      expect(result.changes).toContain('짧은 쿼리 확장');
+    });
+
+    it('should expand short query "학력"', () => {
+      const result = rewriter.rewrite('학력');
+      expect(result.rewritten).toContain('김동욱');
+      expect(result.rewritten).toContain('대학');
+    });
+
+    it('should expand short query "기술"', () => {
+      const result = rewriter.rewrite('기술');
+      expect(result.rewritten).toContain('김동욱');
+      expect(result.rewritten).toContain('스택');
+    });
+
+    it('should add default context to unrecognized short query', () => {
+      const result = rewriter.rewrite('뭐해');
+      expect(result.rewritten).toContain('김동욱');
+    });
+  });
+
+  describe('rewrite - 기본 맥락 추가', () => {
+    it('should add 김동욱 context when not mentioned', () => {
+      const result = rewriter.rewrite('어디서 일해?');
+      expect(result.rewritten).toContain('김동욱');
+      expect(result.changes).toContain('기본 맥락 추가');
+    });
+
+    it('should NOT add context when 김동욱 is already mentioned', () => {
+      const result = rewriter.rewrite('김동욱이 어디서 일해?');
+      expect(result.changes).not.toContain('기본 맥락 추가');
+    });
+  });
+
+  describe('isAmbiguous - 모호한 쿼리 감지', () => {
+    it('should detect very short queries as ambiguous', () => {
+      expect(rewriter.isAmbiguous('뭐?')).toBe(true);
+      expect(rewriter.isAmbiguous('응')).toBe(true);
+      expect(rewriter.isAmbiguous('왜')).toBe(true);
+    });
+
+    it('should detect vague question patterns', () => {
+      expect(rewriter.isAmbiguous('뭐 했어')).toBe(true);
+      expect(rewriter.isAmbiguous('왜?')).toBe(true);
+    });
+
+    it('should NOT mark specific questions as ambiguous', () => {
+      expect(rewriter.isAmbiguous('김동욱이 어디서 일하나요?')).toBe(false);
+      expect(rewriter.isAmbiguous('기술 스택이 뭐야?')).toBe(false);
+    });
+  });
+
+  describe('rewrite - 변경 없는 경우', () => {
+    it('should return original query when no changes needed', () => {
+      // "김동욱"을 포함하되 "동욱이/동욱은/동욱의" 패턴 없이
+      // (PRONOUN_MAP의 "동욱이" → "김동욱이" 치환 피하기)
+      const result = rewriter.rewrite('김동욱 씨가 만든 프로젝트는 무엇인가요?');
+      expect(result.original).toBe('김동욱 씨가 만든 프로젝트는 무엇인가요?');
+      expect(result.method).toBe('none');
+      expect(result.changes).toHaveLength(0);
+    });
+  });
+});
