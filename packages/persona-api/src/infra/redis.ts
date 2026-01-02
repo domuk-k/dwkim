@@ -18,6 +18,13 @@ export interface IRedisClient {
   // Set operations
   sismember(key: string, member: string): Promise<number>;
   sadd(key: string, member: string): Promise<number>;
+  srem(key: string, member: string): Promise<number>;
+
+  // Hash operations
+  hget(key: string, field: string): Promise<string | null>;
+  hset(key: string, field: string, value: string): Promise<number>;
+  hgetall(key: string): Promise<Record<string, string> | null>;
+  hincrby(key: string, field: string, increment: number): Promise<number>;
 
   // Sorted set operations
   zrangebyscore(key: string, min: string | number, max: string | number): Promise<string[]>;
@@ -84,6 +91,27 @@ export class RedisClient implements IRedisClient {
     return this.client.sadd(key, member);
   }
 
+  async srem(key: string, member: string): Promise<number> {
+    return this.client.srem(key, member);
+  }
+
+  async hget(key: string, field: string): Promise<string | null> {
+    return this.client.hget(key, field);
+  }
+
+  async hset(key: string, field: string, value: string): Promise<number> {
+    return this.client.hset(key, field, value);
+  }
+
+  async hgetall(key: string): Promise<Record<string, string> | null> {
+    const result = await this.client.hgetall(key);
+    return Object.keys(result).length > 0 ? result : null;
+  }
+
+  async hincrby(key: string, field: string, increment: number): Promise<number> {
+    return this.client.hincrby(key, field, increment);
+  }
+
   async zrangebyscore(key: string, min: string | number, max: string | number): Promise<string[]> {
     return this.client.zrangebyscore(key, min, max);
   }
@@ -114,6 +142,7 @@ export class MemoryClient implements IRedisClient {
   private lists = new Map<string, string[]>();
   private sets = new Map<string, Set<string>>();
   private sortedSets = new Map<string, Map<string, number>>(); // member -> score
+  private hashes = new Map<string, Map<string, string>>(); // key -> field -> value
 
   async get(key: string): Promise<string | null> {
     const item = this.store.get(key);
@@ -209,6 +238,55 @@ export class MemoryClient implements IRedisClient {
     return set.size > sizeBefore ? 1 : 0;
   }
 
+  async srem(key: string, member: string): Promise<number> {
+    const set = this.sets.get(key);
+    if (!set) return 0;
+
+    const existed = set.has(member);
+    if (existed) {
+      set.delete(member);
+      // Clean up empty sets
+      if (set.size === 0) {
+        this.sets.delete(key);
+      }
+    }
+    return existed ? 1 : 0;
+  }
+
+  async hget(key: string, field: string): Promise<string | null> {
+    const hash = this.hashes.get(key);
+    return hash?.get(field) ?? null;
+  }
+
+  async hset(key: string, field: string, value: string): Promise<number> {
+    let hash = this.hashes.get(key);
+    if (!hash) {
+      hash = new Map<string, string>();
+      this.hashes.set(key, hash);
+    }
+    const isNew = !hash.has(field);
+    hash.set(field, value);
+    return isNew ? 1 : 0;
+  }
+
+  async hgetall(key: string): Promise<Record<string, string> | null> {
+    const hash = this.hashes.get(key);
+    if (!hash || hash.size === 0) return null;
+    return Object.fromEntries(hash);
+  }
+
+  async hincrby(key: string, field: string, increment: number): Promise<number> {
+    let hash = this.hashes.get(key);
+    if (!hash) {
+      hash = new Map<string, string>();
+      this.hashes.set(key, hash);
+    }
+    const current = parseInt(hash.get(field) || '0', 10);
+    const newValue = current + increment;
+    hash.set(field, newValue.toString());
+    return newValue;
+  }
+
   async zrangebyscore(key: string, min: string | number, max: string | number): Promise<string[]> {
     const sortedSet = this.sortedSets.get(key);
     if (!sortedSet) return [];
@@ -255,6 +333,7 @@ export class MemoryClient implements IRedisClient {
     this.lists.clear();
     this.sets.clear();
     this.sortedSets.clear();
+    this.hashes.clear();
   }
 }
 

@@ -21,6 +21,9 @@ import {
 import {
   getContactService,
 } from '../services/contactService';
+import {
+  getDeviceService,
+} from '../services/deviceService';
 
 // Feature flag
 const USE_DEEP_AGENT = process.env.USE_DEEP_AGENT === '1';
@@ -114,6 +117,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
   const conversationStore = getConversationStore();
   const conversationLimiter = getConversationLimiter();
   const contactService = getContactService();
+  const deviceService = getDeviceService();
 
   const chatService = await createChatService(
     conversationStore,
@@ -122,10 +126,11 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     USE_DEEP_AGENT
   );
 
-  // Helper: context 추출
+  // Helper: context 추출 (Device ID 포함)
   const getContext = (request: FastifyRequest): ChatContext => ({
     clientIp: request.ip,
     userAgent: request.headers['user-agent'],
+    deviceId: request.headers['x-device-id'] as string | undefined,
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -153,6 +158,16 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 
         // 입력 검증
         const validatedData = ChatRequestSchema.parse(request.body);
+
+        // Device 활동 추적 (비동기, 실패해도 요청은 계속)
+        if (context.deviceId && deviceService) {
+          deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
+            console.warn('Device tracking failed:', {
+              deviceId: context.deviceId?.slice(0, 8),
+              error: error instanceof Error ? error.message : String(error),
+            });
+          });
+        }
 
         // 채팅 처리
         const response = await chatService.handleChat(validatedData, context);
@@ -192,6 +207,16 @@ export default async function chatRoutes(fastify: FastifyInstance) {
 
       try {
         const validatedData = ChatRequestSchema.parse(request.body);
+
+        // Device 활동 추적 (비동기, 실패해도 스트리밍은 계속)
+        if (context.deviceId && deviceService) {
+          deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
+            console.warn('Device tracking failed:', {
+              deviceId: context.deviceId?.slice(0, 8),
+              error: error instanceof Error ? error.message : String(error),
+            });
+          });
+        }
 
         // SSE 헤더 설정
         reply.raw.writeHead(200, {
@@ -370,6 +395,16 @@ export default async function chatRoutes(fastify: FastifyInstance) {
             sessionId: body.sessionId,
           }
         );
+
+        // Device-Email 연결 (비동기, 실패해도 응답은 계속)
+        if (context.deviceId && deviceService) {
+          deviceService.linkEmail(context.deviceId, body.email).catch((error) => {
+            console.warn('Device-email linking failed:', {
+              deviceId: context.deviceId?.slice(0, 8),
+              error: error instanceof Error ? error.message : String(error),
+            });
+          });
+        }
 
         return reply.send(result);
       } catch (error) {

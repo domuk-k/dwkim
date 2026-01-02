@@ -94,7 +94,8 @@ describe('RAGEngine', () => {
       expect(result.answer).toBe(mockLLMResponse.content);
       expect(result.sources).toEqual(mockDocuments);
       expect(result.usage).toEqual(mockLLMResponse.usage);
-      expect(result.metadata.searchQuery).toBe('Tell me about AI');
+      // QueryRewriter adds "김동욱" context when not present
+      expect(result.metadata.searchQuery).toBe('김동욱 Tell me about AI');
       expect(result.metadata.searchResults).toBe(1);
       expect(result.metadata.processingTime).toBeGreaterThan(0);
     });

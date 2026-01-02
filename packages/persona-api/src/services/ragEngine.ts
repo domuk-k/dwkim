@@ -1,6 +1,7 @@
 import { getVectorStore, initVectorStore, Document } from './vectorStore';
 import { LLMService } from './llmService';
 import type { ChatMessage } from './llmService';
+import { getQueryRewriter } from './queryRewriter';
 
 export interface RAGResponse {
   answer: string;
@@ -17,16 +18,50 @@ export interface RAGResponse {
   };
 }
 
-export interface RAGStreamEvent {
-  type: 'sources' | 'content' | 'done' | 'error';
-  sources?: Document[];
-  content?: string;
-  metadata?: RAGResponse['metadata'] & {
-    shouldSuggestContact?: boolean;
-    messageCount?: number;
-  };
-  error?: string;
+// ─────────────────────────────────────────────────────────────
+// RAGStreamEvent - Discriminated Union
+// type 필드로 각 이벤트의 정확한 타입 추론 가능
+// ─────────────────────────────────────────────────────────────
+
+type RAGStreamMetadata = RAGResponse['metadata'] & {
+  shouldSuggestContact?: boolean;
+  messageCount?: number;
+  originalQuery?: string;
+  rewriteMethod?: string;
+};
+
+interface RAGSourcesEvent {
+  type: 'sources';
+  sources: Document[];
 }
+
+interface RAGContentEvent {
+  type: 'content';
+  content: string;
+}
+
+interface RAGDoneEvent {
+  type: 'done';
+  metadata: RAGStreamMetadata;
+}
+
+interface RAGErrorEvent {
+  type: 'error';
+  error: string;
+}
+
+/** A2UI: 모호한 쿼리에 대한 명확화 요청 */
+interface RAGClarificationEvent {
+  type: 'clarification';
+  suggestedQuestions: string[];
+}
+
+export type RAGStreamEvent =
+  | RAGSourcesEvent
+  | RAGContentEvent
+  | RAGDoneEvent
+  | RAGErrorEvent
+  | RAGClarificationEvent;
 
 export class RAGEngine {
   private llmService: LLMService;
@@ -59,11 +94,20 @@ export class RAGEngine {
     try {
       console.log('RAG Engine processing query:', query);
 
+      // 0. Query Rewriting (대명사 치환, 짧은 쿼리 확장)
+      const queryRewriter = getQueryRewriter();
+      const rewriteResult = queryRewriter.rewrite(query, conversationHistory);
+      const searchQuery = rewriteResult.rewritten;
+
+      if (rewriteResult.method !== 'none') {
+        console.log(`Query rewritten: "${query}" → "${searchQuery}" [${rewriteResult.changes.join(', ')}]`);
+      }
+
       // 1. 다양성 검색으로 관련 문서 찾기 (중복 청크 제거)
       console.log('Searching for relevant documents...');
       const vectorStore = getVectorStore();
       const searchResults = await vectorStore.searchDiverse(
-        query,
+        searchQuery,  // 재작성된 쿼리로 검색
         this.maxSearchResults
       );
       console.log(`Found ${searchResults.length} diverse documents`);
@@ -91,7 +135,7 @@ export class RAGEngine {
         sources: searchResults,
         usage: llmResponse.usage,
         metadata: {
-          searchQuery: query,
+          searchQuery: searchQuery,
           searchResults: searchResults.length,
           processingTime,
         },
@@ -111,15 +155,35 @@ export class RAGEngine {
     try {
       console.log('RAG Engine streaming query:', query);
 
+      // 0. Query Rewriting
+      const queryRewriter = getQueryRewriter();
+      const rewriteResult = queryRewriter.rewrite(query, conversationHistory);
+      const searchQuery = rewriteResult.rewritten;
+
+      if (rewriteResult.method !== 'none') {
+        console.log(`Query rewritten: "${query}" → "${searchQuery}" [${rewriteResult.changes.join(', ')}]`);
+      }
+
       // 1. 다양성 검색 (중복 청크 제거)
       const vectorStore = getVectorStore();
       const searchResults = await vectorStore.searchDiverse(
-        query,
+        searchQuery,  // 재작성된 쿼리로 검색
         this.maxSearchResults
       );
 
       // 소스 먼저 전송
       yield { type: 'sources', sources: searchResults };
+
+      // 1.5. 검색 결과 부족 + 모호한 쿼리 → 추천 질문 제공 (A2UI)
+      if (searchResults.length < 2 && rewriteResult.needsClarification) {
+        console.log('Ambiguous query detected, generating suggestions...');
+        const suggestions = await queryRewriter.generateSuggestedQuestions(query);
+        yield {
+          type: 'clarification',
+          suggestedQuestions: suggestions,
+        };
+        // 추천 질문을 보냈지만 기본 답변도 계속 제공
+      }
 
       // 2. 컨텍스트 생성
       const context = this.buildContext(searchResults, query);
@@ -133,7 +197,7 @@ export class RAGEngine {
       for await (const chunk of this.llmService.chatStream(messages, context)) {
         if (chunk.type === 'content' && chunk.content) {
           yield { type: 'content', content: chunk.content };
-        } else if (chunk.type === 'error') {
+        } else if (chunk.type === 'error' && chunk.error) {
           yield { type: 'error', error: chunk.error };
           return;
         }
@@ -143,9 +207,11 @@ export class RAGEngine {
       yield {
         type: 'done',
         metadata: {
-          searchQuery: query,
+          searchQuery: searchQuery,
           searchResults: searchResults.length,
           processingTime,
+          originalQuery: query !== searchQuery ? query : undefined,
+          rewriteMethod: rewriteResult.method !== 'none' ? rewriteResult.method : undefined,
         },
       };
     } catch (error) {
