@@ -14,6 +14,7 @@ import { AbuseDetection } from './middleware/abuseDetection';
 import { initConversationStore } from './services/conversationStore';
 import { initContactService } from './services/contactService';
 import { initConversationLimiter } from './services/conversationLimiter';
+import { createRedisClient, type IRedisClient } from './infra/redis';
 
 export async function createServer() {
   const fastify = Fastify({
@@ -31,8 +32,11 @@ export async function createServer() {
   });
 
   // Redis 설정 (선택적)
-  let redisClient = null;
-  
+  // - ioredis client: Fastify 플러그인용 (rate-limit, redis 플러그인)
+  // - IRedisClient: 서비스용 (추상화 + MemoryClient 폴백)
+  let ioredisClient: Redis | null = null;
+  let serviceRedisClient: IRedisClient | null = null;
+
   if (process.env.REDIS_URL) {
     try {
       const redisOptions = {
@@ -42,28 +46,33 @@ export async function createServer() {
         maxRetriesPerRequest: 1,
         retryDelayOnFailover: 100,
       };
-      
-      redisClient = new Redis(process.env.REDIS_URL, redisOptions);
-      
+
+      ioredisClient = new Redis(process.env.REDIS_URL, redisOptions);
+
       // 연결 테스트
-      await redisClient.ping();
+      await ioredisClient.ping();
       console.log('✅ Redis connected successfully');
-      
-      // Redis 플러그인 등록
-      await fastify.register(fastifyRedis, { client: redisClient });
-      
+
+      // Redis 플러그인 등록 (ioredis 필요)
+      await fastify.register(fastifyRedis, { client: ioredisClient });
+
+      // 서비스용 RedisClient 생성
+      serviceRedisClient = createRedisClient(process.env.REDIS_URL);
+
     } catch (error) {
-      console.warn('⚠️  Redis connection failed, running without cache:', error);
-      redisClient = null;
+      console.warn('⚠️  Redis connection failed, using memory fallback:', error);
+      ioredisClient = null;
+      serviceRedisClient = createRedisClient(); // MemoryClient 폴백
     }
   } else {
-    console.log('ℹ️  No REDIS_URL provided, running without cache');
+    console.log('ℹ️  No REDIS_URL provided, using memory fallback');
+    serviceRedisClient = createRedisClient(); // MemoryClient 폴백
   }
 
-  // 서비스 초기화 (Redis 선택적)
-  initConversationStore(redisClient);
-  initContactService(redisClient);
-  initConversationLimiter(redisClient);
+  // 서비스 초기화 (IRedisClient 사용)
+  initConversationStore(serviceRedisClient);
+  initContactService(serviceRedisClient);
+  initConversationLimiter(serviceRedisClient);
 
   // Rate Limiting (Redis 선택적)
   const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
@@ -78,8 +87,8 @@ export async function createServer() {
   };
 
   // Redis가 있으면 Redis 기반, 없으면 메모리 기반 Rate Limiting
-  if (redisClient) {
-    rateLimitConfig.redis = redisClient;
+  if (ioredisClient) {
+    rateLimitConfig.redis = ioredisClient;
     console.log('🚦 Rate limiting with Redis');
   } else {
     console.log('🚦 Rate limiting with memory store');
@@ -88,12 +97,12 @@ export async function createServer() {
   await fastify.register(rateLimit, rateLimitConfig);
 
   // 커스텀 미들웨어 등록 (Redis 선택적)
-  const rateLimiter = redisClient ? new RateLimiter(redisClient, {
+  const rateLimiter = ioredisClient ? new RateLimiter(ioredisClient, {
     windowMs: 15 * 60 * 1000, // 15분
     max: 200, // 최대 200개 요청
   }) : null;
 
-  const abuseDetection = redisClient ? new AbuseDetection(redisClient, {
+  const abuseDetection = ioredisClient ? new AbuseDetection(ioredisClient, {
     suspiciousPatterns: [/<script/i, /javascript:/i, /on\w+\s*=/i, /eval\(/i],
     maxConsecutiveErrors: 10,
     blockDuration: 10 * 60 * 1000, // 10분

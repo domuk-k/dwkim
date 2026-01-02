@@ -5,7 +5,7 @@
  * - 5회 이상: 연락처 제안 (shouldSuggestContact)
  * - 30회 이상: IP 차단 + 연락처 수집 기회
  */
-import Redis from 'ioredis';
+import type { IRedisClient } from '../infra/redis';
 
 // 임계값 설정
 export const THRESHOLDS = {
@@ -26,10 +26,10 @@ export interface ConversationStatus {
 const BLOCK_KEY_PREFIX = 'block:';
 
 export class ConversationLimiter {
-  private redis: Redis | null = null;
+  private redis: IRedisClient | null = null;
   private memoryBlockList: Map<string, number> = new Map(); // IP -> unblock timestamp
 
-  constructor(redis?: Redis | null) {
+  constructor(redis?: IRedisClient | null) {
     this.redis = redis || null;
   }
 
@@ -149,7 +149,7 @@ dwkim이 직접 답변드리면 더 좋을 것 같아요:
 // 전역 인스턴스
 let conversationLimiter: ConversationLimiter | null = null;
 
-export function initConversationLimiter(redis?: Redis | null): ConversationLimiter {
+export function initConversationLimiter(redis?: IRedisClient | null): ConversationLimiter {
   conversationLimiter = new ConversationLimiter(redis);
   return conversationLimiter;
 }
