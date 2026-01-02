@@ -226,12 +226,27 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           'Access-Control-Allow-Origin': '*',
         });
 
-        // 스트리밍 처리
-        for await (const event of chatService.handleStreamChat(validatedData, context)) {
-          reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+        // 스트리밍 처리 (개별 이벤트 에러 핸들링)
+        try {
+          for await (const event of chatService.handleStreamChat(validatedData, context)) {
+            if (!reply.raw.writableEnded) {
+              reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+            }
+          }
+        } catch (streamError) {
+          console.error('Stream iteration error:', streamError);
+          // 스트림 중 에러 발생 시 에러 이벤트 전송
+          if (!reply.raw.writableEnded) {
+            reply.raw.write(`data: ${JSON.stringify({
+              type: 'error',
+              error: '스트리밍 중 오류가 발생했습니다.'
+            })}\n\n`);
+          }
         }
 
-        reply.raw.end();
+        if (!reply.raw.writableEnded) {
+          reply.raw.end();
+        }
       } catch (error) {
         console.error('Stream chat error:', error);
 
@@ -242,8 +257,19 @@ export default async function chatRoutes(fastify: FastifyInstance) {
           });
         }
 
-        reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`);
-        reply.raw.end();
+        // 헤더가 아직 전송되지 않은 경우
+        if (!reply.raw.headersSent) {
+          return reply.status(500).send({
+            success: false,
+            error: '서버 오류가 발생했습니다.',
+          });
+        }
+
+        // 헤더가 이미 전송된 경우 SSE 에러 이벤트
+        if (!reply.raw.writableEnded) {
+          reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`);
+          reply.raw.end();
+        }
       }
     }
   );

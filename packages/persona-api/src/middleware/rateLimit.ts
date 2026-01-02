@@ -21,6 +21,15 @@ export class RateLimiter {
   private redis: Redis;
   private options: RateLimitOptions;
 
+  // Circuit breaker state
+  private consecutiveFailures = 0;
+  private readonly maxConsecutiveFailures = 3;
+  private circuitOpenUntil = 0;
+  private readonly circuitResetMs = 30000; // 30초 후 circuit 재시도
+
+  // In-memory fallback (Redis 장애 시)
+  private memoryStore = new Map<string, { count: number; resetTime: number }>();
+
   constructor(redis: Redis, options: RateLimitOptions) {
     this.redis = redis;
     this.options = {
@@ -30,10 +39,77 @@ export class RateLimiter {
     };
   }
 
+  private isCircuitOpen(): boolean {
+    if (this.circuitOpenUntil > Date.now()) {
+      return true;
+    }
+    // Circuit이 닫혔으면 상태 리셋
+    if (this.circuitOpenUntil > 0) {
+      this.consecutiveFailures = 0;
+      this.circuitOpenUntil = 0;
+    }
+    return false;
+  }
+
+  private recordFailure(): void {
+    this.consecutiveFailures++;
+    if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+      this.circuitOpenUntil = Date.now() + this.circuitResetMs;
+      console.warn('RateLimiter: Circuit opened due to consecutive Redis failures');
+    }
+  }
+
+  private recordSuccess(): void {
+    this.consecutiveFailures = 0;
+  }
+
+  private checkMemoryLimit(identifier: string, now: number): RateLimitResult {
+    const entry = this.memoryStore.get(identifier);
+
+    if (!entry || entry.resetTime < now) {
+      // 새 윈도우 시작
+      this.memoryStore.set(identifier, {
+        count: 1,
+        resetTime: now + this.options.windowMs
+      });
+      return {
+        allowed: true,
+        remaining: this.options.max - 1,
+        resetTime: now + this.options.windowMs,
+        limit: this.options.max,
+      };
+    }
+
+    if (entry.count >= this.options.max) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: entry.resetTime,
+        retryAfter: Math.ceil((entry.resetTime - now) / 1000),
+        statusCode: this.options.statusCode,
+        message: this.options.message,
+      };
+    }
+
+    entry.count++;
+    return {
+      allowed: true,
+      remaining: this.options.max - entry.count,
+      resetTime: entry.resetTime,
+      limit: this.options.max,
+    };
+  }
+
   async checkLimit(identifier: string): Promise<RateLimitResult> {
     const key = `rate_limit:${identifier}`;
     const now = Date.now();
     const windowStart = now - this.options.windowMs;
+
+    // Circuit이 열려있으면 memory fallback 사용
+    if (this.isCircuitOpen()) {
+      console.debug('RateLimiter: Using memory fallback (circuit open)');
+      return this.checkMemoryLimit(identifier, now);
+    }
 
     try {
       // Redis에서 현재 윈도우의 요청 수 가져오기
@@ -47,6 +123,7 @@ export class RateLimiter {
             ? parseInt(firstRequest[1]) + this.options.windowMs
             : now + this.options.windowMs;
 
+        this.recordSuccess();
         return {
           allowed: false,
           remaining: 0,
@@ -61,6 +138,7 @@ export class RateLimiter {
       await this.redis.zadd(key, now, now.toString());
       await this.redis.expire(key, Math.ceil(this.options.windowMs / 1000));
 
+      this.recordSuccess();
       return {
         allowed: true,
         remaining: this.options.max - requests.length - 1,
@@ -68,14 +146,10 @@ export class RateLimiter {
         limit: this.options.max,
       };
     } catch (error) {
-      console.error('Rate limiting error:', error);
-      // Redis 오류 시 기본적으로 허용
-      return {
-        allowed: true,
-        remaining: this.options.max,
-        resetTime: now + this.options.windowMs,
-        limit: this.options.max,
-      };
+      console.error('Rate limiting Redis error:', error);
+      this.recordFailure();
+      // Redis 오류 시 memory fallback 사용 (fail-open 대신)
+      return this.checkMemoryLimit(identifier, now);
     }
   }
 
