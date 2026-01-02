@@ -6,17 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **pnpm workspace monorepo** with three main packages:
 
-### 1. `packages/dwkim/` - CLI Business Card Tool
-- **Purpose**: Command-line tool that displays a developer profile card
+### 1. `packages/dwkim/` - CLI Personal Agent
+- **Purpose**: CLI 기반 개인 에이전트 (터미널에서 김동욱에 대해 대화)
 - **Entry**: `src/index.ts` (binary: `dwkim`)
 - **Commands**: `dwkim` (profile + chat), `dwkim profile` (profile only), `dwkim help`
 - **Build**: Custom esbuild script at `script/build.js`
 
-### 2. `packages/persona-api/` - Fastify RAG API Server
-- **Purpose**: Personal chatbot API using RAG (Retrieval-Augmented Generation)
+### 2. `packages/persona-api/` - Personal AI Agent API
+- **Purpose**: 김동욱 AI 에이전트 백엔드 (RAG + 개인화 + 대화형 UX)
 - **Framework**: Fastify with TypeScript
-- **Vector DB**: Qdrant (primary), Neon (alternative), ChromaDB (legacy)
-- **LLM**: OpenAI (primary), Anthropic/Google Genai via LangChain
+- **Agent**: LangGraph + Gemini 2.0 Flash
+- **Vector DB**: Qdrant (primary), Neon (alternative)
+- **Features**: Query Rewriting, Device ID 개인화, A2UI, 대화 제한
 - **Deployment**: Fly.io at https://persona-api.fly.dev
 
 ### 3. `packages/blog/` - Astro Blog
@@ -86,13 +87,15 @@ pnpm update-theme        # Update Chiri theme to latest
 - **Entry**: `src/index.ts` → `src/server.ts`
 - **Routes**: `src/routes/` (health, chat)
 - **Services**:
-  - `vectorStore.ts` - Multi-backend vector store (Qdrant/Neon/Chroma)
-  - `llmService.ts` - LLM abstraction (OpenAI/Anthropic)
-  - `ragEngine.ts` - RAG orchestration
-  - `deepAgentService.ts` - Agent-based processing
-- **Middleware**: Rate limiting, abuse detection (Redis-optional)
-- **Data**: `data/systemPrompt.md` contains the system prompt
-- **Graceful Degradation**: Runs without Redis, falls back to memory-based rate limiting
+  - `personaAgent.ts` - LangGraph Agent with tools
+  - `vectorStore.ts` - Qdrant/Neon vector store (MMR search)
+  - `queryRewriter.ts` - 대명사 치환, 쿼리 확장
+  - `deviceService.ts` - Device ID 기반 개인화
+  - `ragEngine.ts` - RAG + A2UI events
+  - `conversationLimiter.ts` - 대화 제한
+  - `contactService.ts` - 연락처 수집
+- **Infra**: `src/infra/redis.ts` (graceful fallback to memory)
+- **Data**: `~/.cogni/notes/persona/` (SSOT for indexing)
 - **Tests**: Jest with tests in `src/__tests__/`, run single test with `pnpm test -- path/to/test`
 
 ### Blog Architecture
@@ -120,9 +123,9 @@ Use **scoped commits** with conventional commit format:
 ```
 
 **Scopes** (package names):
-- `dwkim` - CLI business card tool
+- `dwkim` - CLI personal agent
 - `blog` - Astro blog
-- `persona-api` - RAG API server
+- `persona-api` - Personal AI agent API
 
 **Types**:
 - `feat` - New feature

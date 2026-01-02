@@ -1,6 +1,6 @@
 # dwkim
 
-터미널에서 만나는 개발자 프로필과 AI 어시스턴트
+터미널에서 만나는 김동욱 AI 에이전트
 
 ## 사용해 보기
 
@@ -8,7 +8,7 @@
 npx dwkim
 ```
 
-터미널에서 프로필 카드를 확인하고 AI와 대화할 수 있어요.
+프로필 카드를 확인하고 김동욱에 대해 대화할 수 있어요.
 
 ## 프로젝트 구조
 
@@ -16,8 +16,8 @@ npx dwkim
 
 | 패키지 | 설명 | 링크 |
 |--------|------|------|
-| [`dwkim`](./packages/dwkim) | CLI 명함 도구 | [![npm](https://img.shields.io/npm/v/dwkim)](https://www.npmjs.com/package/dwkim) |
-| [`persona-api`](./packages/persona-api) | RAG 기반 챗봇 API | [persona-api.fly.dev](https://persona-api.fly.dev) |
+| [`dwkim`](./packages/dwkim) | CLI 개인 에이전트 | [![npm](https://img.shields.io/npm/v/dwkim)](https://www.npmjs.com/package/dwkim) |
+| [`persona-api`](./packages/persona-api) | 개인 AI 에이전트 API | [persona-api.fly.dev](https://persona-api.fly.dev) |
 | [`blog`](./packages/blog) | 개인 블로그 | [dwkim.net](https://dwkim.net) |
 
 ## 로컬 개발
@@ -57,9 +57,9 @@ pnpm build
 - boxen, chalk, ora
 
 **persona-api**
-- Fastify, LangChain
+- Fastify, LangGraph
 - Qdrant (Vector DB)
-- OpenAI, Anthropic
+- Gemini 2.0 Flash, OpenAI Embeddings
 
 **blog**
 - Astro 5

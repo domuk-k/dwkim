@@ -13,14 +13,14 @@ cd "$BLOG_DIR"
 echo "🔄 Syncing Cogni notes..."
 pnpm sync-cogni
 
-# 변경사항 확인
-if git diff --quiet src/content/posts/; then
+# 변경사항 확인 (posts와 about 둘 다)
+if git diff --quiet src/content/posts/ src/content/about/; then
   echo "ℹ️  No changes to deploy"
   exit 0
 fi
 
 echo "📝 Committing changes..."
-git add src/content/posts/
+git add src/content/posts/ src/content/about/
 git commit -m "docs(blog): sync posts from Cogni
 
 🤖 Generated with Cogni"
