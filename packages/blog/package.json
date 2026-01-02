@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "sync-cogni": "tsx scripts/sync-cogni-posts.ts",
+    "sync-cogni": "tsx scripts/sync-cogni-posts.ts && tsx scripts/sync-cogni-about.ts",
+    "sync-cogni:posts": "tsx scripts/sync-cogni-posts.ts",
+    "sync-cogni:about": "tsx scripts/sync-cogni-about.ts",
     "deploy": "./scripts/deploy-blog.sh",
     "prebuild": "pnpm sync-cogni",
     "dev": "astro dev",
