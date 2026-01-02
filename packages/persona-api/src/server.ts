@@ -250,7 +250,51 @@ export async function createServer() {
     });
   });
 
-  return fastify;
+  // Graceful shutdown 함수 생성
+  const gracefulShutdown = async (): Promise<void> => {
+    console.log('🔄 Graceful shutdown 시작...');
+
+    // 1. In-memory 데이터를 Redis로 동기화
+    if (rateLimiter) {
+      try {
+        await rateLimiter.syncToRedis();
+        console.log('✅ RateLimiter 데이터 동기화 완료');
+      } catch (error) {
+        console.error('❌ RateLimiter 동기화 실패:', error);
+      }
+    }
+
+    if (abuseDetection) {
+      try {
+        await abuseDetection.syncToRedis();
+        console.log('✅ AbuseDetection 데이터 동기화 완료');
+      } catch (error) {
+        console.error('❌ AbuseDetection 동기화 실패:', error);
+      }
+    }
+
+    // 2. Fastify 서버 종료
+    try {
+      await fastify.close();
+      console.log('✅ Fastify 서버 종료 완료');
+    } catch (error) {
+      console.error('❌ Fastify 종료 실패:', error);
+    }
+
+    // 3. Redis 연결 종료
+    if (ioredisClient) {
+      try {
+        await ioredisClient.quit();
+        console.log('✅ Redis 연결 종료 완료');
+      } catch (error) {
+        console.error('❌ Redis 종료 실패:', error);
+      }
+    }
+
+    console.log('🛑 Graceful shutdown 완료');
+  };
+
+  return { server: fastify, gracefulShutdown };
 }
 
 // Export build function for testing

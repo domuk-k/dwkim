@@ -162,6 +162,41 @@ export class RateLimiter {
     }
   }
 
+  /**
+   * Graceful shutdown 시 memory 데이터를 Redis로 동기화
+   */
+  async syncToRedis(): Promise<void> {
+    if (this.memoryStore.size === 0) {
+      console.log('RateLimiter: No memory data to sync');
+      return;
+    }
+
+    const now = Date.now();
+    let synced = 0;
+
+    for (const [identifier, entry] of this.memoryStore.entries()) {
+      // 만료되지 않은 항목만 동기화
+      if (entry.resetTime > now) {
+        try {
+          const key = `rate_limit:${identifier}`;
+          const ttl = Math.ceil((entry.resetTime - now) / 1000);
+
+          // 현재 카운트만큼 Redis에 기록
+          for (let i = 0; i < entry.count; i++) {
+            await this.redis.zadd(key, now - i, (now - i).toString());
+          }
+          await this.redis.expire(key, ttl);
+          synced++;
+        } catch (error) {
+          console.error(`RateLimiter: Failed to sync ${identifier}:`, error);
+        }
+      }
+    }
+
+    console.log(`RateLimiter: Synced ${synced}/${this.memoryStore.size} entries to Redis`);
+    this.memoryStore.clear();
+  }
+
   async getLimitInfo(identifier: string): Promise<{
     current: number;
     limit: number;
