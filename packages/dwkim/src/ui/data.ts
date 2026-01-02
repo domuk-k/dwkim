@@ -13,6 +13,7 @@ export const icons = {
   robot: "󰚩", // nf-md-robot
   book: "", // nf-fa-book
   clock: "", // nf-fa-clock_o
+  info: "", // nf-fa-info_circle
 } as const;
 
 export const profile = {
