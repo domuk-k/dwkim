@@ -1,3 +1,9 @@
+## [1.5.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.4.0...dwkim-v1.5.0) (2026-01-02)
+
+### Features
+
+* **dwkim:** improve email prompt UX ([3edadcf](https://github.com/domuk-k/dwkim/commit/3edadcf01d052c2cf024ed5a3dc2c31a362ed011))
+
 ## [1.4.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.3.0...dwkim-v1.4.0) (2026-01-02)
 
 ### Features
