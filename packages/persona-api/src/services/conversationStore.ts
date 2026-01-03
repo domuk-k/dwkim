@@ -100,7 +100,10 @@ export class ConversationStore {
     }
 
     session.history.push({ role, content });
-    session.messageCount++;
+    // user 메시지만 카운트 (5회 질문 후 연락 제안 트리거용)
+    if (role === 'user') {
+      session.messageCount++;
+    }
 
     await this.saveSession(session);
     return session;

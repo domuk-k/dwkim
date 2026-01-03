@@ -325,6 +325,7 @@ export class ChatService {
         if (event.type === 'done' && event.metadata) {
           const messageCount = await this.conversationStore.getMessageCount(sessionId);
           const shouldSuggestContact = messageCount >= THRESHOLDS.SUGGEST_CONTACT;
+          console.log(`[A2UI] sessionId=${sessionId}, messageCount=${messageCount}, threshold=${THRESHOLDS.SUGGEST_CONTACT}, shouldSuggestContact=${shouldSuggestContact}`);
           yield {
             type: 'done',
             metadata: {

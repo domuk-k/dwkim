@@ -541,6 +541,39 @@ export class VectorStore {
   }
 
   /**
+   * 모든 문서 조회 (BM25 인덱싱용)
+   * Qdrant에서 전체 문서를 가져옴
+   */
+  async getAllDocuments(limit: number = 500): Promise<Array<{ id: string; content: string }>> {
+    if (!this.qdrantClient) {
+      console.warn('Qdrant client not available');
+      return [];
+    }
+
+    try {
+      const scrollResult = await this.qdrantClient.scroll(this.collectionName, {
+        limit,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      const documents = scrollResult.points.map((point) => {
+        const payload = point.payload as Record<string, unknown>;
+        return {
+          id: String(point.id),
+          content: (payload.content as string) || '',
+        };
+      });
+
+      console.log(`VectorStore: Loaded ${documents.length} documents for BM25 indexing`);
+      return documents;
+    } catch (error) {
+      console.error('Failed to get all documents:', error);
+      return [];
+    }
+  }
+
+  /**
    * 특정 태그를 가진 문서 목록 조회 (Cogni 동기화 상태 확인용)
    */
   async getDocumentsByTag(tag: string, limit: number = 100): Promise<Document[]> {

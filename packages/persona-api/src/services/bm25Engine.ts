@@ -224,6 +224,7 @@ export class BM25Engine {
 // ─────────────────────────────────────────────────────────────
 
 let bm25Engine: BM25Engine | null = null;
+let initPromise: Promise<void> | null = null;
 
 export function getBM25Engine(): BM25Engine {
   if (!bm25Engine) {
@@ -232,6 +233,29 @@ export function getBM25Engine(): BM25Engine {
   return bm25Engine;
 }
 
+/**
+ * BM25 엔진 초기화 (Qdrant에서 corpus 로드)
+ * RAG 엔진 초기화 시 호출됨
+ */
+export async function initBM25Engine(documents: Array<{ id: string; content: string }>): Promise<void> {
+  if (initPromise) {
+    return initPromise;
+  }
+
+  const engine = getBM25Engine();
+  if (engine.isInitialized()) {
+    console.log('BM25 engine already initialized');
+    return;
+  }
+
+  initPromise = engine.initialize(documents).finally(() => {
+    initPromise = null;
+  });
+
+  return initPromise;
+}
+
 export function resetBM25Engine(): void {
   bm25Engine = null;
+  initPromise = null;
 }
