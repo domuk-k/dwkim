@@ -3,6 +3,7 @@ import { LLMService } from './llmService';
 import type { ChatMessage } from './llmService';
 import { getQueryRewriter } from './queryRewriter';
 import { getSEUService, type SEUResult } from './seuService';
+import { initBM25Engine } from './bm25Engine';
 
 // SEU(Semantic Embedding Uncertainty) 사용 여부
 // 기본 활성화 (모호함 감지에 필수, AMBIGUOUS_PATTERNS 대체)
@@ -134,6 +135,22 @@ export class RAGEngine {
     try {
       // VectorStore 싱글턴 초기화
       await initVectorStore();
+      console.log('RAG Engine: VectorStore initialized');
+
+      // BM25 엔진 초기화 (Hybrid Search용)
+      try {
+        const vectorStore = getVectorStore();
+        const documents = await vectorStore.getAllDocuments();
+        if (documents.length > 0) {
+          await initBM25Engine(documents);
+          console.log('RAG Engine: BM25 initialized with corpus');
+        } else {
+          console.warn('RAG Engine: No documents for BM25, will use dense-only search');
+        }
+      } catch (bm25Error) {
+        console.warn('RAG Engine: BM25 initialization failed, will use dense-only:', bm25Error);
+      }
+
       console.log('RAG Engine initialized successfully');
     } catch (error) {
       console.error('Failed to initialize RAG Engine:', error);
@@ -280,9 +297,10 @@ export class RAGEngine {
 
       if (isAmbiguous) {
         const reason = rewriteResult.needsClarification ? 'text-based' : 'SEU';
-        console.log(`Ambiguous query detected (${reason}), generating suggestions...`);
+        console.log(`[A2UI:Clarification] Ambiguous query detected (${reason}), query="${query}"`);
         yield { type: 'thinking', step: '모호성 감지', detail: '추천 질문 생성 중' };
         const suggestions = await queryRewriter.generateSuggestedQuestions(query);
+        console.log(`[A2UI:Clarification] Generated suggestions: ${JSON.stringify(suggestions)}`);
         yield {
           type: 'clarification',
           suggestedQuestions: suggestions,
