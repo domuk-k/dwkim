@@ -229,6 +229,9 @@ importers:
       dotenv:
         specifier: ^16.3.1
         version: 16.5.0
+      fast-bm25:
+        specifier: ^0.0.5
+        version: 0.0.5(typescript@5.8.3)
       fastify:
         specifier: ^4.24.3
         version: 4.29.1
@@ -4594,6 +4597,12 @@ packages:
     resolution: {integrity: sha512-hMQ4CX1p1izmuLYyZqLMO/qGNw10wSv9QDCPfzXfyFrOaCSSoRfqE1Kf1s5an66J5JZC62NewG+mK49jOCtQew==}
     engines: {node: '>=4'}
 
+  fast-bm25@0.0.5:
+    resolution: {integrity: sha512-6HTiLmPkgeqcPJHccN0pXdqnA7OzhaEQZTFzWnfjIyPoX5sGVKUUpfRc2K2o6zMwK+g009miRhADYn/f2Ax0Mg==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      typescript: ^5.6.3
+
   fast-content-type-parse@1.1.0:
     resolution: {integrity: sha512-fBHHqSTFLVnR61C+gltJuE5GkVQMV0S2nqUO8TJ+5Z3qAKG8vAx4FKai1s5jq/inV1+sREynIWSuQ6HgoSXpDQ==}
 
@@ -6712,6 +6721,9 @@ packages:
 
   points-on-path@0.2.1:
     resolution: {integrity: sha512-25ClnWWuw7JbWZcgqY/gJ4FQWadKxGWk+3kR/7kD0tCaDtPPMj7oHu2ToLaVhfpnHrZzYby2w6tUA0eOIuUg8g==}
+
+  porter2@1.0.3:
+    resolution: {integrity: sha512-fVgS17EQBYI4FMLdfW0H7HhAacQJn0v4y8ssprwPhON0S0FlVGe/BhYNazRtXc+P5I3qICV9SWVwgCXfZXzKwA==}
 
   postcss-media-query-parser@0.2.3:
     resolution: {integrity: sha512-3sOlxmbKcSHMjlUXQZKQ06jOswE7oVkXPxmZdoB1r5l0q6gTFTQSHxNxOrCccElbW7dxNytifNEo8qidX2Vsig==}
@@ -13076,6 +13088,11 @@ snapshots:
       iconv-lite: 0.4.24
       tmp: 0.0.33
 
+  fast-bm25@0.0.5(typescript@5.8.3):
+    dependencies:
+      porter2: 1.0.3
+      typescript: 5.8.3
+
   fast-content-type-parse@1.1.0: {}
 
   fast-content-type-parse@3.0.0: {}
@@ -15777,6 +15794,8 @@ snapshots:
     dependencies:
       path-data-parser: 0.1.0
       points-on-curve: 0.2.0
+
+  porter2@1.0.3: {}
 
   postcss-media-query-parser@0.2.3: {}
 

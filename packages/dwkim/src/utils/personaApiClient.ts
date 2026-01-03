@@ -111,6 +111,13 @@ type Source = {
   metadata: { type: string; title?: string };
 };
 
+// Progress 아이템 (RAG 파이프라인 진행 상태)
+export type ProgressItem = {
+  id: string;
+  label: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+};
+
 export type StreamEvent =
   | { type: 'session'; sessionId: string }
   | {
@@ -132,6 +139,8 @@ export type StreamEvent =
   | { type: 'sources'; sources: Source[] }
   | { type: 'content'; content: string }
   | { type: 'clarification'; suggestedQuestions: string[] }
+  | { type: 'thinking'; step: string; detail?: string }
+  | { type: 'progress'; items: ProgressItem[] }
   | {
       type: 'done';
       metadata: {
