@@ -1,3 +1,15 @@
+## [1.7.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.6.0...dwkim-v1.7.0) (2026-01-03)
+
+### Features
+
+* **dwkim:** add thinking/progress display for RAG streaming ([d4f5b7d](https://github.com/domuk-k/dwkim/commit/d4f5b7d5c030dc19a59d18b33fb46655db0b7116))
+* **persona-api:** add graceful shutdown with memory data sync ([4190e31](https://github.com/domuk-k/dwkim/commit/4190e31e93056883cabce63334b29b919bf73078))
+* **persona-api:** implement Hybrid Search with BM25 + Voyage RRF ([30f882c](https://github.com/domuk-k/dwkim/commit/30f882c8b35e90fdfb16be7eb781bc82aa12bf94))
+
+### Bug Fixes
+
+* **persona-api:** improve error handling with circuit breaker pattern ([97b798e](https://github.com/domuk-k/dwkim/commit/97b798ea459fd33290abc6ad8a29ec80683429d8))
+
 ## [1.6.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.5.0...dwkim-v1.6.0) (2026-01-02)
 
 ### Features
