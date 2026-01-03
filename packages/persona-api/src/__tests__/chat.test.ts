@@ -20,15 +20,18 @@ jest.mock('../services/personaAgent', () => ({
 
 // Mock vectorStore module for singleton pattern
 jest.mock('../services/vectorStore', () => {
+  const mockSearchResults = [
+    {
+      id: 'test-doc',
+      content: 'Test document content',
+      metadata: { type: 'thoughts', title: 'Test' },
+    },
+  ];
+
   const mockVectorStore = {
     initialize: jest.fn().mockResolvedValue(undefined),
-    searchDiverse: jest.fn().mockResolvedValue([
-      {
-        id: 'test-doc',
-        content: 'Test document content',
-        metadata: { type: 'thoughts', title: 'Test' },
-      },
-    ]),
+    searchDiverse: jest.fn().mockResolvedValue(mockSearchResults),
+    searchHybrid: jest.fn().mockResolvedValue(mockSearchResults), // Hybrid Search 추가
     addDocument: jest.fn().mockResolvedValue(undefined),
     deleteDocument: jest.fn().mockResolvedValue(undefined),
   };
@@ -55,14 +58,17 @@ jest.mock('../services/llmService', () => ({
 
 describe('Chat API', () => {
   let app: FastifyInstance;
+  let gracefulShutdown: () => Promise<void>;
 
   beforeAll(async () => {
-    app = await createServer();
+    const result = await createServer();
+    app = result.server;
+    gracefulShutdown = result.gracefulShutdown;
     await app.ready();
   });
 
   afterAll(async () => {
-    await app.close();
+    await gracefulShutdown();
   });
 
   // Helper to get server for supertest

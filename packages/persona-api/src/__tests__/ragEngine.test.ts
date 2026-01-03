@@ -23,6 +23,7 @@ describe('RAGEngine', () => {
     mockVectorStore = {
       initialize: jest.fn().mockResolvedValue(undefined),
       searchDiverse: jest.fn().mockResolvedValue([]),
+      searchHybrid: jest.fn().mockResolvedValue([]), // Hybrid Search
       addDocument: jest.fn().mockResolvedValue(undefined),
       deleteDocument: jest.fn().mockResolvedValue(undefined),
     };
@@ -81,8 +82,8 @@ describe('RAGEngine', () => {
         },
       };
 
-      // Mock vector store search
-      mockVectorStore.searchDiverse.mockResolvedValue(mockDocuments);
+      // Mock vector store search (Hybrid Search)
+      mockVectorStore.searchHybrid.mockResolvedValue(mockDocuments);
 
       // Mock LLM service
       jest
@@ -111,7 +112,7 @@ describe('RAGEngine', () => {
       };
 
       // Mock empty search results
-      mockVectorStore.searchDiverse.mockResolvedValue([]);
+      mockVectorStore.searchHybrid.mockResolvedValue([]);
       jest
         .spyOn(ragEngine['llmService'], 'chat')
         .mockResolvedValue(mockLLMResponse);
@@ -124,7 +125,7 @@ describe('RAGEngine', () => {
     });
 
     it('should handle processing errors', async () => {
-      mockVectorStore.searchDiverse.mockRejectedValue(new Error('Search failed'));
+      mockVectorStore.searchHybrid.mockRejectedValue(new Error('Search failed'));
 
       await expect(ragEngine.processQuery('Test query')).rejects.toThrow(
         'Failed to process query with RAG engine'
@@ -165,12 +166,12 @@ describe('RAGEngine', () => {
         },
       ];
 
-      mockVectorStore.searchDiverse.mockResolvedValue(mockDocuments);
+      mockVectorStore.searchHybrid.mockResolvedValue(mockDocuments);
 
       const result = await ragEngine.searchDocuments('test query', 5);
 
       expect(result).toEqual(mockDocuments);
-      expect(mockVectorStore.searchDiverse).toHaveBeenCalledWith('test query', 5);
+      expect(mockVectorStore.searchHybrid).toHaveBeenCalledWith('test query', 5);
     });
   });
 
