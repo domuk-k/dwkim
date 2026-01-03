@@ -65,6 +65,8 @@ export function ChatView({ apiUrl }: Props) {
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [thinkingStep, setThinkingStep] = useState<{ step: string; detail?: string } | null>(null);
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(0);
   const messageIdRef = useRef(0);
 
   const nextId = () => ++messageIdRef.current;
@@ -97,13 +99,53 @@ export function ChatView({ apiUrl }: Props) {
     };
   }, [client]);
 
-  // 키보드 처리 (Ctrl+C, ESC)
+  // 추천 질문 선택 핸들러
+  const handleSuggestionSelect = useCallback(
+    (question: string) => {
+      setSuggestedQuestions([]);
+      setInput(question);
+    },
+    []
+  );
+
+  // 키보드 처리 (Ctrl+C, ESC, 추천 질문 선택)
   useInput((input, key) => {
     if (key.ctrl && input === 'c') {
       exit();
     }
+
+    // 추천 질문 UI 키보드 네비게이션
+    if (suggestedQuestions.length > 0 && status === 'idle' && !showEmailInput) {
+      if (key.upArrow) {
+        setSelectedSuggestionIdx((prev) => Math.max(0, prev - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setSelectedSuggestionIdx((prev) => Math.min(suggestedQuestions.length - 1, prev + 1));
+        return;
+      }
+      if (key.return) {
+        handleSuggestionSelect(suggestedQuestions[selectedSuggestionIdx]);
+        return;
+      }
+      // 숫자 키로 직접 선택 (1, 2)
+      if (input === '1' && suggestedQuestions.length >= 1) {
+        handleSuggestionSelect(suggestedQuestions[0]);
+        return;
+      }
+      if (input === '2' && suggestedQuestions.length >= 2) {
+        handleSuggestionSelect(suggestedQuestions[1]);
+        return;
+      }
+    }
+
     // ESC 처리
     if (key.escape) {
+      // 추천 질문 닫기
+      if (suggestedQuestions.length > 0) {
+        setSuggestedQuestions([]);
+        return;
+      }
       // 스트리밍 중이면 취소
       if (status === 'loading') {
         client.abort();
@@ -280,6 +322,11 @@ ${icons.chat} 예시 질문
             case 'progress':
               setProgressItems(event.items);
               break;
+            case 'clarification':
+              // A2UI: 모호한 쿼리에 대한 추천 질문 표시
+              setSuggestedQuestions(event.suggestedQuestions);
+              setSelectedSuggestionIdx(0);
+              break;
             case 'content':
               fullContent += event.content;
               setStreamContent(fullContent);
@@ -289,9 +336,10 @@ ${icons.chat} 예시 질문
             case 'done':
               processingTime = event.metadata.processingTime;
               shouldSuggestContact = event.metadata.shouldSuggestContact ?? false;
-              // 완료 시 progress, thinking 초기화
+              // 완료 시 progress, thinking, suggestedQuestions 초기화
               setProgressItems([]);
               setThinkingStep(null);
+              // suggestedQuestions는 유지 (사용자가 선택할 수 있도록)
               break;
             case 'error':
               throw new ApiError(event.error);
@@ -494,6 +542,41 @@ ${icons.chat} 예시 질문
           <Text color={theme.error}>
             {icons.error} {errorMessage}
           </Text>
+        </Box>
+      )}
+
+      {/* 추천 질문 UI (A2UI - 모호한 쿼리) */}
+      {suggestedQuestions.length > 0 && status === 'idle' && !showEmailInput && (
+        <Box flexDirection="column" marginTop={1} paddingX={1}>
+          <Box
+            borderStyle="round"
+            borderColor={theme.info}
+            paddingX={2}
+            paddingY={1}
+            flexDirection="column"
+          >
+            <Text color={theme.info}>
+              💡 더 구체적인 질문을 해보시겠어요?
+            </Text>
+            <Box marginTop={1} flexDirection="column">
+              {suggestedQuestions.map((q, idx) => (
+                <Box key={idx}>
+                  <Text
+                    color={idx === selectedSuggestionIdx ? theme.lavender : theme.muted}
+                    bold={idx === selectedSuggestionIdx}
+                  >
+                    {idx === selectedSuggestionIdx ? '▸ ' : '  '}
+                    {idx + 1}. {q}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+            <Box marginTop={1}>
+              <Text color={theme.muted} dimColor>
+                ↑↓: 선택 • Enter: 질문하기 • 1-2: 바로 선택 • ESC: 닫기
+              </Text>
+            </Box>
+          </Box>
         </Box>
       )}
 
