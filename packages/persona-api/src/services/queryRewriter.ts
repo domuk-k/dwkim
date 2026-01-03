@@ -50,12 +50,9 @@ const EXPANSION_KEYWORDS: Record<string, string[]> = {
   '연락처': ['김동욱', '이메일', 'GitHub', 'LinkedIn'],
 };
 
-// 모호한 쿼리 패턴 (명확화 필요)
-const AMBIGUOUS_PATTERNS = [
-  /^(뭐|뭘|무엇|무슨|어떤|어떻게|왜)\s*.{0,5}$/,  // "뭐했어", "왜?"
-  /^.{0,3}(했|했지|했나|했어|했는지|인지)$/,        // "뭘 했지"
-  /(시도|도전|실패|성공|경험).*(했|겪|느낌)/,      // "어떤 시도를 했지"
-];
+// 모호함 감지: SEU (Semantic Embedding Uncertainty) 기반으로 전환
+// 기존 AMBIGUOUS_PATTERNS는 제거하고 길이 threshold만 유지
+// @see ragEngine.ts - shouldAskClarification() with SEU
 
 // LLM 기반 추천 질문 생성 프롬프트
 const SUGGESTION_PROMPT = `당신은 김동욱에 대한 질문을 추천하는 도우미입니다.
@@ -86,16 +83,23 @@ export class QueryRewriter {
   }
 
   /**
-   * 모호한 쿼리인지 확인
+   * 모호한 쿼리인지 확인 (길이 기반만)
+   *
+   * 한글은 정보 밀도가 높아 3자, 영어는 5자 threshold 적용
+   * 한글 1자 ≈ 영어 0.5-0.7 단어
+   *
+   * 시맨틱 모호함은 SEU (Semantic Embedding Uncertainty)로 감지
+   * @see ragEngine.ts - shouldAskClarification()
    */
   isAmbiguous(query: string): boolean {
     const trimmed = query.trim();
 
-    // 너무 짧은 쿼리
-    if (trimmed.length < 5) return true;
+    // 한글 포함 여부에 따라 threshold 조정
+    const hasKorean = /[\uAC00-\uD7AF]/.test(trimmed);
+    const threshold = hasKorean ? 3 : 5;
 
-    // 모호한 패턴 매칭
-    return AMBIGUOUS_PATTERNS.some((pattern) => pattern.test(trimmed));
+    // 길이 threshold만 적용 (패턴 매칭 제거)
+    return trimmed.length < threshold;
   }
 
   /**

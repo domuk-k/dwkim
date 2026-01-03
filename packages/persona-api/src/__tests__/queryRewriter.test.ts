@@ -132,16 +132,32 @@ describe('QueryRewriter', () => {
     });
   });
 
-  describe('isAmbiguous - 모호한 쿼리 감지', () => {
-    it('should detect very short queries as ambiguous', () => {
-      expect(rewriter.isAmbiguous('뭐?')).toBe(true);
-      expect(rewriter.isAmbiguous('응')).toBe(true);
-      expect(rewriter.isAmbiguous('왜')).toBe(true);
+  describe('isAmbiguous - 모호한 쿼리 감지 (길이 기반)', () => {
+    // 한글: 3자 미만이면 ambiguous
+    // 영어: 5자 미만이면 ambiguous
+    // 시맨틱 패턴 감지는 SEU (ragEngine)로 이관됨
+
+    it('should detect very short Korean queries as ambiguous (< 3 chars)', () => {
+      expect(rewriter.isAmbiguous('뭐')).toBe(true);    // 1자
+      expect(rewriter.isAmbiguous('응')).toBe(true);    // 1자
+      expect(rewriter.isAmbiguous('왜')).toBe(true);    // 1자
+      expect(rewriter.isAmbiguous('뭐?')).toBe(true);   // 2자
     });
 
-    it('should detect vague question patterns', () => {
-      expect(rewriter.isAmbiguous('뭐 했어')).toBe(true);
-      expect(rewriter.isAmbiguous('왜?')).toBe(true);
+    it('should NOT mark Korean queries >= 3 chars as ambiguous', () => {
+      // 길이 기반으로만 체크, 패턴 매칭 제거됨
+      expect(rewriter.isAmbiguous('뭐 했어')).toBe(false);  // 4자 (공백 포함)
+      expect(rewriter.isAmbiguous('경력은?')).toBe(false);  // 4자
+    });
+
+    it('should detect very short English queries as ambiguous (< 5 chars)', () => {
+      expect(rewriter.isAmbiguous('hi')).toBe(true);    // 2자
+      expect(rewriter.isAmbiguous('what')).toBe(true);  // 4자
+    });
+
+    it('should NOT mark English queries >= 5 chars as ambiguous', () => {
+      expect(rewriter.isAmbiguous('hello')).toBe(false);  // 5자
+      expect(rewriter.isAmbiguous('skills?')).toBe(false); // 7자
     });
 
     it('should NOT mark specific questions as ambiguous', () => {

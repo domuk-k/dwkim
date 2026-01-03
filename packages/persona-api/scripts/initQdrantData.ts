@@ -1,13 +1,12 @@
 #!/usr/bin/env tsx
 
-import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { Document as LangChainDocument } from '@langchain/core/documents';
 import fs from 'fs/promises';
 import path from 'path';
 import { homedir } from 'os';
 import dotenv from 'dotenv';
 import { VoyageEmbeddings } from '../src/services/voyageEmbeddings';
+import { BM25Engine, getBM25Engine, resetBM25Engine } from '../src/services/bm25Engine';
 
 // Load .env.local first (for local dev), then .env
 dotenv.config({ path: '.env.local' });
@@ -121,14 +120,23 @@ function extractTitle(text: string): string | null {
 /**
  * 키워드로 카테고리 추론
  */
-function inferCategory(keywords?: string[]): string {
-  if (!keywords || keywords.length === 0) return 'general';
+function inferCategory(keywords?: string[] | string): string {
+  if (!keywords) return 'general';
+
+  // string인 경우 배열로 변환
+  const keywordArray = Array.isArray(keywords)
+    ? keywords
+    : typeof keywords === 'string'
+      ? keywords.split(',').map((k) => k.trim())
+      : [];
+
+  if (keywordArray.length === 0) return 'general';
 
   const aiKeywords = ['AI', 'Claude', 'agent', 'LLM', 'RAG'];
   const devKeywords = ['프로젝트', '멘탈모델', '프로세스', 'TDD'];
 
-  if (keywords.some((k) => aiKeywords.some((ai) => k.includes(ai)))) return 'ai';
-  if (keywords.some((k) => devKeywords.some((dev) => k.includes(dev))))
+  if (keywordArray.some((k) => aiKeywords.some((ai) => k.includes(ai)))) return 'ai';
+  if (keywordArray.some((k) => devKeywords.some((dev) => k.includes(dev))))
     return 'methodology';
   return 'philosophy';
 }
@@ -278,7 +286,7 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
     }
 
     const slug = path.basename(filePath, '.md');
-    const keywords = frontmatter.keywords as string[] | undefined;
+    const keywords = frontmatter.keywords as string[] | string | undefined;
 
     // 섹션 기반 청킹
     const chunks = chunkBySection(body);
@@ -306,11 +314,49 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
   return results;
 }
 
+// Voyage embedding 차원 (voyage-multilingual-2)
+const VOYAGE_DIMENSION = 1024;
+
 /**
- * Qdrant 초기화
+ * Qdrant Hybrid Collection 생성
+ * Dense (Voyage) + Sparse (BM25) 벡터 지원
+ */
+async function createHybridCollection(client: QdrantClient): Promise<void> {
+  try {
+    // 기존 컬렉션 삭제
+    await client.deleteCollection(COLLECTION_NAME);
+    console.log(`🗑️  기존 컬렉션 삭제: ${COLLECTION_NAME}`);
+  } catch {
+    // 컬렉션이 없으면 무시
+  }
+
+  // Hybrid 컬렉션 생성 (dense + sparse)
+  await client.createCollection(COLLECTION_NAME, {
+    vectors: {
+      dense: {
+        size: VOYAGE_DIMENSION,
+        distance: 'Cosine',
+      },
+    },
+    sparse_vectors: {
+      sparse: {
+        index: {
+          on_disk: false, // 메모리에서 빠른 검색
+        },
+      },
+    },
+  });
+
+  console.log(`✅ Hybrid 컬렉션 생성: ${COLLECTION_NAME}`);
+  console.log(`   - Dense: ${VOYAGE_DIMENSION}d (Voyage multilingual-2)`);
+  console.log(`   - Sparse: BM25 (한국어/영어 토크나이저)`);
+}
+
+/**
+ * Qdrant 초기화 (Hybrid Search 지원)
  */
 async function initializeDatabase(testMode: boolean = false) {
-  console.log('\n🚀 Qdrant 초기화 시작...\n');
+  console.log('\n🚀 Qdrant Hybrid 초기화 시작...\n');
 
   const qdrantUrl = process.env.QDRANT_URL;
 
@@ -355,6 +401,17 @@ async function initializeDatabase(testMode: boolean = false) {
     modelName: 'voyage-multilingual-2',
   });
 
+  // BM25 엔진 초기화
+  console.log('🔧 BM25 엔진 초기화...');
+  resetBM25Engine(); // 싱글톤 리셋
+  const bm25Engine = getBM25Engine();
+  await bm25Engine.initialize(
+    allChunks.map((chunk) => ({
+      id: chunk.id,
+      content: chunk.content,
+    }))
+  );
+
   // Qdrant 클라이언트 설정
   const url = new URL(qdrantUrl!);
   const isHttps = url.protocol === 'https:';
@@ -373,45 +430,73 @@ async function initializeDatabase(testMode: boolean = false) {
     checkCompatibility: false, // 버전 체크 스킵
   });
 
-  // LangChain Document로 변환
-  const docs = allChunks.map(
-    (chunk) =>
-      new LangChainDocument({
-        pageContent: chunk.content,
-        metadata: {
-          ...chunk.metadata,
-          docId: chunk.id,
-        },
-      })
+  // Hybrid 컬렉션 생성
+  console.log('🔧 Qdrant Hybrid 컬렉션 생성 중...');
+  await createHybridCollection(qdrantClient);
+
+  // Dense 임베딩 생성 (배치 처리)
+  console.log('🔧 Dense 임베딩 생성 중...');
+  const contents = allChunks.map((chunk) => chunk.content);
+  const denseVectors = await embeddings.embedDocuments(contents);
+  console.log(`   ${denseVectors.length}개 dense 벡터 생성 완료`);
+
+  // Sparse 벡터 생성 (BM25)
+  console.log('🔧 Sparse 벡터 생성 중...');
+  const sparseVectors = allChunks.map((chunk) =>
+    bm25Engine.generateSparseVector(chunk.content)
   );
+  console.log(`   ${sparseVectors.length}개 sparse 벡터 생성 완료`);
 
-  // Vector Store 생성 (기존 컬렉션 덮어쓰기)
-  console.log('🔧 Qdrant 컬렉션 생성 중...');
-  const vectorStore = await QdrantVectorStore.fromDocuments(
-    docs,
-    embeddings,
-    {
-      client: qdrantClient,
-      collectionName: COLLECTION_NAME,
-    }
-  );
+  // 포인트 업서트 (배치)
+  console.log('🔧 Qdrant에 포인트 업서트 중...');
+  const BATCH_SIZE = 100;
 
-  console.log(`✅ ${allChunks.length}개 문서 업로드 완료!`);
+  for (let i = 0; i < allChunks.length; i += BATCH_SIZE) {
+    const batchChunks = allChunks.slice(i, i + BATCH_SIZE);
+    const batchDense = denseVectors.slice(i, i + BATCH_SIZE);
+    const batchSparse = sparseVectors.slice(i, i + BATCH_SIZE);
 
-  // 연결 확인을 위해 간단한 검색 테스트
-  const testResults = await vectorStore.similaritySearch('테스트', 1);
-  if (testResults.length > 0) {
-    console.log('✅ Qdrant 연결 확인 완료');
+    const points = batchChunks.map((chunk, idx) => ({
+      id: i + idx,  // Qdrant requires integer or UUID
+      vector: {
+        dense: batchDense[idx],
+        sparse: batchSparse[idx],
+      },
+      payload: {
+        content: chunk.content,
+        ...chunk.metadata,
+        docId: chunk.id,  // 원래 문자열 ID는 payload에 저장
+      },
+    }));
+
+    await qdrantClient.upsert(COLLECTION_NAME, {
+      wait: true,
+      points,
+    });
+
+    console.log(`   배치 ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(allChunks.length / BATCH_SIZE)} 업로드 완료`);
   }
 
-  console.log('\n✅ 데이터베이스 초기화 완료!');
+  console.log(`✅ ${allChunks.length}개 문서 Hybrid 업로드 완료!`);
+
+  // 연결 확인을 위해 간단한 검색 테스트
+  const testResults = await qdrantClient.query(COLLECTION_NAME, {
+    query: denseVectors[0],
+    using: 'dense',
+    limit: 1,
+  });
+  if (testResults.points.length > 0) {
+    console.log('✅ Qdrant Hybrid 연결 확인 완료');
+  }
+
+  console.log('\n✅ Hybrid 데이터베이스 초기화 완료!');
 }
 
 /**
- * 검색 테스트 (MMR 포함)
+ * 검색 테스트 (Hybrid Search 포함)
  */
-async function testRetrieval() {
-  console.log('\n🔍 검색 테스트 시작...\n');
+async function testSearch() {
+  console.log('\n🔍 Hybrid 검색 테스트 시작...\n');
 
   const qdrantUrl = process.env.QDRANT_URL;
 
@@ -424,6 +509,13 @@ async function testRetrieval() {
   const embeddings = new VoyageEmbeddings({
     modelName: 'voyage-multilingual-2',
   });
+
+  // BM25 엔진 체크
+  const bm25Engine = getBM25Engine();
+  const hasBM25 = bm25Engine.isInitialized();
+  if (!hasBM25) {
+    console.warn('⚠️  BM25 엔진이 초기화되지 않았습니다. Dense 검색만 테스트합니다.');
+  }
 
   // Qdrant 클라이언트 설정
   const url = new URL(qdrantUrl);
@@ -440,95 +532,121 @@ async function testRetrieval() {
     checkCompatibility: false,
   });
 
-  const vectorStore = await QdrantVectorStore.fromExistingCollection(
-    embeddings,
-    {
-      client: qdrantClient,
-      collectionName: COLLECTION_NAME,
-    }
-  );
-
   const testQueries = [
     '취미가 뭐야?',
     '코드 리뷰에서 중요하게 보는 것은?',
     '기술 스택이 뭔가요?',
     '어떤 프로젝트를 했나요?',
+    'Coxwave',  // 고유명사 테스트 (BM25가 강점)
   ];
 
-  console.log('📌 일반 검색 (Similarity Search):');
+  // Dense 검색 테스트
+  console.log('📌 Dense 검색 (Voyage):');
   for (const query of testQueries) {
     console.log(`\n❓ Query: "${query}"`);
 
-    const results = await vectorStore.similaritySearch(query, 3);
+    const denseVector = await embeddings.embedQuery(query);
+    const results = await qdrantClient.query(COLLECTION_NAME, {
+      query: denseVector,
+      using: 'dense',
+      limit: 3,
+      with_payload: true,
+    });
 
-    if (results.length === 0) {
+    if (results.points.length === 0) {
       console.log('   ❌ 결과 없음');
     } else {
-      results.forEach((doc, index) => {
+      results.points.forEach((point, index) => {
+        const payload = point.payload as Record<string, unknown>;
+        const content = (payload.content as string) || '';
         console.log(
-          `   ${index + 1}. [${doc.metadata.type}] ${doc.pageContent.substring(0, 80)}...`
+          `   ${index + 1}. [${payload.type}] ${content.substring(0, 80)}...`
         );
       });
     }
   }
 
-  console.log('\n\n📌 MMR 검색 (다양성 최적화):');
-  for (const query of testQueries) {
-    console.log(`\n❓ Query: "${query}"`);
+  // BM25가 초기화된 경우에만 Sparse/Hybrid 테스트
+  if (hasBM25) {
+    console.log('\n\n📌 Sparse 검색 (BM25):');
+    for (const query of testQueries) {
+      console.log(`\n❓ Query: "${query}"`);
 
-    const results = await vectorStore.maxMarginalRelevanceSearch(query, {
-      k: 3,
-      fetchK: 10,
-      lambda: 0.5,
-    });
+      const sparseVector = bm25Engine.generateSparseVector(query);
+      if (sparseVector.indices.length === 0) {
+        console.log('   ⚠️ 쿼리 토큰이 어휘에 없음 (OOV)');
+        continue;
+      }
 
-    if (results.length === 0) {
-      console.log('   ❌ 결과 없음');
-    } else {
-      results.forEach((doc, index) => {
-        console.log(
-          `   ${index + 1}. [${doc.metadata.type}] ${doc.pageContent.substring(0, 80)}...`
-        );
+      const results = await qdrantClient.query(COLLECTION_NAME, {
+        query: sparseVector,
+        using: 'sparse',
+        limit: 3,
+        with_payload: true,
       });
+
+      if (results.points.length === 0) {
+        console.log('   ❌ 결과 없음');
+      } else {
+        results.points.forEach((point, index) => {
+          const payload = point.payload as Record<string, unknown>;
+          const content = (payload.content as string) || '';
+          console.log(
+            `   ${index + 1}. [${payload.type}] ${content.substring(0, 80)}...`
+          );
+        });
+      }
+    }
+
+    console.log('\n\n📌 Hybrid 검색 (RRF Fusion):');
+    for (const query of testQueries) {
+      console.log(`\n❓ Query: "${query}"`);
+
+      const denseVector = await embeddings.embedQuery(query);
+      const sparseVector = bm25Engine.generateSparseVector(query);
+
+      // Qdrant Query API with prefetch + RRF fusion
+      const results = await qdrantClient.query(COLLECTION_NAME, {
+        prefetch: [
+          {
+            query: sparseVector,
+            using: 'sparse',
+            limit: 10,
+          },
+          {
+            query: denseVector,
+            using: 'dense',
+            limit: 10,
+          },
+        ],
+        query: { fusion: 'rrf' },
+        limit: 3,
+        with_payload: true,
+      });
+
+      if (results.points.length === 0) {
+        console.log('   ❌ 결과 없음');
+      } else {
+        results.points.forEach((point, index) => {
+          const payload = point.payload as Record<string, unknown>;
+          const content = (payload.content as string) || '';
+          const score = point.score?.toFixed(3) || 'N/A';
+          console.log(
+            `   ${index + 1}. [${payload.type}] (score: ${score}) ${content.substring(0, 70)}...`
+          );
+        });
+      }
     }
   }
 }
 
 /**
- * 컬렉션 삭제 후 재생성
+ * 컬렉션 삭제 후 재생성 (Hybrid)
  */
 async function cleanAndInitialize() {
-  console.log('\n🧹 컬렉션 정리 시작...\n');
+  console.log('\n🧹 Hybrid 컬렉션 정리 및 재생성...\n');
 
-  const qdrantUrl = process.env.QDRANT_URL;
-  if (!qdrantUrl) {
-    console.error('❌ QDRANT_URL 환경변수가 필요합니다');
-    process.exit(1);
-  }
-
-  const url = new URL(qdrantUrl);
-  const isHttps = url.protocol === 'https:';
-  const port = isHttps ? 443 : parseInt(url.port || '6333');
-
-  console.log(`🔗 Qdrant 연결: ${url.hostname}:${port} (${isHttps ? 'HTTPS' : 'HTTP'})`);
-
-  const qdrantClient = new QdrantClient({
-    host: url.hostname,
-    port,
-    https: isHttps,
-    apiKey: process.env.QDRANT_API_KEY,
-    checkCompatibility: false,
-  });
-
-  // 컬렉션 삭제
-  try {
-    await qdrantClient.deleteCollection(COLLECTION_NAME);
-    console.log(`✅ 기존 컬렉션 '${COLLECTION_NAME}' 삭제 완료`);
-  } catch (error) {
-    console.log(`ℹ️  컬렉션이 존재하지 않거나 이미 삭제됨`);
-  }
-
-  // 재초기화
+  // 재초기화 (createHybridCollection에서 삭제 포함)
   await initializeDatabase(false);
 }
 
@@ -536,19 +654,19 @@ async function cleanAndInitialize() {
 async function main() {
   const args = process.argv.slice(2);
   const testMode = args.includes('--test');
-  const runRetrieval = args.includes('--retrieval');
+  const searchOnly = args.includes('--search');
   const cleanMode = args.includes('--clean');
 
-  if (runRetrieval) {
-    await testRetrieval();
+  if (searchOnly) {
+    await testSearch();
   } else if (cleanMode) {
     await cleanAndInitialize();
-    await testRetrieval();
+    await testSearch();
   } else {
     await initializeDatabase(testMode);
 
     if (!testMode) {
-      await testRetrieval();
+      await testSearch();
     }
   }
 

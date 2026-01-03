@@ -2,6 +2,7 @@ import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { Document as LangChainDocument } from '@langchain/core/documents';
 import { VoyageEmbeddings } from './voyageEmbeddings';
+import { getBM25Engine, type SparseVector } from './bm25Engine';
 
 export type DocumentType =
   | 'resume'
@@ -176,68 +177,6 @@ export class VectorStore {
     }
   }
 
-  async search(
-    query: string,
-    topK: number = 5,
-    filter?: Record<string, unknown>
-  ): Promise<Document[]> {
-    if (!this.vectorStore) {
-      console.warn('Vector store not available - returning empty results');
-      return this.getMockResults(query);
-    }
-
-    try {
-      console.log('VectorStore: Searching for:', query);
-
-      const results = await this.vectorStore.similaritySearch(query, topK, filter);
-
-      console.log('VectorStore: Found', results.length, 'results');
-
-      return this.mapResults(results);
-    } catch (error) {
-      console.error('Vector search failed:', error);
-      return this.getMockResults(query);
-    }
-  }
-
-  /**
-   * MMR 검색: 관련성과 다양성을 동시에 최적화
-   * Qdrant 네이티브 MMR 지원 활용
-   */
-  async searchMMR(
-    query: string,
-    topK: number = 5,
-    options?: {
-      fetchK?: number;  // 리랭킹 전 후보 수
-      lambda?: number;  // 0=다양성 중심, 1=관련성 중심 (기본 0.5)
-    }
-  ): Promise<Document[]> {
-    if (!this.vectorStore) {
-      console.warn('Vector store not available - returning mock results');
-      return this.getMockResults(query);
-    }
-
-    try {
-      console.log('VectorStore: MMR searching for:', query);
-
-      const fetchK = options?.fetchK || topK * 3;
-      const lambda = options?.lambda || 0.5;
-
-      const results = await this.vectorStore.maxMarginalRelevanceSearch(query, {
-        k: topK,
-        fetchK,
-        lambda,
-      });
-
-      console.log(`VectorStore: MMR returned ${results.length} diverse results`);
-
-      return this.mapResults(results);
-    } catch (error) {
-      console.error('MMR search failed, falling back to similarity search:', error);
-      return this.search(query, topK);
-    }
-  }
-
   /**
    * 다양성 검색 (키워드 부스팅 + 중복 제거 + 유사도 필터링)
    *
@@ -301,59 +240,128 @@ export class VectorStore {
   }
 
   /**
-   * 필터가 필요할 때 사용하는 폴백 다양성 검색
+   * Hybrid 검색 (Dense + Sparse with RRF Fusion)
+   *
+   * Dense (Voyage) + Sparse (BM25)를 결합하여 검색
+   * - Dense: 의미적 유사성 (semantic similarity)
+   * - Sparse: 키워드 매칭 (고유명사, 정확한 용어)
+   * - RRF: Reciprocal Rank Fusion으로 점수 융합
+   *
+   * @see https://qdrant.tech/documentation/concepts/hybrid-queries/
    */
-  private async searchDiverseFallback(
+  async searchHybrid(
     query: string,
     topK: number = 5,
-    filter?: Record<string, unknown>
+    options?: {
+      prefetchLimit?: number;  // prefetch 후보 수 (기본: topK * 2)
+      denseFallback?: boolean; // BM25 실패 시 Dense only 폴백 (기본: true)
+    }
   ): Promise<Document[]> {
-    if (!this.vectorStore) {
+    // Mock 모드 체크
+    if (!this.qdrantClient || !this.embeddings) {
+      console.warn('Vector store not available - returning mock results');
       return this.getMockResults(query);
     }
 
     try {
-      console.log('VectorStore: Diverse fallback searching for:', query);
+      const prefetchLimit = options?.prefetchLimit ?? topK * 2;
+      const denseFallback = options?.denseFallback ?? true;
 
-      const fetchK = topK * 3;
-      const results = await this.vectorStore.similaritySearch(query, fetchK, filter);
+      // 1. Dense vector 생성
+      const denseVector = await this.embeddings.embedQuery(query);
 
-      // 문서 제목별로 그룹화, 첫 번째(가장 유사한) 청크만 유지
-      const seen = new Set<string>();
-      const diverseResults = results.filter((doc) => {
-        const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      }).slice(0, topK);
+      // 2. Sparse vector 생성 (BM25)
+      const bm25Engine = getBM25Engine();
+      let sparseVector: SparseVector | null = null;
 
-      console.log(`VectorStore: ${results.length} candidates → ${diverseResults.length} diverse results`);
+      if (bm25Engine.isInitialized()) {
+        sparseVector = bm25Engine.generateSparseVector(query);
+        // 빈 sparse vector는 null 처리
+        if (sparseVector.indices.length === 0) {
+          console.log(`VectorStore: Query "${query}" has no BM25 tokens (OOV)`);
+          sparseVector = null;
+        }
+      } else {
+        console.warn('VectorStore: BM25 engine not initialized, using dense only');
+      }
 
-      return this.mapResults(diverseResults);
+      // 3. Hybrid 또는 Dense only 검색
+      let results;
+
+      if (sparseVector) {
+        // Hybrid Search with RRF
+        console.log(`VectorStore: Hybrid searching for: "${query}"`);
+        results = await this.qdrantClient.query(this.collectionName, {
+          prefetch: [
+            {
+              query: sparseVector,
+              using: 'sparse',
+              limit: prefetchLimit,
+            },
+            {
+              query: denseVector,
+              using: 'dense',
+              limit: prefetchLimit,
+            },
+          ],
+          query: { fusion: 'rrf' },
+          limit: topK,
+          with_payload: true,
+        });
+      } else if (denseFallback) {
+        // Dense only fallback
+        console.log(`VectorStore: Dense-only searching for: "${query}"`);
+        results = await this.qdrantClient.query(this.collectionName, {
+          query: denseVector,
+          using: 'dense',
+          limit: topK,
+          with_payload: true,
+        });
+      } else {
+        console.warn('VectorStore: No sparse vector and fallback disabled');
+        return [];
+      }
+
+      console.log(`VectorStore: Hybrid returned ${results.points.length} results`);
+
+      // 4. 결과 매핑
+      return this.mapQdrantResults(results.points);
     } catch (error) {
-      console.error('Diverse fallback search failed:', error);
-      return this.search(query, topK, filter);
+      console.error('Hybrid search failed:', error);
+      // 에러 시 기존 searchDiverse로 폴백
+      return this.searchDiverse(query, topK);
     }
   }
 
-  private mapResults(results: LangChainDocument[]): Document[] {
-    return results.map((doc, index) => ({
-      id: doc.metadata.docId || `result-${index}`,
-      content: doc.pageContent,
-      metadata: {
-        type: doc.metadata.type || 'experience',
-        title: doc.metadata.title,
-        category: doc.metadata.category,
-        source: doc.metadata.source,
-        pubDate: doc.metadata.pubDate,
-        keywords: doc.metadata.keywords,
-        chunkIndex: doc.metadata.chunkIndex,
-        totalChunks: doc.metadata.totalChunks,
-        createdAt: doc.metadata.createdAt,
-        path: doc.metadata.path,
-        tags: doc.metadata.tags,
-      },
-    }));
+  /**
+   * Qdrant 직접 쿼리 결과를 Document로 매핑
+   */
+  private mapQdrantResults(points: Array<{
+    id: string | number;
+    score?: number;
+    payload?: Record<string, unknown> | null;
+  }>): Document[] {
+    return points.map((point, index) => {
+      const payload = point.payload || {};
+      return {
+        id: (payload.docId as string) || `result-${index}`,
+        content: (payload.content as string) || '',
+        metadata: {
+          type: (payload.type as DocumentType) || 'experience',
+          title: payload.title as string | undefined,
+          category: payload.category as string | undefined,
+          source: payload.source as DocumentSource | undefined,
+          pubDate: payload.pubDate as string | undefined,
+          keywords: payload.keywords as string[] | undefined,
+          chunkIndex: payload.chunkIndex as number | undefined,
+          totalChunks: payload.totalChunks as number | undefined,
+          createdAt: payload.createdAt as string | undefined,
+          path: payload.path as string | undefined,
+          tags: payload.tags as string[] | undefined,
+        },
+        score: point.score ? Math.round(point.score * 1000) / 1000 : undefined,
+      };
+    });
   }
 
   private mapResultsWithScore(results: [LangChainDocument, number][]): Document[] {
