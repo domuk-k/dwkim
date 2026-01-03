@@ -8,6 +8,7 @@ import {
   PersonaApiClient,
   ApiError,
   type StreamEvent,
+  type ProgressItem,
 } from '../utils/personaApiClient.js';
 import { shouldShowEmailPrompt, setHideEmailPrompt } from '../utils/config.js';
 
@@ -62,6 +63,8 @@ export function ChatView({ apiUrl }: Props) {
   const [emailInput, setEmailInput] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [thinkingStep, setThinkingStep] = useState<{ step: string; detail?: string } | null>(null);
+  const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
   const messageIdRef = useRef(0);
 
   const nextId = () => ++messageIdRef.current;
@@ -271,13 +274,24 @@ ${icons.chat} 예시 질문
             case 'sources':
               sources = event.sources;
               break;
+            case 'thinking':
+              setThinkingStep({ step: event.step, detail: event.detail });
+              break;
+            case 'progress':
+              setProgressItems(event.items);
+              break;
             case 'content':
               fullContent += event.content;
               setStreamContent(fullContent);
+              // 컨텐츠 스트리밍 시작하면 thinking 숨기기
+              setThinkingStep(null);
               break;
             case 'done':
               processingTime = event.metadata.processingTime;
               shouldSuggestContact = event.metadata.shouldSuggestContact ?? false;
+              // 완료 시 progress, thinking 초기화
+              setProgressItems([]);
+              setThinkingStep(null);
               break;
             case 'error':
               throw new ApiError(event.error);
@@ -387,14 +401,8 @@ ${icons.chat} 예시 질문
         setEmailSubmitting(false);
       }
     },
-    [apiUrl, emailSubmitting]
+    [apiUrl, emailSubmitting, sessionId]
   );
-
-  // 이메일 입력 취소
-  const handleEmailCancel = useCallback(() => {
-    setShowEmailInput(false);
-    setEmailInput('');
-  }, []);
 
   const statusIndicator: Record<Status, string> = {
     connecting: `${icons.spinner} 연결 중...`,
@@ -417,8 +425,48 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
+      {/* Progress 표시 (RAG 파이프라인 진행 상태) */}
+      {progressItems.length > 0 && !streamContent && (
+        <Box flexDirection="column" marginY={1} marginLeft={2}>
+          {progressItems.map((item) => (
+            <Box key={item.id}>
+              <Text
+                color={
+                  item.status === 'completed'
+                    ? theme.success
+                    : item.status === 'in_progress'
+                      ? theme.info
+                      : theme.muted
+                }
+              >
+                {item.status === 'completed'
+                  ? '✓'
+                  : item.status === 'in_progress'
+                    ? '◉'
+                    : item.status === 'skipped'
+                      ? '○'
+                      : '○'}{' '}
+                {item.label}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Thinking 표시 (현재 처리 단계) */}
+      {thinkingStep && (
+        <Box marginY={1} marginLeft={2}>
+          <Text color={theme.lavender} dimColor>
+            💭 {thinkingStep.step}
+            {thinkingStep.detail && (
+              <Text color={theme.muted}> — {thinkingStep.detail}</Text>
+            )}
+          </Text>
+        </Box>
+      )}
+
       {/* 상태 표시 (tool_call 포함) */}
-      {status !== 'idle' && status !== 'error' && (
+      {status !== 'idle' && status !== 'error' && !progressItems.length && (
         <Box flexDirection="column" marginY={1}>
           <Text color={theme.info}>{statusIndicator[status]}</Text>
           {loadingState?.toolCalls && loadingState.toolCalls.length > 0 && (
