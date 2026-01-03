@@ -1,3 +1,13 @@
+## [1.8.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.7.0...dwkim-v1.8.0) (2026-01-03)
+
+### Features
+
+* **dwkim:** add clarification UI for ambiguous queries (A2UI) ([8bc0ded](https://github.com/domuk-k/dwkim/commit/8bc0ded6dd6a8d37470790fe6c36ae2ed0020727))
+
+### Bug Fixes
+
+* **persona-api:** fix A2UI contact suggestion and BM25 initialization ([d036f4f](https://github.com/domuk-k/dwkim/commit/d036f4f898170109800e543c40b44c45ead44200))
+
 ## [1.7.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.6.0...dwkim-v1.7.0) (2026-01-03)
 
 ### Features
