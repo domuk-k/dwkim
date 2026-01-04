@@ -493,8 +493,8 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* Thinking 표시 (현재 처리 단계 with animated spinner) */}
-      {thinkingStep && (
+      {/* Thinking 표시 (progressItems 없을 때만) */}
+      {thinkingStep && !progressItems.length && (
         <Box marginY={1} marginLeft={2}>
           <Text color={theme.lavender}>
             <Spinner type="dots" />
@@ -508,8 +508,8 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 상태 표시 (animated spinner + tool_call) */}
-      {status !== 'idle' && status !== 'error' && !progressItems.length && (
+      {/* 상태 표시 (progress/thinking 없을 때만) */}
+      {status !== 'idle' && status !== 'error' && !progressItems.length && !thinkingStep && (
         <Box flexDirection="column" marginY={1}>
           <Box>
             {status === 'loading' && (
