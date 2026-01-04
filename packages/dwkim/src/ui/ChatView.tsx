@@ -11,7 +11,7 @@ import {
   type StreamEvent,
   type ProgressItem,
 } from '../utils/personaApiClient.js';
-import { shouldShowEmailPrompt, setHideEmailPrompt } from '../utils/config.js';
+// config.js는 더 이상 사용하지 않음 - 세션 기반으로 변경
 
 // Extract sources type from discriminated union
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>;
@@ -65,6 +65,7 @@ export function ChatView({ apiUrl }: Props) {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
+  const [hideEmailForSession, setHideEmailForSession] = useState(false); // ESC로 세션 중 숨김
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(0);
   const messageIdRef = useRef(0);
@@ -158,14 +159,14 @@ export function ChatView({ apiUrl }: Props) {
         ]);
         return;
       }
-      // 이메일 입력 중이면 다시보지않기
+      // 이메일 입력 중이면 이번 세션에서만 숨기기
       if (showEmailInput) {
-        setHideEmailPrompt(true);
+        setHideEmailForSession(true);
         setShowEmailInput(false);
         setEmailInput('');
         setMessages((prev) => [
           ...prev,
-          { id: nextId(), role: 'system', content: `${icons.info} 이메일 안내를 더 이상 표시하지 않아요.` },
+          { id: nextId(), role: 'system', content: `${icons.info} 이번 세션에서 이메일 안내를 숨겨요.` },
         ]);
       }
     }
@@ -356,8 +357,8 @@ ${icons.chat} 예시 질문
         setLoadingState(null);
         setStatus('idle');
 
-        // 5회 이상 대화 시 이메일 입력 UI 표시 (다시보지않기 설정 안 한 경우만)
-        if (shouldSuggestContact && shouldShowEmailPrompt()) {
+        // 5회 이상 대화 시 이메일 입력 UI 표시 (세션 중 숨기지 않은 경우)
+        if (shouldSuggestContact && !hideEmailForSession) {
           setShowEmailInput(true);
         }
       } catch (error) {
