@@ -44,7 +44,11 @@ Agent의 어원은 라틴어 *agere*, '행동하다'. 누군가를 대신해 행
 
 그런데 나는 이게 근본적으로 새롭다고 생각하지 않는다.
 
-어셈블리에서 고급 언어로. 수동 배포에서 CI/CD로. 그리고 이제 수동 코딩에서 에이전트 오케스트레이션으로. 기술은 언제나 같은 일을 해왔다. 더 높은 수준의 고민을 가능하게 하는 것.
+어셈블리에서 고급 언어로. 수동 배포에서 CI/CD로. 그리고 이제 수동 코딩에서 에이전트 오케스트레이션으로.[^intersog] 기술은 언제나 같은 일을 해왔다. 더 높은 수준의 고민을 가능하게 하는 것.[^a16z]
+
+[^a16z]: a16z도 동일한 관점을 제시한다: "AI-native 플랫폼은 사용자가 저수준 작업을 AI에게 위임하고, 고차원 사고에 시간을 쓰게 해준다" — [The Future of Prosumer: The Rise of AI-Native Workflows](https://a16z.com/the-future-of-prosumer-the-rise-of-ai-native-workflows/)
+
+[^intersog]: Intersog는 이를 "구현에서 오케스트레이션으로의 역할 전환"이라 표현한다 — [The AI-Native Full-Stack Developer: Redefining Engineering Impact in 2025](https://intersog.com/blog/strategy/the-ai-native-full-stack-developer-redefining-engineering-impact-in-2025/)
 
 《실용주의 프로그래머》가 말한 그 agency—책임지고, 해결하고, 선택지를 제시하는 것—는 여전히 우리 몫이다.
 
