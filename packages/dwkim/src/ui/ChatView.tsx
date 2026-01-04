@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, Static, useInput, useApp, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
+import Spinner from 'ink-spinner';
 import { theme } from './theme.js';
 import { icons, profile } from './data.js';
 import { MarkdownText } from './MarkdownText.js';
@@ -452,13 +453,6 @@ ${icons.chat} 예시 질문
     [apiUrl, emailSubmitting, sessionId]
   );
 
-  const statusIndicator: Record<Status, string> = {
-    connecting: `${icons.spinner} 연결 중...`,
-    loading: loadingState ? `${loadingState.icon} ${loadingState.message}` : '',
-    idle: '',
-    error: '',
-  };
-
   return (
     <Box flexDirection="column" paddingX={1}>
       {/* 메시지 히스토리 (Static으로 flicker 방지) */}
@@ -473,39 +467,40 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* Progress 표시 (RAG 파이프라인 진행 상태) */}
+      {/* Progress 표시 (RAG 파이프라인 진행 상태 with animated spinner) */}
       {progressItems.length > 0 && !streamContent && (
         <Box flexDirection="column" marginY={1} marginLeft={2}>
           {progressItems.map((item) => (
             <Box key={item.id}>
-              <Text
-                color={
-                  item.status === 'completed'
-                    ? theme.success
-                    : item.status === 'in_progress'
-                      ? theme.info
+              {item.status === 'in_progress' ? (
+                <Text color={theme.lavender}>
+                  <Spinner type="dots" /> {item.label}
+                </Text>
+              ) : (
+                <Text
+                  color={
+                    item.status === 'completed'
+                      ? theme.success
                       : theme.muted
-                }
-              >
-                {item.status === 'completed'
-                  ? '✓'
-                  : item.status === 'in_progress'
-                    ? '◉'
-                    : item.status === 'skipped'
-                      ? '○'
-                      : '○'}{' '}
-                {item.label}
-              </Text>
+                  }
+                  dimColor={item.status === 'pending'}
+                >
+                  {item.status === 'completed' ? '✓' : '○'} {item.label}
+                </Text>
+              )}
             </Box>
           ))}
         </Box>
       )}
 
-      {/* Thinking 표시 (현재 처리 단계) */}
+      {/* Thinking 표시 (현재 처리 단계 with animated spinner) */}
       {thinkingStep && (
         <Box marginY={1} marginLeft={2}>
+          <Text color={theme.lavender}>
+            <Spinner type="dots" />
+          </Text>
           <Text color={theme.lavender} dimColor>
-            💭 {thinkingStep.step}
+            {' '}{thinkingStep.step}
             {thinkingStep.detail && (
               <Text color={theme.muted}> — {thinkingStep.detail}</Text>
             )}
@@ -513,10 +508,27 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 상태 표시 (tool_call 포함) */}
+      {/* 상태 표시 (animated spinner + tool_call) */}
       {status !== 'idle' && status !== 'error' && !progressItems.length && (
         <Box flexDirection="column" marginY={1}>
-          <Text color={theme.info}>{statusIndicator[status]}</Text>
+          <Box>
+            {status === 'loading' && (
+              <Text color={theme.lavender}>
+                <Spinner type="dots" />
+              </Text>
+            )}
+            {status === 'connecting' && (
+              <Text color={theme.info}>
+                <Spinner type="dots" />
+              </Text>
+            )}
+            <Text color={theme.info}>
+              {' '}
+              {status === 'connecting'
+                ? '연결 중...'
+                : loadingState?.message || '처리 중...'}
+            </Text>
+          </Box>
           {loadingState?.toolCalls && loadingState.toolCalls.length > 0 && (
             <Box flexDirection="column" marginLeft={2} marginTop={0}>
               {loadingState.toolCalls.map((tool) => (
