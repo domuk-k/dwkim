@@ -545,38 +545,26 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 추천 질문 UI (A2UI - 모호한 쿼리) */}
+      {/* 추천 질문 UI (A2UI - 모호한 쿼리) - inline style */}
       {suggestedQuestions.length > 0 && status === 'idle' && !showEmailInput && (
-        <Box flexDirection="column" marginTop={1} paddingX={1}>
-          <Box
-            borderStyle="round"
-            borderColor={theme.info}
-            paddingX={2}
-            paddingY={1}
-            flexDirection="column"
-          >
-            <Text color={theme.info}>
-              💡 더 구체적인 질문을 해보시겠어요?
-            </Text>
-            <Box marginTop={1} flexDirection="column">
-              {suggestedQuestions.map((q, idx) => (
-                <Box key={idx}>
-                  <Text
-                    color={idx === selectedSuggestionIdx ? theme.lavender : theme.muted}
-                    bold={idx === selectedSuggestionIdx}
-                  >
-                    {idx === selectedSuggestionIdx ? '▸ ' : '  '}
-                    {idx + 1}. {q}
-                  </Text>
-                </Box>
-              ))}
-            </Box>
-            <Box marginTop={1}>
-              <Text color={theme.muted} dimColor>
-                ↑↓: 선택 • Enter: 질문하기 • 1-2: 바로 선택 • ESC: 닫기
+        <Box flexDirection="column" marginTop={1} marginLeft={2}>
+          <Text color={theme.muted} dimColor>
+            ? 더 구체적으로 물어보시겠어요?
+          </Text>
+          {suggestedQuestions.map((q, idx) => (
+            <Box key={idx} marginLeft={2}>
+              <Text
+                color={idx === selectedSuggestionIdx ? theme.lavender : theme.muted}
+                bold={idx === selectedSuggestionIdx}
+              >
+                {idx === selectedSuggestionIdx ? '› ' : '  '}
+                [{idx + 1}] {q}
               </Text>
             </Box>
-          </Box>
+          ))}
+          <Text color={theme.muted} dimColor>
+            {'  '}↑↓ 선택 · Enter 질문 · ESC 닫기
+          </Text>
         </Box>
       )}
 
