@@ -39,7 +39,7 @@ const envSchema = z
     RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
 
     // RAG Engine
-    MAX_SEARCH_RESULTS: z.coerce.number().default(5),
+    MAX_SEARCH_RESULTS: z.coerce.number().default(10),
     CONTEXT_WINDOW: z.coerce.number().default(4000),
     SYSTEM_PROMPT: z.string().optional(),
 
