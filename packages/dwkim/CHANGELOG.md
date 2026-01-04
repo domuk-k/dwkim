@@ -1,3 +1,10 @@
+## [1.9.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.8.1...dwkim-v1.9.0) (2026-01-04)
+
+### Features
+
+* **dwkim:** 로딩 스피너 애니메이션 추가 ([a8dd1d9](https://github.com/domuk-k/dwkim/commit/a8dd1d971745e8e11782ac73d92a29e02e3c5301))
+* **persona-api:** RAG 개선 및 Discord 알림 강화 ([560a288](https://github.com/domuk-k/dwkim/commit/560a2883a339a285ad655e7af9cbda7069b112f9))
+
 ## [1.8.1](https://github.com/domuk-k/dwkim/compare/dwkim-v1.8.0...dwkim-v1.8.1) (2026-01-04)
 
 ### Bug Fixes
