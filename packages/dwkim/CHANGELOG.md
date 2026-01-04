@@ -1,3 +1,9 @@
+## [1.9.1](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.0...dwkim-v1.9.1) (2026-01-04)
+
+### Bug Fixes
+
+* **dwkim:** 로딩 상태 중복 표시 수정 ([9502772](https://github.com/domuk-k/dwkim/commit/9502772cfae76114761eab3adb8b653c4db55d8e))
+
 ## [1.9.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.8.1...dwkim-v1.9.0) (2026-01-04)
 
 ### Features
