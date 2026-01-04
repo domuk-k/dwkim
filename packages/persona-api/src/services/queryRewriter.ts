@@ -54,8 +54,29 @@ const EXPANSION_KEYWORDS: Record<string, string[]> = {
 // 기존 AMBIGUOUS_PATTERNS는 제거하고 길이 threshold만 유지
 // @see ragEngine.ts - shouldAskClarification() with SEU
 
-// LLM 기반 추천 질문 생성 프롬프트
-const SUGGESTION_PROMPT = `당신은 김동욱에 대한 질문을 추천하는 도우미입니다.
+// LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 있을 때)
+const SUGGESTION_PROMPT_WITH_CONTEXT = `당신은 김동욱에 대한 질문을 추천하는 도우미입니다.
+
+사용자의 모호한 질문과 관련 문서를 보고, 실제 문서 내용을 기반으로 더 구체적인 질문 2개를 추천해주세요.
+
+## 관련 문서
+{context}
+
+## 사용자 질문
+{query}
+
+## 규칙
+- 위 문서에서 실제로 답할 수 있는 내용을 기반으로 질문 생성
+- "더 자세히", "구체적으로" 같은 뻔한 표현 금지
+- 문서에 언급된 구체적인 키워드/주제를 활용
+- 각 질문은 한 문장으로 간결하게 (15자 이내)
+- 동어반복 금지: "이름이 뭐냐", "누구냐" 등 이미 알고 있는 정보 질문 금지
+- JSON 배열 형식으로만 응답 (예: ["질문1", "질문2"])
+
+추천 질문:`;
+
+// LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 없을 때 - 폴백)
+const SUGGESTION_PROMPT_NO_CONTEXT = `당신은 김동욱에 대한 질문을 추천하는 도우미입니다.
 
 사용자의 모호한 질문을 보고, 김동욱에 대해 더 구체적으로 물어볼 수 있는 질문 2개를 추천해주세요.
 
@@ -63,6 +84,7 @@ const SUGGESTION_PROMPT = `당신은 김동욱에 대한 질문을 추천하는 
 - 각 질문은 한 문장으로 간결하게
 - "김동욱"을 주어로 사용
 - 실제로 답변 가능한 구체적인 질문으로
+- 동어반복 금지: "이름이 뭐냐", "누구냐" 등 이미 알고 있는 정보 질문 금지
 - JSON 배열 형식으로만 응답 (예: ["질문1", "질문2"])
 
 사용자 질문: {query}
@@ -104,10 +126,18 @@ export class QueryRewriter {
 
   /**
    * LLM 기반 추천 질문 생성
+   * @param query 사용자 쿼리
+   * @param context 검색된 문서 컨텍스트 (있으면 더 의미있는 질문 생성)
    */
-  async generateSuggestedQuestions(query: string): Promise<string[]> {
+  async generateSuggestedQuestions(query: string, context?: string): Promise<string[]> {
     try {
-      const prompt = SUGGESTION_PROMPT.replace('{query}', query);
+      // 컨텍스트가 있으면 문서 기반 질문 생성, 없으면 기본 프롬프트
+      const prompt = context
+        ? SUGGESTION_PROMPT_WITH_CONTEXT
+            .replace('{context}', context.slice(0, 1500)) // 토큰 제한
+            .replace('{query}', query)
+        : SUGGESTION_PROMPT_NO_CONTEXT.replace('{query}', query);
+
       const messages: ChatMessage[] = [
         { role: 'user', content: prompt },
       ];
@@ -222,6 +252,7 @@ export class QueryRewriter {
 
   /**
    * 직접 매핑 대명사 치환
+   * Note: "동욱" 패턴은 앞에 "김"이 없을 때만 치환 (김김동욱 방지)
    */
   private replacePronounsDirectly(text: string): {
     text: string;
@@ -232,8 +263,15 @@ export class QueryRewriter {
     const replaced: string[] = [];
 
     for (const [pronoun, replacement] of Object.entries(PRONOUN_MAP)) {
-      if (result.includes(pronoun)) {
-        result = result.replace(new RegExp(pronoun, 'g'), replacement);
+      // "동욱"으로 시작하는 패턴은 앞에 "김"이 없을 때만 치환
+      const pattern = pronoun.startsWith('동욱')
+        ? new RegExp(`(?<!김)${pronoun}`, 'g')
+        : new RegExp(pronoun, 'g');
+
+      if (pattern.test(result)) {
+        // reset lastIndex after test
+        pattern.lastIndex = 0;
+        result = result.replace(pattern, replacement);
         replaced.push(`${pronoun} → ${replacement}`);
       }
     }

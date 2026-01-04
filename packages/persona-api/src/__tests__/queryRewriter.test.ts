@@ -43,6 +43,18 @@ describe('QueryRewriter', () => {
       expect(result.rewritten).toContain('김동욱이');
       expect(result.rewritten).toContain('김동욱의');
     });
+
+    it('should NOT double-replace "김동욱은" to "김김동욱은"', () => {
+      const result = rewriter.rewrite('김동욱은 어떤 회사에 재직 중인가요?');
+      expect(result.rewritten).toContain('김동욱은');
+      expect(result.rewritten).not.toContain('김김동욱은');
+    });
+
+    it('should replace standalone "동욱은" but not when preceded by "김"', () => {
+      const result = rewriter.rewrite('동욱은 무엇을 했지?');
+      expect(result.rewritten).toContain('김동욱은');
+      expect(result.rewritten).not.toContain('김김동욱은');
+    });
   });
 
   describe('rewrite - 접속사 오탐 방지', () => {
