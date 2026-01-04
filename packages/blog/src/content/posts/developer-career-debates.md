@@ -1,7 +1,8 @@
 ---
 title: "개발자 직업 왈가왈부"
 description: "AI 대체론, 연봉 거품론, 진입장벽 붕괴론, 주니어 사라짐론, Vibe Coding 충분론. 다섯 가지 논쟁에 대한 내 입장."
-pubDate: "2025-01-02"
+pubDate: "2026-01-02"
+draft: true
 ---
 
 # 개발자 직업 왈가왈부
