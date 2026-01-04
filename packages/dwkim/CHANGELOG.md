@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.1...dwkim-v1.9.2) (2026-01-04)
+
+### Refactoring
+
+* **dwkim:** remove thinkingStep, use progress.detail ([54ac0db](https://github.com/domuk-k/dwkim/commit/54ac0db6fe5e3bc4db3f1dc954b56a7c54ba886a))
+* **persona-api:** merge thinking events into progress items ([852728d](https://github.com/domuk-k/dwkim/commit/852728d9f1362b2c3ef0b77cbe58e33ab64420af))
+
 ## [1.9.1](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.0...dwkim-v1.9.1) (2026-01-04)
 
 ### Bug Fixes
