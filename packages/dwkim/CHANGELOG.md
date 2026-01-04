@@ -1,3 +1,10 @@
+## [1.9.3](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.2...dwkim-v1.9.3) (2026-01-04)
+
+### Bug Fixes
+
+* **dwkim:** change email prompt hiding to session-based ([e1f6af5](https://github.com/domuk-k/dwkim/commit/e1f6af5e7dca7ef4517bc2820269e3522ef7bb74))
+* **persona-api:** change MAX_SEARCH_RESULTS default from 5 to 10 ([97215b5](https://github.com/domuk-k/dwkim/commit/97215b52f161e833990be61456846c58eeb41b6f))
+
 ## [1.9.2](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.1...dwkim-v1.9.2) (2026-01-04)
 
 ### Refactoring
