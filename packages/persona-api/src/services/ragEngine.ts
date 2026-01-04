@@ -64,18 +64,12 @@ interface RAGClarificationEvent {
   suggestedQuestions: string[];
 }
 
-/** 현재 처리 단계 표시 (thinking process) */
-interface RAGThinkingEvent {
-  type: 'thinking';
-  step: string;
-  detail?: string;
-}
-
-/** 진행 상황 표시 (todo-like progress) */
+/** 진행 상황 표시 (todo-like progress with detail) */
 export interface ProgressItem {
   id: string;
   label: string;
   status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  detail?: string;  // thinking 내용 통합
 }
 
 interface RAGProgressEvent {
@@ -89,7 +83,6 @@ export type RAGStreamEvent =
   | RAGDoneEvent
   | RAGErrorEvent
   | RAGClarificationEvent
-  | RAGThinkingEvent
   | RAGProgressEvent;
 
 /**
@@ -233,9 +226,12 @@ export class RAGEngine {
       { id: 'generate', label: '답변 생성', status: 'pending' },
     ];
 
-    const updateProgress = (id: string, status: ProgressItem['status']): ProgressItem[] => {
+    const updateProgress = (id: string, status: ProgressItem['status'], detail?: string): ProgressItem[] => {
       const item = progress.find(p => p.id === id);
-      if (item) item.status = status;
+      if (item) {
+        item.status = status;
+        item.detail = detail;
+      }
       return [...progress];
     };
 
@@ -243,8 +239,7 @@ export class RAGEngine {
       console.log('RAG Engine streaming query:', query);
 
       // 0. Query Rewriting
-      yield { type: 'progress', items: updateProgress('rewrite', 'in_progress') };
-      yield { type: 'thinking', step: '쿼리 분석', detail: '대명사 치환 및 검색 최적화' };
+      yield { type: 'progress', items: updateProgress('rewrite', 'in_progress', '대명사 치환 및 검색 최적화') };
 
       const queryRewriter = getQueryRewriter();
       const rewriteResult = queryRewriter.rewrite(query, conversationHistory);
@@ -252,13 +247,12 @@ export class RAGEngine {
 
       if (rewriteResult.method !== 'none') {
         console.log(`Query rewritten: "${query}" → "${searchQuery}" [${rewriteResult.changes.join(', ')}]`);
-        yield { type: 'thinking', step: '쿼리 재작성', detail: `"${query}" → "${searchQuery}"` };
+        yield { type: 'progress', items: updateProgress('rewrite', 'in_progress', `"${query}" → "${searchQuery}"`) };
       }
       yield { type: 'progress', items: updateProgress('rewrite', 'completed') };
 
       // 1. Hybrid 검색 (Dense + Sparse with RRF)
-      yield { type: 'progress', items: updateProgress('search', 'in_progress') };
-      yield { type: 'thinking', step: '하이브리드 검색', detail: 'Dense + Sparse (RRF 융합)' };
+      yield { type: 'progress', items: updateProgress('search', 'in_progress', 'Dense + Sparse (RRF 융합)') };
 
       const vectorStore = getVectorStore();
       const searchResults = await vectorStore.searchHybrid(
@@ -266,8 +260,7 @@ export class RAGEngine {
         this.maxSearchResults
       );
 
-      yield { type: 'thinking', step: '검색 완료', detail: `${searchResults.length}건 발견` };
-      yield { type: 'progress', items: updateProgress('search', 'completed') };
+      yield { type: 'progress', items: updateProgress('search', 'completed', `${searchResults.length}건 발견`) };
 
       // 소스 먼저 전송
       yield { type: 'sources', sources: searchResults };
@@ -284,7 +277,7 @@ export class RAGEngine {
 
       if (ENABLE_SEU && !rewriteResult.needsClarification) {
         // 텍스트 기반으로 모호하지 않을 때만 SEU 실행 (latency 최적화)
-        yield { type: 'thinking', step: 'SEU 분석', detail: '의미적 모호성 측정' };
+        yield { type: 'progress', items: updateProgress('context', 'in_progress', '의미적 모호성 측정 (SEU)') };
         console.log('Running SEU uncertainty measurement...');
         const seuService = getSEUService();
         seuResult = await seuService.measureUncertainty(query, context);
@@ -298,7 +291,7 @@ export class RAGEngine {
       if (isAmbiguous) {
         const reason = rewriteResult.needsClarification ? 'text-based' : 'SEU';
         console.log(`[A2UI:Clarification] Ambiguous query detected (${reason}), query="${query}"`);
-        yield { type: 'thinking', step: '모호성 감지', detail: '추천 질문 생성 중' };
+        yield { type: 'progress', items: updateProgress('context', 'in_progress', '추천 질문 생성 중') };
         // context를 전달하여 문서 기반 추천 질문 생성
         const suggestions = await queryRewriter.generateSuggestedQuestions(query, context);
         console.log(`[A2UI:Clarification] Generated suggestions: ${JSON.stringify(suggestions)}`);
@@ -310,8 +303,7 @@ export class RAGEngine {
       }
 
       // 3. LLM 스트리밍
-      yield { type: 'progress', items: updateProgress('generate', 'in_progress') };
-      yield { type: 'thinking', step: '답변 생성', detail: 'LLM 스트리밍' };
+      yield { type: 'progress', items: updateProgress('generate', 'in_progress', 'LLM 스트리밍') };
 
       const messages: ChatMessage[] = [
         ...conversationHistory,
