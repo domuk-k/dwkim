@@ -2,7 +2,9 @@
 title: Developer
 ---
 
-기술을 좋아합니다. 더 중요한 것에 집중할 수 있게 해주니까요. 더 중요한 것들을 생각하며, 연구하고 구현하고 개선합니다.
+기술을 좋아합니다. 더 중요한 것에 집중할 수 있게 해주니까요.[^a16z] 더 중요한 것들을 생각하며, 연구하고 구현하고 개선합니다.
+
+[^a16z]: a16z: "AI-native 플랫폼은 사용자가 저수준 작업을 AI에게 위임하고, 고차원 사고에 시간을 쓰게 해준다" — [The Future of Prosumer](https://a16z.com/the-future-of-prosumer-the-rise-of-ai-native-workflows/)
 
 ---
 
