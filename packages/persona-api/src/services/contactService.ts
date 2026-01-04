@@ -11,6 +11,7 @@ export interface ContactInfo {
   name?: string;
   message?: string;
   sessionId: string;
+  deviceId?: string;
   clientIp: string;
   messageCount: number;
   collectedAt: string;
@@ -121,6 +122,8 @@ export class ContactService {
     console.log(`   Name: ${payload.contact.name || 'N/A'}`);
     console.log(`   Messages: ${payload.contact.messageCount}`);
     console.log(`   Trigger: ${payload.contact.trigger}`);
+    console.log(`   Device: ${payload.contact.deviceId || 'N/A'}`);
+    console.log(`   Session: ${payload.contact.sessionId}`);
     console.log(`   Time: ${payload.contact.collectedAt}\n`);
 
     // Discord Webhook 발송 (설정된 경우)
@@ -135,6 +138,8 @@ export class ContactService {
               { name: '👤 Name', value: payload.contact.name || 'Anonymous', inline: true },
               { name: '💬 Messages', value: String(payload.contact.messageCount), inline: true },
               { name: '🏷️ Trigger', value: payload.contact.trigger, inline: true },
+              { name: '📱 Device ID', value: payload.contact.deviceId ? `\`${payload.contact.deviceId.slice(0, 8)}...\`` : 'N/A', inline: true },
+              { name: '🔑 Session ID', value: `\`${payload.contact.sessionId.slice(0, 20)}...\``, inline: true },
               ...(payload.contact.message ? [{ name: '📝 Message', value: payload.contact.message, inline: false }] : []),
             ],
             timestamp: payload.contact.collectedAt,

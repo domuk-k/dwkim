@@ -396,6 +396,7 @@ export class ChatService {
       name: options.name,
       message: options.message,
       sessionId,
+      deviceId: context.deviceId,
       clientIp: context.clientIp,
       messageCount,
       collectedAt: new Date().toISOString(),

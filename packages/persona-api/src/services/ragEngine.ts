@@ -127,7 +127,7 @@ export class RAGEngine {
 
   constructor() {
     this.llmService = new LLMService();
-    this.maxSearchResults = parseInt(process.env.MAX_SEARCH_RESULTS || '5');
+    this.maxSearchResults = parseInt(process.env.MAX_SEARCH_RESULTS || '10');
     this.contextWindow = parseInt(process.env.CONTEXT_WINDOW || '4000');
   }
 
@@ -299,7 +299,8 @@ export class RAGEngine {
         const reason = rewriteResult.needsClarification ? 'text-based' : 'SEU';
         console.log(`[A2UI:Clarification] Ambiguous query detected (${reason}), query="${query}"`);
         yield { type: 'thinking', step: '모호성 감지', detail: '추천 질문 생성 중' };
-        const suggestions = await queryRewriter.generateSuggestedQuestions(query);
+        // context를 전달하여 문서 기반 추천 질문 생성
+        const suggestions = await queryRewriter.generateSuggestedQuestions(query, context);
         console.log(`[A2UI:Clarification] Generated suggestions: ${JSON.stringify(suggestions)}`);
         yield {
           type: 'clarification',

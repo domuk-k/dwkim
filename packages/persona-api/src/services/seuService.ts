@@ -8,7 +8,7 @@
  */
 
 import { LLMService, ChatMessage } from './llmService';
-import { VoyageEmbeddings } from './voyageEmbeddings';
+import { OpenAIEmbeddings } from './openaiEmbeddings';
 
 export interface SEUResult {
   /** 0-1, 높을수록 불확실함 */
@@ -59,12 +59,12 @@ function cosineSimilarity(a: number[], b: number[]): number {
  */
 export class SEUService {
   private llmService: LLMService;
-  private embeddings: VoyageEmbeddings;
+  private embeddings: OpenAIEmbeddings;
   private numSamples: number;
 
   constructor(numSamples = 2) {
     this.llmService = new LLMService();
-    this.embeddings = new VoyageEmbeddings();
+    this.embeddings = new OpenAIEmbeddings();
     this.numSamples = numSamples;
   }
 

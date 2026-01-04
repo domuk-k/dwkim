@@ -1,7 +1,7 @@
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { Document as LangChainDocument } from '@langchain/core/documents';
-import { VoyageEmbeddings } from './voyageEmbeddings';
+import { OpenAIEmbeddings } from './openaiEmbeddings';
 import { getBM25Engine, type SparseVector } from './bm25Engine';
 
 export type DocumentType =
@@ -11,7 +11,9 @@ export type DocumentType =
   | 'experience'
   | 'about'
   | 'post'
-  | 'cogni';  // Cogni 노트 타입 추가
+  | 'blog'
+  | 'knowledge'  // RAG 전용 지식 문서
+  | 'cogni';
 
 export type DocumentSource = 'persona-api' | 'blog' | 'cogni';
 
@@ -40,16 +42,17 @@ const RELEVANCE_THRESHOLD = 0.3;
 
 export class VectorStore {
   private vectorStore: QdrantVectorStore | null = null;
-  private embeddings: VoyageEmbeddings | null = null;
+  private embeddings: OpenAIEmbeddings | null = null;
   private qdrantClient: QdrantClient | null = null;
   private initialized = false;
   private collectionName = 'persona_documents';
 
   constructor() {
-    // Voyage multilingual-2: 한국어에 최적화된 API 기반 임베딩
-    if (process.env.VOYAGE_API_KEY) {
-      this.embeddings = new VoyageEmbeddings({
-        modelName: 'voyage-multilingual-2',
+    // OpenAI text-embedding-3-large: 강력한 시맨틱 이해력
+    if (process.env.OPENAI_API_KEY) {
+      this.embeddings = new OpenAIEmbeddings({
+        modelName: 'text-embedding-3-large',
+        dimensions: 3072,
       });
     }
   }

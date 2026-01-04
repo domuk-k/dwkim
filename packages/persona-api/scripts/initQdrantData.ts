@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { homedir } from 'os';
 import dotenv from 'dotenv';
-import { VoyageEmbeddings } from '../src/services/voyageEmbeddings';
+import { OpenAIEmbeddings } from '../src/services/openaiEmbeddings';
 import { BM25Engine, getBM25Engine, resetBM25Engine } from '../src/services/bm25Engine';
 
 // Load .env.local first (for local dev), then .env
@@ -238,11 +238,12 @@ async function processPersonaFiles(): Promise<ChunkResult[]> {
 }
 
 /**
- * Cogni notes에서 tags: [blog]인 파일 처리
- * (블로그 포스트로 발행된 노트들)
+ * Cogni notes에서 tags: [blog] 또는 [rag]인 파일 처리
+ * - blog: 블로그 포스트로 발행된 노트들
+ * - rag: RAG에만 노출할 지식 문서들 (미발행)
  */
 async function processBlogNotes(): Promise<ChunkResult[]> {
-  console.log('📂 Processing Cogni blog notes...');
+  console.log('📂 Processing Cogni blog/rag notes...');
 
   const results: ChunkResult[] = [];
 
@@ -275,9 +276,10 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
     const content = await fs.readFile(filePath, 'utf-8');
     const { frontmatter, body } = parseFrontmatter(content);
 
-    // tags에 blog가 있는지 확인
+    // tags에 blog 또는 rag가 있는지 확인
     const tags = (frontmatter.tags as string[]) || [];
-    if (!tags.includes('blog')) continue;
+    const hasIndexableTag = tags.includes('blog') || tags.includes('rag');
+    if (!hasIndexableTag) continue;
 
     // rag: false인 경우 스킵
     if (frontmatter.rag === false || frontmatter.rag === 'false') {
@@ -286,19 +288,28 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
     }
 
     const slug = path.basename(filePath, '.md');
-    const keywords = frontmatter.keywords as string[] | string | undefined;
+    const rawKeywords = frontmatter.keywords;
+    const keywords: string[] | undefined = Array.isArray(rawKeywords)
+      ? rawKeywords
+      : typeof rawKeywords === 'string'
+        ? [rawKeywords]
+        : undefined;
 
     // 섹션 기반 청킹
     const chunks = chunkBySection(body);
 
     console.log(`  📄 ${path.basename(filePath)}: ${chunks.length} chunks`);
 
+    // blog vs rag 태그에 따라 type 구분
+    const docType = tags.includes('blog') ? 'blog' : 'knowledge';
+    const idPrefix = tags.includes('blog') ? 'blog' : 'rag';
+
     chunks.forEach((chunk, index) => {
       results.push({
-        id: `blog_${slug}_${index}`,
+        id: `${idPrefix}_${slug}_${index}`,
         content: chunk.trim(),
         metadata: {
-          type: 'blog',
+          type: docType,
           title: (frontmatter.title as string) || slug,
           category: inferCategory(keywords),
           source: 'cogni',
@@ -314,12 +325,12 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
   return results;
 }
 
-// Voyage embedding 차원 (voyage-multilingual-2)
-const VOYAGE_DIMENSION = 1024;
+// OpenAI embedding 차원 (text-embedding-3-large)
+const OPENAI_DIMENSION = 3072;
 
 /**
  * Qdrant Hybrid Collection 생성
- * Dense (Voyage) + Sparse (BM25) 벡터 지원
+ * Dense (OpenAI) + Sparse (BM25) 벡터 지원
  */
 async function createHybridCollection(client: QdrantClient): Promise<void> {
   try {
@@ -334,7 +345,7 @@ async function createHybridCollection(client: QdrantClient): Promise<void> {
   await client.createCollection(COLLECTION_NAME, {
     vectors: {
       dense: {
-        size: VOYAGE_DIMENSION,
+        size: OPENAI_DIMENSION,
         distance: 'Cosine',
       },
     },
@@ -348,8 +359,67 @@ async function createHybridCollection(client: QdrantClient): Promise<void> {
   });
 
   console.log(`✅ Hybrid 컬렉션 생성: ${COLLECTION_NAME}`);
-  console.log(`   - Dense: ${VOYAGE_DIMENSION}d (Voyage multilingual-2)`);
+  console.log(`   - Dense: ${OPENAI_DIMENSION}d (OpenAI text-embedding-3-large)`);
   console.log(`   - Sparse: BM25 (한국어/영어 토크나이저)`);
+}
+
+/**
+ * Contextual Chunk Enhancement (Anthropic Contextual Retrieval 방식)
+ *
+ * 청크에 의미적 컨텍스트를 주입하여 시맨틱 갭 해결
+ * - "어떤 회사에 재직 중?" → "콕스웨이브" 매칭 가능
+ * - BM25 + Dense 모두 개선
+ *
+ * @see https://www.anthropic.com/news/contextual-retrieval
+ */
+function addContextToChunk(chunk: ChunkResult): ChunkResult {
+  const { content, metadata } = chunk;
+
+  // 경력/이력서 섹션에 컨텍스트 추가
+  if (metadata.type === 'resume') {
+    // "## 경력" 섹션인지 확인
+    if (content.includes('콕스웨이브') || content.includes('Coxwave') ||
+        content.includes('비에이치에스엔') || content.includes('모두싸인') ||
+        content.includes('Engineer') || content.includes('개발자')) {
+      const contextPrefix = '[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n';
+      return {
+        ...chunk,
+        content: contextPrefix + content,
+      };
+    }
+
+    // 기본 정보/연락처 섹션
+    if (content.includes('이메일') || content.includes('GitHub') || content.includes('소개')) {
+      const contextPrefix = '[컨텍스트: 김동욱의 연락처, 기본 정보]\n\n';
+      return {
+        ...chunk,
+        content: contextPrefix + content,
+      };
+    }
+
+    // 기술 스택 섹션
+    if (content.includes('기술 스택') || content.includes('프론트엔드') || content.includes('백엔드')) {
+      const contextPrefix = '[컨텍스트: 김동욱의 기술 스택, 사용 기술]\n\n';
+      return {
+        ...chunk,
+        content: contextPrefix + content,
+      };
+    }
+  }
+
+  // 100-questions 경력/회사 관련 질문
+  if (metadata.type === '100-questions') {
+    const careerKeywords = ['회사', '직장', '일', 'Coxwave', '콕스웨이브', '경력', '재직'];
+    if (careerKeywords.some(k => content.includes(k))) {
+      const contextPrefix = '[컨텍스트: 김동욱의 현재 회사, 직장 관련 질문]\n\n';
+      return {
+        ...chunk,
+        content: contextPrefix + content,
+      };
+    }
+  }
+
+  return chunk;
 }
 
 /**
@@ -366,8 +436,8 @@ async function initializeDatabase(testMode: boolean = false) {
       console.error('❌ QDRANT_URL 환경변수가 필요합니다');
       process.exit(1);
     }
-    if (!process.env.VOYAGE_API_KEY) {
-      console.error('❌ VOYAGE_API_KEY 환경변수가 필요합니다');
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('❌ OPENAI_API_KEY 환경변수가 필요합니다');
       process.exit(1);
     }
   }
@@ -376,6 +446,7 @@ async function initializeDatabase(testMode: boolean = false) {
   const personaChunks = await processPersonaFiles();
   const blogChunks = await processBlogNotes();
 
+  // OpenAI 임베딩의 시맨틱 이해력 테스트 (컨텍스트 주입 없이)
   const allChunks = [...personaChunks, ...blogChunks];
 
   console.log(`\n📊 총 청크 수: ${allChunks.length}`);
@@ -395,10 +466,11 @@ async function initializeDatabase(testMode: boolean = false) {
     return;
   }
 
-  // Embeddings 초기화 (Voyage multilingual-2)
-  console.log('🔧 Voyage multilingual-2 임베딩 초기화...');
-  const embeddings = new VoyageEmbeddings({
-    modelName: 'voyage-multilingual-2',
+  // Embeddings 초기화 (OpenAI text-embedding-3-large)
+  console.log('🔧 OpenAI text-embedding-3-large 임베딩 초기화...');
+  const embeddings = new OpenAIEmbeddings({
+    modelName: 'text-embedding-3-large',
+    dimensions: OPENAI_DIMENSION,
   });
 
   // BM25 엔진 초기화
@@ -505,9 +577,10 @@ async function testSearch() {
     return;
   }
 
-  // Voyage multilingual-2 사용
-  const embeddings = new VoyageEmbeddings({
-    modelName: 'voyage-multilingual-2',
+  // OpenAI text-embedding-3-large 사용
+  const embeddings = new OpenAIEmbeddings({
+    modelName: 'text-embedding-3-large',
+    dimensions: OPENAI_DIMENSION,
   });
 
   // BM25 엔진 체크
