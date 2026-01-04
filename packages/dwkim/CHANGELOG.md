@@ -1,3 +1,9 @@
+## [1.8.1](https://github.com/domuk-k/dwkim/compare/dwkim-v1.8.0...dwkim-v1.8.1) (2026-01-04)
+
+### Bug Fixes
+
+* **dwkim:** simplify A2UI clarification UI to inline style ([54475b6](https://github.com/domuk-k/dwkim/commit/54475b65f4d8a2829669db20b95476627a7da44f))
+
 ## [1.8.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.7.0...dwkim-v1.8.0) (2026-01-03)
 
 ### Features
