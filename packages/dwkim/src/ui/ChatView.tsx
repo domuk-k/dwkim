@@ -64,7 +64,6 @@ export function ChatView({ apiUrl }: Props) {
   const [emailInput, setEmailInput] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
-  const [thinkingStep, setThinkingStep] = useState<{ step: string; detail?: string } | null>(null);
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(0);
@@ -317,9 +316,6 @@ ${icons.chat} 예시 질문
             case 'sources':
               sources = event.sources;
               break;
-            case 'thinking':
-              setThinkingStep({ step: event.step, detail: event.detail });
-              break;
             case 'progress':
               setProgressItems(event.items);
               break;
@@ -331,16 +327,14 @@ ${icons.chat} 예시 질문
             case 'content':
               fullContent += event.content;
               setStreamContent(fullContent);
-              // 컨텐츠 스트리밍 시작하면 thinking 숨기기
-              setThinkingStep(null);
+              // 컨텐츠 스트리밍 시작하면 progress 숨기기
+              setProgressItems([]);
               break;
             case 'done':
               processingTime = event.metadata.processingTime;
               shouldSuggestContact = event.metadata.shouldSuggestContact ?? false;
-              // 완료 시 progress, thinking, suggestedQuestions 초기화
+              // 완료 시 progress 초기화 (suggestedQuestions는 유지)
               setProgressItems([]);
-              setThinkingStep(null);
-              // suggestedQuestions는 유지 (사용자가 선택할 수 있도록)
               break;
             case 'error':
               throw new ApiError(event.error);
@@ -467,7 +461,7 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* Progress 표시 (RAG 파이프라인 진행 상태 with animated spinner) */}
+      {/* Progress 표시 (RAG 파이프라인 진행 상태 with animated spinner + detail) */}
       {progressItems.length > 0 && !streamContent && (
         <Box flexDirection="column" marginY={1} marginLeft={2}>
           {progressItems.map((item) => (
@@ -475,17 +469,17 @@ ${icons.chat} 예시 질문
               {item.status === 'in_progress' ? (
                 <Text color={theme.lavender}>
                   <Spinner type="dots" /> {item.label}
+                  {item.detail && <Text color={theme.muted}> — {item.detail}</Text>}
                 </Text>
               ) : (
                 <Text
-                  color={
-                    item.status === 'completed'
-                      ? theme.success
-                      : theme.muted
-                  }
+                  color={item.status === 'completed' ? theme.success : theme.muted}
                   dimColor={item.status === 'pending'}
                 >
                   {item.status === 'completed' ? '✓' : '○'} {item.label}
+                  {item.status === 'completed' && item.detail && (
+                    <Text color={theme.muted}> — {item.detail}</Text>
+                  )}
                 </Text>
               )}
             </Box>
@@ -493,23 +487,8 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* Thinking 표시 (progressItems 없을 때만) */}
-      {thinkingStep && !progressItems.length && (
-        <Box marginY={1} marginLeft={2}>
-          <Text color={theme.lavender}>
-            <Spinner type="dots" />
-          </Text>
-          <Text color={theme.lavender} dimColor>
-            {' '}{thinkingStep.step}
-            {thinkingStep.detail && (
-              <Text color={theme.muted}> — {thinkingStep.detail}</Text>
-            )}
-          </Text>
-        </Box>
-      )}
-
-      {/* 상태 표시 (progress/thinking 없을 때만) */}
-      {status !== 'idle' && status !== 'error' && !progressItems.length && !thinkingStep && (
+      {/* 상태 표시 (progress 없을 때만) */}
+      {status !== 'idle' && status !== 'error' && !progressItems.length && (
         <Box flexDirection="column" marginY={1}>
           <Box>
             {status === 'loading' && (
