@@ -11,6 +11,9 @@ const envSchema = z
     OPENROUTER_API_KEY: z.string().optional(),
     OPENROUTER_MODEL: z.string().optional(),
 
+    // OpenAI (for embeddings)
+    OPENAI_API_KEY: z.string().optional(),
+
     // Vector Store
     QDRANT_URL: z.string().url().optional(),
     QDRANT_API_KEY: z.string().optional(),
@@ -45,6 +48,7 @@ const envSchema = z
 
     // Feature Flags
     USE_DEEP_AGENT: z.enum(['0', '1']).default('0'),
+    ENABLE_SEU: z.enum(['true', 'false']).default('true'),
 
     // API Host
     API_HOST: z.string().default('localhost:3000'),
@@ -69,6 +73,16 @@ function validateEnv(): Env {
     console.error(result.error.format());
     throw new Error('Invalid environment configuration');
   }
+
+  // 설정 요약 로그 (민감 정보 제외)
+  console.log('=== Configuration Summary ===');
+  console.log(`NODE_ENV: ${result.data.NODE_ENV}`);
+  console.log(`QDRANT_URL: ${result.data.QDRANT_URL || 'NOT SET (mock mode)'}`);
+  console.log(`MAX_SEARCH_RESULTS: ${result.data.MAX_SEARCH_RESULTS}`);
+  console.log(`CONTEXT_WINDOW: ${result.data.CONTEXT_WINDOW}`);
+  console.log(`RATE_LIMIT_MAX: ${result.data.RATE_LIMIT_MAX}`);
+  console.log(`LOG_LEVEL: ${result.data.LOG_LEVEL}`);
+  console.log('=============================');
 
   return result.data;
 }

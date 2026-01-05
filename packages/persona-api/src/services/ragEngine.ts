@@ -4,10 +4,11 @@ import type { ChatMessage } from './llmService';
 import { getQueryRewriter } from './queryRewriter';
 import { getSEUService, type SEUResult } from './seuService';
 import { initBM25Engine } from './bm25Engine';
+import { env } from '../config/env';
 
 // SEU(Semantic Embedding Uncertainty) 사용 여부
 // 기본 활성화 (모호함 감지에 필수, AMBIGUOUS_PATTERNS 대체)
-const ENABLE_SEU = process.env.ENABLE_SEU !== 'false';
+const ENABLE_SEU = env.ENABLE_SEU === 'true';
 
 export interface RAGResponse {
   answer: string;
@@ -120,8 +121,8 @@ export class RAGEngine {
 
   constructor() {
     this.llmService = new LLMService();
-    this.maxSearchResults = parseInt(process.env.MAX_SEARCH_RESULTS || '10');
-    this.contextWindow = parseInt(process.env.CONTEXT_WINDOW || '4000');
+    this.maxSearchResults = env.MAX_SEARCH_RESULTS;
+    this.contextWindow = env.CONTEXT_WINDOW;
   }
 
   async initialize(): Promise<void> {

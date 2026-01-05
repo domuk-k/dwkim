@@ -3,6 +3,7 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import { Document as LangChainDocument } from '@langchain/core/documents';
 import { OpenAIEmbeddings } from './openaiEmbeddings';
 import { getBM25Engine, type SparseVector } from './bm25Engine';
+import { env } from '../config/env';
 
 export type DocumentType =
   | 'resume'
@@ -49,7 +50,7 @@ export class VectorStore {
 
   constructor() {
     // OpenAI text-embedding-3-large: 강력한 시맨틱 이해력
-    if (process.env.OPENAI_API_KEY) {
+    if (env.OPENAI_API_KEY) {
       this.embeddings = new OpenAIEmbeddings({
         modelName: 'text-embedding-3-large',
         dimensions: 3072,
@@ -60,13 +61,13 @@ export class VectorStore {
   async initialize(): Promise<void> {
     try {
       // Mock 모드 체크
-      if (process.env.USE_VECTOR_STORE === 'false' || process.env.MOCK_MODE === 'true') {
+      if (env.USE_VECTOR_STORE === 'false' || env.MOCK_MODE === 'true') {
         console.log('Vector store disabled - using mock mode');
         this.initialized = true;
         return;
       }
 
-      const qdrantUrl = process.env.QDRANT_URL;
+      const qdrantUrl = env.QDRANT_URL;
       if (!qdrantUrl) {
         console.warn('QDRANT_URL not set - vector store will use mock mode');
         this.initialized = true;
@@ -90,7 +91,7 @@ export class VectorStore {
         host: url.hostname,
         port,
         https: isHttps,
-        apiKey: process.env.QDRANT_API_KEY,
+        apiKey: env.QDRANT_API_KEY,
         checkCompatibility: false, // 버전 체크 스킵
       });
 
@@ -119,9 +120,15 @@ export class VectorStore {
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize vector store:', error);
-      // 초기화 실패해도 mock 모드로 계속 진행
+
+      // 프로덕션에서는 실패하도록 (silent failure 방지)
+      if (env.NODE_ENV === 'production') {
+        throw new Error(`Vector store initialization failed: ${error}`);
+      }
+
+      // 개발 환경에서만 mock 모드 허용
+      console.warn('Falling back to mock mode (development only)');
       this.initialized = true;
-      console.warn('Falling back to mock mode');
     }
   }
 
@@ -424,7 +431,7 @@ export class VectorStore {
       throw new Error('Embeddings not initialized');
     }
 
-    const qdrantUrl = process.env.QDRANT_URL;
+    const qdrantUrl = env.QDRANT_URL;
     if (!qdrantUrl) {
       throw new Error('QDRANT_URL not set');
     }
@@ -440,8 +447,8 @@ export class VectorStore {
         collectionName: this.collectionName,
       };
 
-      if (process.env.QDRANT_API_KEY) {
-        qdrantConfig.apiKey = process.env.QDRANT_API_KEY;
+      if (env.QDRANT_API_KEY) {
+        qdrantConfig.apiKey = env.QDRANT_API_KEY;
       }
 
       // 빈 문서로 새 컬렉션 생성 (기존 컬렉션 덮어쓰기)
