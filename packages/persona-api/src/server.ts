@@ -16,17 +16,18 @@ import { initContactService } from './services/contactService';
 import { initConversationLimiter } from './services/conversationLimiter';
 import { initDeviceService } from './services/deviceService';
 import { createRedisClient, type IRedisClient } from './infra/redis';
+import { env } from './config/env';
 
 export async function createServer() {
   const fastify = Fastify({
     logger: {
-      level: process.env.LOG_LEVEL || 'info',
+      level: env.LOG_LEVEL,
     },
   });
 
   // CORS 설정
   await fastify.register(cors, {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+    origin: env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
     ],
     credentials: true,
@@ -38,7 +39,7 @@ export async function createServer() {
   let ioredisClient: Redis | null = null;
   let serviceRedisClient: IRedisClient | null = null;
 
-  if (process.env.REDIS_URL) {
+  if (env.REDIS_URL) {
     try {
       const redisOptions = {
         connectTimeout: 5000,
@@ -48,7 +49,7 @@ export async function createServer() {
         retryDelayOnFailover: 100,
       };
 
-      ioredisClient = new Redis(process.env.REDIS_URL, redisOptions);
+      ioredisClient = new Redis(env.REDIS_URL, redisOptions);
 
       // 연결 테스트
       await ioredisClient.ping();
@@ -58,7 +59,7 @@ export async function createServer() {
       await fastify.register(fastifyRedis, { client: ioredisClient });
 
       // 서비스용 RedisClient 생성
-      serviceRedisClient = createRedisClient(process.env.REDIS_URL);
+      serviceRedisClient = createRedisClient(env.REDIS_URL);
 
     } catch (error) {
       console.warn('⚠️  Redis connection failed, using memory fallback:', error);
@@ -78,8 +79,8 @@ export async function createServer() {
 
   // Rate Limiting (Redis 선택적)
   const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
-    max: parseInt(process.env.RATE_LIMIT_MAX || '50'),
-    timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
+    max: env.RATE_LIMIT_MAX,
+    timeWindow: env.RATE_LIMIT_WINDOW_MS,
     errorResponseBuilder: (request: FastifyRequest, context: { after: string }) => ({
       code: 429,
       error: 'Too Many Requests',
@@ -147,7 +148,7 @@ export async function createServer() {
           email: 'dwkim@example.com',
         },
       },
-      host: process.env.API_HOST || 'localhost:3000',
+      host: env.API_HOST,
       schemes: ['http', 'https'],
       consumes: ['application/json'],
       produces: ['application/json'],

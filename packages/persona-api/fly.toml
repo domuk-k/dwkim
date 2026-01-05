@@ -15,7 +15,7 @@ primary_region = "nrt" # Tokyo (한국과 가까움)
   QDRANT_URL = "https://persona-qdrant.fly.dev"
   # Increase context window and search results to capture more relevant documents
   CONTEXT_WINDOW = "10000"
-  MAX_SEARCH_RESULTS = "7"
+  MAX_SEARCH_RESULTS = "10"
 
 [http_service]
   internal_port = 8080
