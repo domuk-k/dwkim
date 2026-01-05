@@ -5,6 +5,7 @@
  */
 import type { IRedisClient } from '../infra/redis';
 import { chatLogger } from './chatLogger';
+import { env } from '../config/env';
 
 export interface ContactInfo {
   email?: string;
@@ -35,7 +36,7 @@ export class ContactService {
 
   constructor(redis?: IRedisClient | null) {
     this.redis = redis || null;
-    this.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || null;
+    this.discordWebhookUrl = env.DISCORD_WEBHOOK_URL || null;
 
     if (this.redis) {
       console.log('ContactService: Using Redis backend');

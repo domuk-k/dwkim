@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { RAGEngine } from '../services/ragEngine';
+import { env } from '../config/env';
 
 export default async function healthRoutes(fastify: FastifyInstance) {
   // GET / (when registered with /health prefix, becomes /health)
@@ -122,8 +123,8 @@ export default async function healthRoutes(fastify: FastifyInstance) {
           status: 'healthy',
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
-          version: process.env.npm_package_version || '1.0.0',
-          environment: process.env.NODE_ENV || 'development',
+          version: env.npm_package_version || '1.0.0',
+          environment: env.NODE_ENV,
           components: {
             server: true,
             redis: redisStatus,

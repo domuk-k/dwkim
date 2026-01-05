@@ -1,5 +1,6 @@
 import { Embeddings, type EmbeddingsParams } from '@langchain/core/embeddings';
 import OpenAI from 'openai';
+import { env } from '../config/env';
 
 export interface OpenAIEmbeddingsParams extends EmbeddingsParams {
   /**
@@ -44,7 +45,7 @@ export class OpenAIEmbeddings extends Embeddings {
 
   constructor(params: OpenAIEmbeddingsParams = {}) {
     super(params);
-    const apiKey = params.apiKey || process.env.OPENAI_API_KEY;
+    const apiKey = params.apiKey || env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY is required');
     }
