@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { env } from '../config/env';
 
 export interface ChatLogEntry {
   requestId: string;
@@ -21,9 +22,9 @@ export interface ChatLogEntry {
 // 콘솔 로깅만 (Fly.io가 자동 수집)
 export const chatLogger = pino({
   name: 'chat',
-  level: process.env.LOG_LEVEL || 'info',
+  level: env.LOG_LEVEL,
   // production에서는 JSON, dev에서는 pretty
-  transport: process.env.NODE_ENV !== 'production'
+  transport: env.NODE_ENV !== 'production'
     ? { target: 'pino-pretty', options: { colorize: true } }
     : undefined,
 });

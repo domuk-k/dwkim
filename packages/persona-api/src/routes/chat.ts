@@ -24,9 +24,10 @@ import {
 import {
   getDeviceService,
 } from '../services/deviceService';
+import { env } from '../config/env';
 
 // Feature flag
-const USE_DEEP_AGENT = process.env.USE_DEEP_AGENT === '1';
+const USE_DEEP_AGENT = env.USE_DEEP_AGENT === '1';
 
 // ─────────────────────────────────────────────────────────────
 // OpenAPI Schemas

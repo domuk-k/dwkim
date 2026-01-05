@@ -1,5 +1,6 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import OpenAI from 'openai';
+import { env } from '../config/env';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -13,6 +14,8 @@ export interface ChatResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  /** 에러 발생 시 true, 정상 응답과 구분하기 위함 */
+  isError?: boolean;
 }
 
 export interface ChatStreamChunk {
@@ -33,12 +36,12 @@ export class LLMService {
   private llmProvider: LLMProvider;
 
   constructor() {
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    const googleKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+    const openRouterKey = env.OPENROUTER_API_KEY;
+    const googleKey = env.GOOGLE_API_KEY || env.GEMINI_API_KEY;
 
     // OpenRouter 우선 (OpenAI SDK 직접 사용)
     if (openRouterKey) {
-      this.model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
+      this.model = env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
       this.openRouterClient = new OpenAI({
         apiKey: openRouterKey,
         baseURL: 'https://openrouter.ai/api/v1',
@@ -60,7 +63,7 @@ export class LLMService {
     }
 
     this.systemPrompt =
-      process.env.SYSTEM_PROMPT ||
+      env.SYSTEM_PROMPT ||
       `당신은 dwkim의 AI 어시스턴트입니다.
 
 ## 답변 원칙
@@ -89,6 +92,7 @@ export class LLMService {
       return {
         content: '현재 AI 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요.',
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        isError: true,
       };
     }
 
@@ -150,6 +154,7 @@ export class LLMService {
       return {
         content: this.getErrorMessage(error),
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        isError: true,
       };
     }
   }

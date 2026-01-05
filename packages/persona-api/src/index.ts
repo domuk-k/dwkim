@@ -2,8 +2,11 @@ import { config } from 'dotenv';
 import { createServer } from './server';
 
 // 환경 변수 로드 (.env.local 우선, 그다음 .env)
+// NOTE: env.ts가 import되기 전에 dotenv가 로드되어야 함
 config({ path: '.env.local' });
 config();
+
+import { env } from './config/env';
 
 // Graceful shutdown 함수 참조 (startServer에서 설정)
 let gracefulShutdown: (() => Promise<void>) | null = null;
@@ -13,8 +16,8 @@ async function startServer() {
     const { server, gracefulShutdown: shutdown } = await createServer();
     gracefulShutdown = shutdown;
 
-    const port = parseInt(process.env.PORT || '3000');
-    const host = process.env.HOST || '0.0.0.0';
+    const port = env.PORT;
+    const host = env.HOST;
 
     await server.listen({ port, host });
 

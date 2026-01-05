@@ -1,5 +1,6 @@
 import { Embeddings, type EmbeddingsParams } from '@langchain/core/embeddings';
 import { VoyageAIClient } from 'voyageai';
+import { env } from '../config/env';
 
 export interface VoyageEmbeddingsParams extends EmbeddingsParams {
   /**
@@ -36,7 +37,7 @@ export class VoyageEmbeddings extends Embeddings {
 
   constructor(params: VoyageEmbeddingsParams = {}) {
     super(params);
-    const apiKey = params.apiKey || process.env.VOYAGE_API_KEY;
+    const apiKey = params.apiKey || env.VOYAGE_API_KEY;
     if (!apiKey) {
       throw new Error('VOYAGE_API_KEY is required');
     }
