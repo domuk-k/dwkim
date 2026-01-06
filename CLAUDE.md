@@ -8,9 +8,10 @@ This is a **pnpm workspace monorepo** with three main packages:
 
 ### 1. `packages/dwkim/` - CLI Personal Agent
 - **Purpose**: CLI 기반 개인 에이전트 (터미널에서 김동욱에 대해 대화)
-- **Entry**: `src/index.ts` (binary: `dwkim`)
+- **Entry**: `src/index.tsx` (binary: `dwkim`)
 - **Commands**: `dwkim` (profile + chat), `dwkim profile` (profile only), `dwkim help`
 - **Build**: Custom esbuild script at `script/build.js`
+- **Environment**: `DWKIM_API_URL` (optional, defaults to https://persona-api.fly.dev)
 
 ### 2. `packages/persona-api/` - Personal AI Agent API
 - **Purpose**: 김동욱 AI 에이전트 백엔드 (RAG + 개인화 + 대화형 UX)
@@ -83,6 +84,23 @@ pnpm update-theme        # Update Chiri theme to latest
 
 ## Architecture Notes
 
+### dwkim CLI Architecture
+- **UI Framework**: React + Ink (terminal renderer)
+- **Source Structure**:
+  - `src/index.tsx` - Entry point, CLI command routing
+  - `src/ui/App.tsx` - Mode-based routing (full/profile)
+  - `src/ui/ChatView.tsx` - Streaming chat interface (~700 lines, complex state)
+  - `src/ui/ProfileCard.tsx` - Profile display component
+  - `src/ui/MarkdownText.tsx` - marked + marked-terminal renderer
+  - `src/ui/theme.ts` - Catppuccin Mocha color palette
+  - `src/utils/personaApiClient.ts` - SSE streaming with discriminated union events
+  - `src/utils/deviceId.ts` - UUID persistence to `~/.dwkim/device_id`
+- **Key Patterns**:
+  - **Discriminated Union Events**: Type-safe SSE parsing (`session | status | content | sources | clarification | progress | done | error`)
+  - **Async Generator Streaming**: `streamChat()` yields events from SSE response
+  - **HITL (Human-in-the-Loop)**: Email collection prompt after 5+ conversation turns
+  - **A2UI**: Suggested questions for ambiguous queries
+
 ### persona-api Server Architecture
 - **Entry**: `src/index.ts` → `src/server.ts`
 - **Routes**: `src/routes/` (health, chat)
@@ -113,7 +131,7 @@ pnpm update-theme        # Update Chiri theme to latest
 - **Error Handling**: Always provide fallbacks (especially for Redis)
 - **TypeScript**: Strict mode across all packages
 - **Testing**: Jest for persona-api only
-- **Versioning**: Changesets for version management (`pnpm changeset`)
+- **Versioning**: Semantic Release for dwkim (`pnpm release:dwkim`), Changesets for others (`pnpm changeset`)
 - **Linting**: Husky + lint-staged for pre-commit hooks
 
 ### Git Commit Convention
