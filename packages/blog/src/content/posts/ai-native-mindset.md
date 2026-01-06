@@ -1,8 +1,7 @@
 ---
 title: "AI Native Mindset: 교육자가 에이전트를 잘 다루는 이유"
 description: "AI를 협업자로 다루는 마인드셋. Taste, Systems Thinking, Learning Velocity - 세 가지 요소로 풀어본다."
-pubDate: "2026-01-02"
-draft: true
+pubDate: "2025-01-02"
 ---
 
 # AI Native Mindset
