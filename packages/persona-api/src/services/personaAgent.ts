@@ -85,6 +85,10 @@ function loadSystemPrompt(): string {
 
 const TOOL_GUIDE = `
 
+## 응답 언어
+사용자의 질문 언어로 답변하세요. English → English, 한국어 → 한국어.
+컨텍스트가 한국어여도 영어 질문엔 영어로 답변해요.
+
 ## 도구 사용
 
 ### search_documents
