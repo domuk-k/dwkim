@@ -5,6 +5,7 @@ import Spinner from 'ink-spinner';
 import { theme } from './theme.js';
 import { icons, profile } from './data.js';
 import { MarkdownText } from './MarkdownText.js';
+import { FeedbackPrompt } from './FeedbackPrompt.js';
 import {
   PersonaApiClient,
   ApiError,
@@ -68,7 +69,24 @@ export function ChatView({ apiUrl }: Props) {
   const [hideEmailForSession, setHideEmailForSession] = useState(false); // ESC로 세션 중 숨김
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(0);
+  // HITL: Human Escalation 상태
+  const [showEscalation, setShowEscalation] = useState(false);
+  const [escalationReason, setEscalationReason] = useState<string>('');
+  // HITL: Response Feedback 상태 (Claude Code 스타일)
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackResponseCount, setFeedbackResponseCount] = useState(0);
+  // HITL: Exit Feedback 상태 (종료 시 세션 피드백)
+  const [showExitFeedback, setShowExitFeedback] = useState(false);
+  // HITL: Correction 감지용 마지막 대화 추적
+  const [lastExchange, setLastExchange] = useState<{ query: string; response: string } | null>(null);
   const messageIdRef = useRef(0);
+
+  // HITL: 수정 요청 패턴 감지
+  const CORRECTION_PATTERNS = [
+    /틀렸/, /아니야/, /아닌데/, /잘못/, /수정해/, /고쳐/, /오류야/,
+    /맞지\s*않/, /정확하지\s*않/, /incorrect/i, /wrong/i, /fix/i, /correct/i,
+  ];
+  const isCorrection = (msg: string) => CORRECTION_PATTERNS.some((p) => p.test(msg));
 
   const nextId = () => ++messageIdRef.current;
 
@@ -109,9 +127,57 @@ export function ChatView({ apiUrl }: Props) {
     []
   );
 
+  // HITL: 피드백 제출 핸들러 (Claude Code 스타일)
+  const handleFeedback = useCallback(
+    async (rating: 1 | 2 | 3 | null) => {
+      setShowFeedback(false);
+      // 피드백 제출 (실패해도 UX에 영향 없음)
+      await client.submitFeedback(rating, sessionId);
+    },
+    [client, sessionId]
+  );
+
+  // HITL: Exit Feedback 핸들러 (피드백 후 종료)
+  const handleExitFeedback = useCallback(
+    async (rating: 1 | 2 | 3 | null) => {
+      setShowExitFeedback(false);
+      // 피드백 제출 (실패해도 종료 진행)
+      await client.submitFeedback(rating, sessionId);
+      exit();
+    },
+    [client, sessionId, exit]
+  );
+
   // 키보드 처리 (Ctrl+C, ESC, 추천 질문 선택)
   useInput((input, key) => {
+    // HITL: Exit Feedback 키 처리
+    if (showExitFeedback) {
+      if (input === '1') {
+        handleExitFeedback(1);
+        return;
+      }
+      if (input === '2') {
+        handleExitFeedback(2);
+        return;
+      }
+      if (input === '3') {
+        handleExitFeedback(3);
+        return;
+      }
+      if (input === 'd' || input === 'D' || key.escape) {
+        handleExitFeedback(null);
+        return;
+      }
+      // 다른 키는 무시 (종료 대기 중)
+      return;
+    }
+
     if (key.ctrl && input === 'c') {
+      // 대화가 있었으면 피드백 요청, 없으면 바로 종료
+      if (feedbackResponseCount > 0) {
+        setShowExitFeedback(true);
+        return;
+      }
       exit();
     }
 
@@ -140,8 +206,38 @@ export function ChatView({ apiUrl }: Props) {
       }
     }
 
+    // HITL: 피드백 키 처리 (1, 2, 3, d)
+    if (showFeedback && status === 'idle' && !showEmailInput) {
+      if (input === '1') {
+        handleFeedback(1);
+        return;
+      }
+      if (input === '2') {
+        handleFeedback(2);
+        return;
+      }
+      if (input === '3') {
+        handleFeedback(3);
+        return;
+      }
+      if (input === 'd' || input === 'D') {
+        handleFeedback(null);
+        return;
+      }
+      // 다른 키를 누르면 피드백 dismiss하고 타이핑 시작 (Claude Code 스타일)
+      if (input && !key.ctrl && !key.meta && !key.escape) {
+        setShowFeedback(false);
+        // 입력은 TextInput으로 전달됨
+      }
+    }
+
     // ESC 처리
     if (key.escape) {
+      // 피드백 닫기 (dismiss)
+      if (showFeedback) {
+        handleFeedback(null);
+        return;
+      }
       // 추천 질문 닫기
       if (suggestedQuestions.length > 0) {
         setSuggestedQuestions([]);
@@ -163,6 +259,8 @@ export function ChatView({ apiUrl }: Props) {
       if (showEmailInput) {
         setHideEmailForSession(true);
         setShowEmailInput(false);
+        setShowEscalation(false);
+        setEscalationReason('');
         setEmailInput('');
         setMessages((prev) => [
           ...prev,
@@ -235,6 +333,17 @@ ${icons.chat} 예시 질문
           ]);
           break;
 
+        case 'exit':
+        case 'quit':
+        case 'bye':
+          // HITL: 대화가 있었으면 피드백 요청, 없으면 바로 종료
+          if (feedbackResponseCount > 0) {
+            setShowExitFeedback(true);
+          } else {
+            exit();
+          }
+          break;
+
         default:
           setMessages((prev) => [
             ...prev,
@@ -246,7 +355,7 @@ ${icons.chat} 예시 질문
           ]);
       }
     },
-    [client]
+    [client, feedbackResponseCount, exit]
   );
 
   // 메시지 제출
@@ -259,6 +368,37 @@ ${icons.chat} 예시 질문
 
       if (trimmed.startsWith('/')) {
         await handleCommand(trimmed);
+        return;
+      }
+
+      // HITL: Correction 감지 - "틀렸어", "아니야" 등
+      // 수정 피드백을 저장하고 감사 메시지 표시 (일반 대화는 계속하지 않음)
+      if (lastExchange && isCorrection(trimmed)) {
+        setMessages((prev) => [
+          ...prev,
+          { id: nextId(), role: 'user', content: trimmed },
+        ]);
+
+        // 수정 피드백 제출
+        const result = await client.submitCorrection(
+          lastExchange.query,
+          lastExchange.response,
+          trimmed,
+          sessionId
+        );
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: 'system',
+            content: result.success
+              ? `${icons.check} ${result.message}`
+              : `${icons.error} ${result.message}`,
+          },
+        ]);
+
+        // 수정 피드백 후 종료 (일반 대화로 넘어가지 않음)
         return;
       }
 
@@ -325,6 +465,16 @@ ${icons.chat} 예시 질문
               setSuggestedQuestions(event.suggestedQuestions);
               setSelectedSuggestionIdx(0);
               break;
+            case 'escalation':
+              // HITL: Human Escalation - 높은 불확실성으로 사람 연결 제안
+              setEscalationReason(event.reason);
+              // done 이벤트 후에 표시하기 위해 플래그만 설정
+              break;
+            case 'followup':
+              // HITL: 응답 완료 후 팔로업 질문 제안 (clarification과 동일 UI 재사용)
+              setSuggestedQuestions(event.suggestedQuestions);
+              setSelectedSuggestionIdx(0);
+              break;
             case 'content':
               fullContent += event.content;
               setStreamContent(fullContent);
@@ -357,8 +507,25 @@ ${icons.chat} 예시 질문
         setLoadingState(null);
         setStatus('idle');
 
+        // HITL: Correction 감지를 위한 마지막 대화 저장
+        setLastExchange({ query: trimmed, response: fullContent });
+
+        // HITL: 피드백 요청 (3번째 응답마다, 다른 UI가 없을 때)
+        // Claude Code 스타일: 간헐적으로, 비침습적으로
+        const newResponseCount = feedbackResponseCount + 1;
+        setFeedbackResponseCount(newResponseCount);
+        if (newResponseCount % 3 === 0 && !shouldSuggestContact && !escalationReason) {
+          setShowFeedback(true);
+        }
+
         // 5회 이상 대화 시 이메일 입력 UI 표시 (세션 중 숨기지 않은 경우)
         if (shouldSuggestContact && !hideEmailForSession) {
+          setShowEmailInput(true);
+        }
+
+        // HITL: Escalation이 있으면 이메일 입력 UI 표시 (shouldSuggestContact보다 우선)
+        if (escalationReason && !hideEmailForSession) {
+          setShowEscalation(true);
           setShowEmailInput(true);
         }
       } catch (error) {
@@ -377,7 +544,7 @@ ${icons.chat} 예시 질문
         setStatus('idle');
       }
     },
-    [client, status, sessionId, handleCommand]
+    [client, status, sessionId, handleCommand, feedbackResponseCount, escalationReason, hideEmailForSession]
   );
 
   // 이메일 제출 핸들러
@@ -428,6 +595,8 @@ ${icons.chat} 예시 질문
             },
           ]);
           setShowEmailInput(false);
+          setShowEscalation(false);
+          setEscalationReason('');
           setEmailInput('');
         } else {
           throw new Error(result.error || '이메일 전송 실패');
@@ -447,6 +616,38 @@ ${icons.chat} 예시 질문
     },
     [apiUrl, emailSubmitting, sessionId]
   );
+
+  // Exit Feedback 모드일 때는 다른 UI 숨김
+  if (showExitFeedback) {
+    return (
+      <Box flexDirection="column" paddingX={1} paddingY={1}>
+        <Box
+          borderStyle="round"
+          borderColor={theme.lavender}
+          paddingX={2}
+          paddingY={1}
+          flexDirection="column"
+        >
+          <Text color={theme.lavender} bold>
+            {icons.chat} 떠나시기 전에...
+          </Text>
+          <Box marginTop={1}>
+            <Text color={theme.subtext}>오늘 대화가 도움이 됐나요?</Text>
+          </Box>
+          <Box marginTop={1}>
+            <Text color={theme.success}>[1]</Text>
+            <Text color={theme.subtext}> 매우 도움됨  </Text>
+            <Text color={theme.warning}>[2]</Text>
+            <Text color={theme.subtext}> 조금 도움됨  </Text>
+            <Text color={theme.error}>[3]</Text>
+            <Text color={theme.subtext}> 별로...  </Text>
+            <Text color={theme.muted}>[d]</Text>
+            <Text color={theme.subtext}> 스킵</Text>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -537,8 +738,8 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 추천 질문 UI (A2UI - 모호한 쿼리) - inline style */}
-      {suggestedQuestions.length > 0 && status === 'idle' && !showEmailInput && (
+      {/* 추천 질문 UI (A2UI/HITL - 모호한 쿼리 또는 팔로업) - inline style */}
+      {suggestedQuestions.length > 0 && status === 'idle' && !showEmailInput && !showFeedback && (
         <Box flexDirection="column" marginTop={1} marginLeft={2}>
           <Text color={theme.muted} dimColor>
             ? 더 구체적으로 물어보시겠어요?
@@ -560,18 +761,26 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 이메일 입력 UI (HITL 패턴) */}
+      {/* HITL: Response Feedback (Claude Code 스타일) */}
+      {showFeedback && status === 'idle' && !showEmailInput && (
+        <FeedbackPrompt />
+      )}
+
+      {/* 이메일 입력 UI (HITL 패턴 - 일반 또는 Escalation) */}
       {showEmailInput && status === 'idle' && (
         <Box flexDirection="column" marginTop={1} paddingX={1}>
           <Box
             borderStyle="round"
-            borderColor={theme.lavender}
+            borderColor={showEscalation ? theme.peach : theme.lavender}
             paddingX={2}
             paddingY={1}
             flexDirection="column"
           >
-            <Text color={theme.lavender}>
-              📧 더 깊은 이야기가 필요하신 것 같아요!
+            <Text color={showEscalation ? theme.peach : theme.lavender}>
+              {showEscalation ? '🤔 ' : '📧 '}
+              {showEscalation
+                ? escalationReason || '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.'
+                : '더 깊은 이야기가 필요하신 것 같아요!'}
             </Text>
             <Text color={theme.muted} dimColor>
               이메일 남겨주시면 동욱이 직접 연락드릴게요.
