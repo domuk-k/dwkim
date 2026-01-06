@@ -1,3 +1,19 @@
+## [1.10.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.3...dwkim-v1.10.0) (2026-01-06)
+
+### Features
+
+* **dwkim:** add marked-terminal markdown renderer ([290b882](https://github.com/domuk-k/dwkim/commit/290b8823be9ab2a5c0a85d20647541c9efa541d0))
+* **persona-api:** add multilingual response support ([f0a6536](https://github.com/domuk-k/dwkim/commit/f0a6536fdc99be564a928cfa3b189b8a954cec24))
+
+### Bug Fixes
+
+* **persona-api:** use 1st person perspective in system prompt ([6cbca87](https://github.com/domuk-k/dwkim/commit/6cbca875ca82a7f9f3bd9f6c565e0f5b7e0dd2fc))
+
+### Refactoring
+
+* **persona-api:** centralize config via validated env ([894c55f](https://github.com/domuk-k/dwkim/commit/894c55f726922a48437b6cee92a1657aa4d70ea9))
+* **persona-api:** replace process.env with validated env config ([f1ee43e](https://github.com/domuk-k/dwkim/commit/f1ee43e022080e7e1c63de0bfdc3fd5b65e22d8d))
+
 ## [1.9.3](https://github.com/domuk-k/dwkim/compare/dwkim-v1.9.2...dwkim-v1.9.3) (2026-01-04)
 
 ### Bug Fixes
