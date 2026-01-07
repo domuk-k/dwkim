@@ -3,6 +3,7 @@ node_modules
 dist
 
 .claude/*
+!.claude/agents/
 
 .DS_Store
 .env
