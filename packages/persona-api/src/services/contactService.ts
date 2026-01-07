@@ -119,9 +119,10 @@ export class ContactService {
       return '❌ N/A (웹 접속?)';
     }
     if (deviceId.startsWith('temp-')) {
-      return `⚠️ Temp: \`${deviceId.slice(5, 13)}...\``;
+      const id = deviceId.slice(5);
+      return id.length > 8 ? `⚠️ Temp: \`${id.slice(0, 8)}...\`` : `⚠️ Temp: \`${id}\``;
     }
-    return `\`${deviceId.slice(0, 8)}...\``;
+    return deviceId.length > 8 ? `\`${deviceId.slice(0, 8)}...\`` : `\`${deviceId}\``;
   }
 
   /**
@@ -217,7 +218,7 @@ export class ContactService {
             { name: '💬 Messages', value: String(payload.contact.messageCount), inline: true },
             { name: '🏷️ Trigger', value: payload.contact.trigger, inline: true },
             { name: '📱 Device ID', value: this.formatDeviceId(payload.contact.deviceId), inline: true },
-            { name: '🔑 Session ID', value: `\`${payload.contact.sessionId.slice(0, 20)}...\``, inline: true },
+            { name: '🔑 Session ID', value: payload.contact.sessionId.length > 20 ? `\`${payload.contact.sessionId.slice(0, 20)}...\`` : `\`${payload.contact.sessionId}\``, inline: true },
             ...(payload.contact.message ? [{ name: '📝 Message', value: payload.contact.message, inline: false }] : []),
           ],
           timestamp: payload.contact.collectedAt,
