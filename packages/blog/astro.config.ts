@@ -1,21 +1,21 @@
-import { defineConfig } from 'astro/config'
+import path from 'node:path'
 import mdx from '@astrojs/mdx'
 import sitemap from '@astrojs/sitemap'
-import mermaid from 'astro-mermaid'
 import playformInline from '@playform/inline'
-import remarkMath from 'remark-math'
-import remarkDirective from 'remark-directive'
+import { defineConfig } from 'astro/config'
+import mermaid from 'astro-mermaid'
 import rehypeKatex from 'rehype-katex'
-import remarkEmbeddedMedia from './src/plugins/remark-embedded-media.mjs'
-import remarkReadingTime from './src/plugins/remark-reading-time.mjs'
-import rehypeCleanup from './src/plugins/rehype-cleanup.mjs'
-import rehypeImageProcessor from './src/plugins/rehype-image-processor.mjs'
-import rehypeCopyCode from './src/plugins/rehype-copy-code.mjs'
-import remarkTOC from './src/plugins/remark-toc.mjs'
-import remarkObsidianCallouts from './src/plugins/remark-obsidian-callouts.mjs'
+import remarkDirective from 'remark-directive'
+import remarkMath from 'remark-math'
 import { themeConfig } from './src/config'
+import rehypeCleanup from './src/plugins/rehype-cleanup.mjs'
+import rehypeCopyCode from './src/plugins/rehype-copy-code.mjs'
+import rehypeImageProcessor from './src/plugins/rehype-image-processor.mjs'
+import remarkEmbeddedMedia from './src/plugins/remark-embedded-media.mjs'
+import remarkObsidianCallouts from './src/plugins/remark-obsidian-callouts.mjs'
+import remarkReadingTime from './src/plugins/remark-reading-time.mjs'
+import remarkTOC from './src/plugins/remark-toc.mjs'
 import { imageConfig } from './src/utils/image-config'
-import path from 'path'
 
 export default defineConfig({
   site: themeConfig.site.website,
@@ -41,7 +41,14 @@ export default defineConfig({
       defaultColor: false,
       wrap: false
     },
-    remarkPlugins: [remarkObsidianCallouts, remarkMath, remarkDirective, remarkEmbeddedMedia, remarkReadingTime, remarkTOC],
+    remarkPlugins: [
+      remarkObsidianCallouts,
+      remarkMath,
+      remarkDirective,
+      remarkEmbeddedMedia,
+      remarkReadingTime,
+      remarkTOC
+    ],
     rehypePlugins: [rehypeKatex, rehypeCleanup, rehypeImageProcessor, rehypeCopyCode]
   },
   integrations: [

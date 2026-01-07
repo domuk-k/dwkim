@@ -1,7 +1,6 @@
-import React from "react";
-import { Box, Text } from "ink";
-import { theme } from "./theme.js";
-import { profile, icons } from "./data.js";
+import { Box, Text } from 'ink'
+import { icons, profile } from './data.js'
+import { theme } from './theme.js'
 
 // 웰컴 배너
 export function ProfileBanner() {
@@ -24,7 +23,7 @@ export function ProfileBanner() {
         </Text>
       </Box>
     </Box>
-  );
+  )
 }
 
 // 상세 프로필 카드 (profile 명령어용)
@@ -49,7 +48,7 @@ export function ProfileCard() {
       </Box>
 
       <Box marginY={1}>
-        <Text color={theme.surface}>{"─".repeat(52)}</Text>
+        <Text color={theme.surface}>{'─'.repeat(52)}</Text>
       </Box>
 
       <Box flexDirection="column" gap={0}>
@@ -60,25 +59,17 @@ export function ProfileCard() {
       </Box>
 
       <Box marginY={1}>
-        <Text color={theme.surface}>{"─".repeat(52)}</Text>
+        <Text color={theme.surface}>{'─'.repeat(52)}</Text>
       </Box>
 
       <Text italic color={theme.muted}>
         {profile.quote}
       </Text>
     </Box>
-  );
+  )
 }
 
-function LinkRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
+function LinkRow({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <Box>
       <Text color={theme.primary}>
@@ -86,5 +77,5 @@ function LinkRow({
       </Text>
       <Text color={theme.text}>{value}</Text>
     </Box>
-  );
+  )
 }

@@ -11,7 +11,7 @@ const allKeywords = allPosts
   .filter((keyword, index, self) => self.indexOf(keyword) === index) // unique
 
 // Duplicate for seamless loop
-const keywords = [...allKeywords, ...allKeywords]
+const _keywords = [...allKeywords, ...allKeywords]
 ---
 
 {
