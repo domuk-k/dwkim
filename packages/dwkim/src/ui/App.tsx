@@ -2,8 +2,8 @@ import React from 'react';
 import { ProfileCard } from './ProfileCard.js';
 import { ChatView } from './ChatView.js';
 
-const DEFAULT_API_URL = 'https://persona-api.fly.dev';
-const API_URL = process.env.DWKIM_API_URL || DEFAULT_API_URL;
+const DEFAULT_API_URL = 'http://localhost:3002';
+const API_URL = process.env.API_URL || process.env.DWKIM_API_URL || DEFAULT_API_URL;
 
 export type Mode = 'full' | 'profile';
 

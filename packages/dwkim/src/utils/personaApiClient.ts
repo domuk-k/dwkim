@@ -140,6 +140,8 @@ export type StreamEvent =
   | { type: 'sources'; sources: Source[] }
   | { type: 'content'; content: string }
   | { type: 'clarification'; suggestedQuestions: string[] }
+  | { type: 'escalation'; reason: string; uncertainty: number }
+  | { type: 'followup'; suggestedQuestions: string[] }
   | { type: 'progress'; items: ProgressItem[] }
   | {
       type: 'done';
@@ -151,6 +153,8 @@ export type StreamEvent =
         messageCount?: number;
         originalQuery?: string;
         rewriteMethod?: string;
+        nodeExecutions?: number;
+        totalTokens?: number;
       };
     }
   | { type: 'error'; error: string };
@@ -332,5 +336,54 @@ export class PersonaApiClient {
     }
 
     return response.json();
+  }
+
+  /**
+   * HITL: Response Feedback 제출
+   * Privacy: rating만 수집 (대화 내용, 코드 포함 안함)
+   */
+  async submitFeedback(rating: 1 | 2 | 3 | null, sessionId?: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/feedback`, {
+        method: 'POST',
+        headers: this.getHeaders('application/json'),
+        body: JSON.stringify({ rating, sessionId }),
+      });
+
+      if (!response.ok) {
+        console.warn('Feedback submission failed:', response.status);
+      }
+    } catch (error) {
+      // 피드백 실패해도 사용자 경험에 영향 없음
+      console.warn('Feedback submission error:', error);
+    }
+  }
+
+  /**
+   * HITL: 응답 수정 피드백 제출
+   */
+  async submitCorrection(
+    originalQuery: string,
+    originalResponse: string,
+    correctionMessage: string,
+    sessionId?: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/correction`, {
+        method: 'POST',
+        headers: this.getHeaders('application/json'),
+        body: JSON.stringify({
+          originalQuery,
+          originalResponse,
+          correctionMessage,
+          sessionId,
+        }),
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.warn('Correction submission error:', error);
+      return { success: false, message: '수정 피드백 전송 실패' };
+    }
   }
 }
