@@ -52,7 +52,7 @@ export default defineConfig({
       Exclude: [
         (file: string) => {
           const fileName = file.toLowerCase()
-          return fileName.includes('katex') || fileName.includes('katex')
+          return fileName.includes('katex')
         }
       ]
     })

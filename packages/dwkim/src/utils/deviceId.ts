@@ -57,22 +57,3 @@ function isValidUUID(id: string): boolean {
   return uuidRegex.test(id);
 }
 
-/**
- * Device ID 삭제 (사용자 요청 시)
- */
-export function clearDeviceId(): boolean {
-  try {
-    if (existsSync(DEVICE_ID_FILE)) {
-      const { unlinkSync } = require('fs');
-      unlinkSync(DEVICE_ID_FILE);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error('Failed to clear device ID:', {
-      error: error instanceof Error ? error.message : String(error),
-      filePath: DEVICE_ID_FILE,
-    });
-    return false;
-  }
-}
