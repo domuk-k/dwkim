@@ -386,4 +386,32 @@ export class PersonaApiClient {
       return { success: false, message: '수정 피드백 전송 실패' };
     }
   }
+
+  /**
+   * HITL: 연락처 제출
+   * Device ID가 자동으로 포함되어 개인화 추적 가능
+   */
+  async submitContact(
+    email: string,
+    sessionId?: string,
+    options?: { name?: string; message?: string }
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/contact`, {
+        method: 'POST',
+        headers: this.getHeaders('application/json'),
+        body: JSON.stringify({
+          email,
+          sessionId,
+          name: options?.name,
+          message: options?.message,
+        }),
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.warn('Contact submission error:', error);
+      return { success: false, error: '연락처 전송 실패' };
+    }
+  }
 }

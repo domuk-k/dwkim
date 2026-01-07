@@ -577,13 +577,8 @@ ${icons.chat} 예시 질문
       setEmailSubmitting(true);
 
       try {
-        const response = await fetch(`${apiUrl}/api/v1/contact`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: trimmedEmail, sessionId }),
-        });
-
-        const result = await response.json();
+        // Device ID가 자동으로 포함됨 (PersonaApiClient.getHeaders)
+        const result = await client.submitContact(trimmedEmail, sessionId);
 
         if (result.success) {
           setMessages((prev) => [
@@ -614,7 +609,7 @@ ${icons.chat} 예시 질문
         setEmailSubmitting(false);
       }
     },
-    [apiUrl, emailSubmitting, sessionId]
+    [client, emailSubmitting, sessionId]
   );
 
   // Exit Feedback 모드일 때는 다른 UI 숨김
