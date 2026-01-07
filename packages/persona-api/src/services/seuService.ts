@@ -69,7 +69,8 @@ export class SEUService {
   private numSamples: number;
 
   constructor(numSamples = 2) {
-    this.llmService = new LLMService();
+    // SEU 측정은 내부 처리용이므로 utility 모델 사용
+    this.llmService = new LLMService({ purpose: 'utility' });
     this.embeddings = new OpenAIEmbeddings();
     this.numSamples = numSamples;
   }
