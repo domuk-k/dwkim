@@ -19,6 +19,7 @@ import { getQueryRewriter } from './queryRewriter';
 import { getSEUService, type SEUResult } from './seuService';
 import { initBM25Engine } from './bm25Engine';
 import { env } from '../config/env';
+import { filterOutput, logOutputFiltered } from '../guardrails';
 
 // ─────────────────────────────────────────────────────────────
 // Types (ragEngine.ts에서 유지)
@@ -372,7 +373,7 @@ async function followupNode(
 ): Promise<Partial<PersonaState>> {
   try {
     const queryRewriter = getQueryRewriter();
-    const followupQuestions = await queryRewriter.generateFollowupQuestions(
+    const followupQuestions = queryRewriter.generateFollowupQuestions(
       state.query,
       state.context
     );
@@ -401,6 +402,38 @@ async function followupNode(
       },
     };
   }
+}
+
+/**
+ * outputGuardNode - 응답 필터링 가드레일
+ *
+ * LLM 응답에서 민감 정보 감지 및 마스킹
+ * - llmService의 스트리밍 필터링과 별도로 최종 검증
+ * - 그래프 노드로 명시적 파이프라인 포함
+ */
+async function outputGuardNode(
+  state: PersonaState,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  if (!state.answer) {
+    return { metrics: { ...state.metrics, nodeExecutions: state.metrics.nodeExecutions + 1 } };
+  }
+
+  const result = filterOutput(state.answer);
+
+  if (result.filtered) {
+    console.warn('[outputGuardNode] Sensitive content filtered:', result.detectedPatterns);
+    logOutputFiltered('graph', result.detectedPatterns || []);
+  }
+
+  return {
+    answer: result.sanitized,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+    },
+  };
 }
 
 /**
@@ -471,6 +504,7 @@ function createPersonaGraph() {
     .addNode('analyze', analyzeNode)
     .addNode('clarify', clarifyNode)
     .addNode('generate', generateNode)
+    .addNode('outputGuard', outputGuardNode)  // 가드레일 노드 추가
     .addNode('followup', followupNode)
     .addNode('done', doneNode)
 
@@ -488,8 +522,11 @@ function createPersonaGraph() {
     // clarify 후에도 generate 실행 (clarification 제공 후 답변)
     .addEdge('clarify', 'generate')
 
-    // generate 후 followup 생성 (clarification이 없을 때만)
-    .addConditionalEdges('generate', (state) => {
+    // generate → outputGuard (모든 응답 필터링)
+    .addEdge('generate', 'outputGuard')
+
+    // outputGuard 후 followup 생성 (clarification이 없을 때만)
+    .addConditionalEdges('outputGuard', (state) => {
       const s = state as PersonaState;
       return s.needsClarification ? 'done' : 'followup';
     })
