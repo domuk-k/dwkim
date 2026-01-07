@@ -9,12 +9,16 @@ import Redis from 'ioredis';
 import healthRoutes from './routes/health';
 import chatRoutes from './routes/chat';
 import syncRoutes from './routes/sync';
+import feedbackRoutes from './routes/feedback';
+import correctionRoutes from './routes/correction';
 import { RateLimiter } from './middleware/rateLimit';
 import { AbuseDetection } from './middleware/abuseDetection';
 import { initConversationStore } from './services/conversationStore';
 import { initContactService } from './services/contactService';
 import { initConversationLimiter } from './services/conversationLimiter';
 import { initDeviceService } from './services/deviceService';
+import { initFeedbackService } from './services/feedbackService';
+import { initCorrectionService } from './services/correctionService';
 import { createRedisClient, type IRedisClient } from './infra/redis';
 import { env } from './config/env';
 
@@ -76,6 +80,8 @@ export async function createServer() {
   initContactService(serviceRedisClient);
   initConversationLimiter(serviceRedisClient);
   initDeviceService(serviceRedisClient);
+  initFeedbackService(serviceRedisClient);
+  initCorrectionService(serviceRedisClient);
 
   // Rate Limiting (Redis 선택적)
   const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
@@ -157,6 +163,7 @@ export async function createServer() {
         { name: 'Chat', description: '채팅 관련 엔드포인트' },
         { name: 'Search', description: '문서 검색 엔드포인트' },
         { name: 'Sync', description: 'Cogni 노트 동기화 엔드포인트' },
+        { name: 'Feedback', description: 'HITL 피드백 수집 엔드포인트' },
         { name: 'System', description: '시스템 관리 엔드포인트' },
       ],
       securityDefinitions: {
@@ -191,6 +198,8 @@ export async function createServer() {
   await fastify.register(healthRoutes, { prefix: '/health' });
   await fastify.register(chatRoutes, { prefix: '/api/v1' });
   await fastify.register(syncRoutes, { prefix: '/api/v1' });
+  await fastify.register(feedbackRoutes, { prefix: '/api/v1/feedback' });
+  await fastify.register(correctionRoutes, { prefix: '/api/v1/correction' });
 
   // Root endpoint
   fastify.get('/', {

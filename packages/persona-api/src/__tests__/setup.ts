@@ -4,13 +4,34 @@ import dotenv from 'dotenv';
 // 환경변수 로드
 dotenv.config({ path: '.env.test' });
 
-// ESM 패키지 mock (Jest에서 ESM 직접 처리 불가)
-jest.mock('deepagents', () => ({
-  createDeepAgent: jest.fn(() => ({
-    invoke: jest.fn().mockResolvedValue({ messages: [] }),
-    stream: jest.fn().mockReturnValue({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true }) }) }),
-  })),
-}));
+// LangGraph mock (ESM 호환성 문제 해결)
+jest.mock('@langchain/langgraph', () => {
+  const mockGraph = {
+    addNode: jest.fn().mockReturnThis(),
+    addEdge: jest.fn().mockReturnThis(),
+    addConditionalEdges: jest.fn().mockReturnThis(),
+    compile: jest.fn().mockReturnValue({
+      invoke: jest.fn().mockResolvedValue({
+        answer: 'Mock answer',
+        sources: [],
+        rewrittenQuery: 'Mock query',
+        metrics: { nodeExecutions: 1, totalTokens: 100 },
+      }),
+      stream: jest.fn().mockReturnValue(
+        (async function* () {
+          yield { type: 'content', content: 'Mock answer' };
+          yield { type: 'done', metadata: {} };
+        })()
+      ),
+    }),
+  };
+
+  return {
+    StateGraph: jest.fn().mockImplementation(() => mockGraph),
+    START: 'START',
+    END: 'END',
+  };
+});
 
 jest.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: jest.fn().mockImplementation(() => ({})),

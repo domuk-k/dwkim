@@ -3,7 +3,7 @@ import { z } from 'zod';
 const envSchema = z
   .object({
     // Required
-    VOYAGE_API_KEY: z.string().min(1, 'VOYAGE_API_KEY is required'),
+    VOYAGE_API_KEY: z.string().optional(),
 
     // LLM (at least one required)
     GOOGLE_API_KEY: z.string().optional(),
@@ -47,7 +47,6 @@ const envSchema = z
     SYSTEM_PROMPT: z.string().optional(),
 
     // Feature Flags
-    USE_DEEP_AGENT: z.enum(['0', '1']).default('0'),
     ENABLE_SEU: z.enum(['true', 'false']).default('true'),
 
     // API Host
@@ -57,7 +56,7 @@ const envSchema = z
     npm_package_version: z.string().optional(),
   })
   .refine(
-    (data) => data.GOOGLE_API_KEY || data.GEMINI_API_KEY || data.OPENROUTER_API_KEY,
+    (data) => process.env.NODE_ENV === 'test' || data.GOOGLE_API_KEY || data.GEMINI_API_KEY || data.OPENROUTER_API_KEY,
     {
       message: 'At least one LLM API key is required (GOOGLE_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY)',
     }

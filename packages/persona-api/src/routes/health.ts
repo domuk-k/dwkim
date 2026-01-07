@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { RAGEngine } from '../services/ragEngine';
+import { PersonaEngine } from '../services/personaAgent';
 import { env } from '../config/env';
 
 export default async function healthRoutes(fastify: FastifyInstance) {
@@ -101,8 +101,8 @@ export default async function healthRoutes(fastify: FastifyInstance) {
           components: {},
         };
         try {
-          const ragEngine = new RAGEngine();
-          const engineStatus = await ragEngine.getEngineStatus();
+          const personaEngine = new PersonaEngine();
+          const engineStatus = await personaEngine.getEngineStatus();
           ragEngineStatus = {
             status: 'ready',
             components: engineStatus,

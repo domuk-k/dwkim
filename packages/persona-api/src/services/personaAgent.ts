@@ -1,406 +1,644 @@
 /**
- * Persona Agent - deepagents 기반 간소화된 에이전트
+ * Persona Agent - LangGraph StateGraph 기반 결정론적 노드 그래프
  *
- * DeepAgentService 클래스 대신 모듈 함수로 구현
- * deepagents 공식 가이드 스타일 따름
+ * ragEngine.ts의 절차적 파이프라인을 LangGraph 노드로 재구성
+ * - 각 노드는 순수 함수: (state, config) => Partial<State>
+ * - config.writer로 실시간 스트리밍 이벤트 emit
+ * - streamMode: "custom"으로 SSE 스트림 연동
  *
- * Features:
- * - RAG 검색 (search_documents)
- * - 연락처 수집 (collect_contact) with HITL interrupt
- *
- * ⚠️ 타입 캐스트 사용 이유:
- * - LangChain의 복잡한 제네릭 타입으로 TS2589 (무한 타입 재귀) 발생
- * - deepagents의 ReactAgent가 Runnable 인터페이스를 완전히 구현하지 않음
- * - 런타임에서는 정상 동작하므로 `as any`로 타입 호환성 확보
+ * @see https://github.com/langchain-ai/langgraph/blob/main/docs/docs/how-tos/streaming.md
  */
-import { createDeepAgent } from 'deepagents';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { DynamicStructuredTool } from '@langchain/core/tools';
-import { MemorySaver } from '@langchain/langgraph-checkpoint';
-import type { Runnable } from '@langchain/core/runnables';
-import type { BaseMessage } from '@langchain/core/messages';
+
+import { StateGraph, START, END } from '@langchain/langgraph';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
 import { z } from 'zod';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { VectorStore, Document } from './vectorStore';
+
+import { getVectorStore, initVectorStore, Document } from './vectorStore';
+import { LLMService, type ChatMessage } from './llmService';
+import { getQueryRewriter } from './queryRewriter';
+import { getSEUService, type SEUResult } from './seuService';
+import { initBM25Engine } from './bm25Engine';
+import { env } from '../config/env';
 
 // ─────────────────────────────────────────────────────────────
-// Types
+// Types (ragEngine.ts에서 유지)
 // ─────────────────────────────────────────────────────────────
 
-// DeepAgent 입출력 타입
-interface AgentInput {
-  messages: Array<{ role: string; content: string }>;
-}
-
-interface AgentOutput {
-  messages: BaseMessage[];
-}
-
-// DeepAgent 타입: Runnable로 정의
-type DeepAgentType = Runnable<AgentInput, AgentOutput>;
-
-export interface AgentResponse {
+export interface RAGResponse {
   answer: string;
   sources: Document[];
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
-  metadata: { searchQuery: string; searchResults: number; processingTime: number };
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  metadata: {
+    searchQuery: string;
+    searchResults: number;
+    processingTime: number;
+  };
 }
 
-// Discriminated Union: 각 이벤트 타입에 맞는 필드만 허용
-export type AgentStreamEvent =
-  | {
-      type: 'status';
-      tool: string;
-      message: string;
-      icon: string;
-      phase?: 'started' | 'progress' | 'completed';
-      details?: Record<string, unknown>;
-    }
-  | {
-      type: 'tool_call';
-      tool: 'search_documents' | 'collect_contact';
-      phase: 'started' | 'executing' | 'completed' | 'error';
-      displayName: string;
-      icon: string;
-      metadata?: { query?: string; resultCount?: number; error?: string };
-    }
-  | { type: 'sources'; sources: Document[] }
-  | { type: 'content'; content: string }
-  | { type: 'done'; metadata: AgentResponse['metadata'] }
-  | { type: 'error'; error: string };
+type RAGStreamMetadata = RAGResponse['metadata'] & {
+  shouldSuggestContact?: boolean;
+  messageCount?: number;
+  originalQuery?: string;
+  rewriteMethod?: string;
+  seuResult?: SEUResult;
+  /** LangGraph 노드 실행 횟수 */
+  nodeExecutions?: number;
+  /** LLM 토큰 사용량 */
+  totalTokens?: number;
+};
 
-// ─────────────────────────────────────────────────────────────
-// Config
-// ─────────────────────────────────────────────────────────────
-
-function loadSystemPrompt(): string {
-  try {
-    const promptPath = join(__dirname, '../../data/systemPrompt.md');
-    return readFileSync(promptPath, 'utf-8');
-  } catch {
-    return '나는 김동욱이에요. 질문에 답변해드릴게요.';
-  }
+export interface ProgressItem {
+  id: string;
+  label: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  detail?: string;
 }
 
-const TOOL_GUIDE = `
+// Discriminated Union
+interface RAGSourcesEvent { type: 'sources'; sources: Document[]; }
+interface RAGContentEvent { type: 'content'; content: string; }
+interface RAGDoneEvent { type: 'done'; metadata: RAGStreamMetadata; }
+interface RAGErrorEvent { type: 'error'; error: string; }
+interface RAGClarificationEvent { type: 'clarification'; suggestedQuestions: string[]; }
+interface RAGEscalationEvent { type: 'escalation'; reason: string; uncertainty: number; }
+interface RAGFollowupEvent { type: 'followup'; suggestedQuestions: string[]; }
+interface RAGProgressEvent { type: 'progress'; items: ProgressItem[]; }
 
-## 응답 언어
-사용자의 질문 언어로 답변하세요. English → English, 한국어 → 한국어.
-컨텍스트가 한국어여도 영어 질문엔 영어로 답변해요.
-
-## 도구 사용
-
-### search_documents
-dwkim의 이력서, 경험, 생각, FAQ 등을 검색해요.
-
-**검색 전략** (중요!):
-- "어떤 사람이야?", "자기소개 해줘" 같은 일반 질문
-  → 여러 검색 실행: "이력서", "경력 요약", "개발 철학" 등
-- "React 경험?" 같은 특정 질문
-  → 타겟 검색: "React 프로젝트", "프론트엔드 경험"
-- 원본 질문이 모호하면 더 구체적인 검색어로 변환해서 검색해요
-
-### collect_contact
-사용자가 연락처를 제공하면 수집해요. 강요하지 마세요.
-대화가 5회 이상이고 사용자가 관심을 보이면 자연스럽게 연락처를 물어볼 수 있어요.
-
-## 메타 질문 처리 (대화 자체에 대한 질문)
-- "내가 뭘 물어봤지?", "우리 대화 요약해줘" 같은 질문
-  → 문서 검색하지 말고 대화 기록을 참고해서 답변해요
-- 이런 질문에 FAQ나 문서 내용으로 답하면 안 돼요!
-`;
+export type RAGStreamEvent =
+  | RAGSourcesEvent
+  | RAGContentEvent
+  | RAGDoneEvent
+  | RAGErrorEvent
+  | RAGClarificationEvent
+  | RAGEscalationEvent
+  | RAGFollowupEvent
+  | RAGProgressEvent;
 
 // ─────────────────────────────────────────────────────────────
-// Agent 생성 (싱글턴)
+// State Schema (Zod)
 // ─────────────────────────────────────────────────────────────
 
-const vectorStore = new VectorStore();
-const checkpointer = new MemorySaver();
+const SourceSchema = z.object({
+  content: z.string(),
+  metadata: z.record(z.unknown()),
+  score: z.number().optional(),
+});
 
-// DeepAgent 타입: Runnable로 정의 (langchain/core 버전 충돌로 인해 런타임 타입으로 유지)
-let agent: DeepAgentType | null = null;
-let initialized = false;
+const PersonaStateSchema = z.object({
+  // Input
+  query: z.string(),
+  conversationHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string(),
+  })).default([]),
+
+  // Query Processing
+  rewrittenQuery: z.string().optional(),
+  rewriteMethod: z.enum(['rule', 'llm', 'none']).optional(),
+  needsClarification: z.boolean().default(false),
+
+  // Search Results
+  sources: z.array(SourceSchema).default([]),
+  context: z.string().default(''),
+
+  // SEU Analysis
+  seuResult: z.object({
+    uncertainty: z.number(),
+    avgSimilarity: z.number(),
+    responses: z.array(z.string()),
+    isUncertain: z.boolean(),
+    shouldEscalate: z.boolean(),
+  }).optional(),
+
+  // Output
+  answer: z.string().default(''),
+  clarificationQuestions: z.array(z.string()).optional(),
+  followupQuestions: z.array(z.string()).optional(),
+
+  // Metrics
+  metrics: z.object({
+    nodeExecutions: z.number().default(0),
+    totalTokens: z.number().default(0),
+    startTime: z.number().default(0),
+  }).default({ nodeExecutions: 0, totalTokens: 0, startTime: 0 }),
+
+  // Progress
+  progress: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    status: z.enum(['pending', 'in_progress', 'completed', 'skipped']),
+    detail: z.string().optional(),
+  })).default([]),
+});
+
+type PersonaState = z.infer<typeof PersonaStateSchema>;
+
+// ─────────────────────────────────────────────────────────────
+// Shared Resources
+// ─────────────────────────────────────────────────────────────
+
+const ENABLE_SEU = env.ENABLE_SEU === 'true';
+const llmService = new LLMService();
+
+// Progress 헬퍼
+function updateProgress(
+  progress: ProgressItem[],
+  id: string,
+  status: ProgressItem['status'],
+  detail?: string
+): ProgressItem[] {
+  return progress.map(p =>
+    p.id === id ? { ...p, status, detail: detail ?? p.detail } : p
+  );
+}
+
+function initProgress(): ProgressItem[] {
+  return [
+    { id: 'rewrite', label: '쿼리 분석', status: 'pending' },
+    { id: 'search', label: '문서 검색', status: 'pending' },
+    { id: 'context', label: '컨텍스트 구성', status: 'pending' },
+    { id: 'generate', label: '답변 생성', status: 'pending' },
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────
+// Nodes (Pure Functions + config.writer)
+// ─────────────────────────────────────────────────────────────
 
 /**
- * Persona Agent 초기화
+ * rewriteNode - 쿼리 재작성 (대명사 치환, 확장)
  */
-export async function initPersonaAgent(): Promise<void> {
-  if (initialized) return;
+async function rewriteNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const progress = updateProgress(state.progress, 'rewrite', 'in_progress', '대명사 치환 및 검색 최적화');
+  config.writer?.({ type: 'progress', items: progress });
 
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY required');
-  }
-
-  await vectorStore.initialize();
-
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash',
-    apiKey,
-    temperature: 0.7,
-  });
-
-  // RAG 검색 도구
-  // Note: `as any` required due to LangChain's complex generic types causing TS2589
-  // (infinite type instantiation). This is a known LangChain type system limitation.
-  const searchDocuments = new (DynamicStructuredTool as any)({
-    name: 'search_documents',
-    description: 'dwkim의 이력서, 경험, 생각, FAQ 등 개인 문서를 검색합니다.',
-    schema: z.object({
-      query: z.string().describe('검색 쿼리'),
-      topK: z.number().optional().describe('검색 결과 수 (기본값 5)'),
-    }),
-    func: async (input: { query: string; topK?: number }): Promise<string> => {
-      try {
-        const results = await vectorStore.searchDiverse(input.query, input.topK ?? 5);
-        if (results.length === 0) return '관련 문서를 찾지 못했습니다.';
-        return results
-          .map((doc, i) => `[${i + 1}] [${doc.metadata.type}] ${doc.metadata.title || '제목 없음'}\n${doc.content}`)
-          .join('\n\n---\n\n');
-      } catch (error) {
-        console.error('Search failed:', error);
-        return '검색 중 오류가 발생했습니다.';
-      }
-    },
-  });
-
-  // 연락처 수집 도구 (HITL 대상)
-  // Note: Same TS2589 workaround as above
-  const collectContact = new (DynamicStructuredTool as any)({
-    name: 'collect_contact',
-    description: '사용자가 자발적으로 연락처를 제공할 때 수집합니다. dwkim에게 전달됩니다.',
-    schema: z.object({
-      email: z.string().email().describe('사용자 이메일'),
-      name: z.string().optional().describe('사용자 이름 (선택)'),
-      message: z.string().optional().describe('전달할 메시지 (선택)'),
-    }),
-    func: async (input: { email: string; name?: string; message?: string }): Promise<string> => {
-      try {
-        console.log('📧 Contact collected via tool:', input.email);
-        return `감사합니다! ${input.name || ''}님의 연락처(${input.email})를 dwkim에게 전달할게요. 24시간 내로 연락드릴게요! 😊`;
-      } catch (error) {
-        console.error('Contact collection failed:', error);
-        return '연락처 저장 중 문제가 발생했어요. 다시 시도해주세요.';
-      }
-    },
-  });
-
-  // Deep Agent 생성
-  // Note: ReactAgent from deepagents doesn't fully implement Runnable interface,
-  // but runtime behavior is correct. Using `as any` for type compatibility.
-  agent = (createDeepAgent as any)({
-    model,
-    tools: [searchDocuments, collectContact],
-    systemPrompt: loadSystemPrompt() + TOOL_GUIDE,
-    checkpointer,
-  });
-
-  initialized = true;
-  console.log('PersonaAgent initialized (Gemini 2.0 Flash + LangGraph)');
-}
-
-/**
- * Persona Agent 쿼리 실행
- */
-export async function queryPersona(
-  message: string,
-  sessionId?: string
-): Promise<AgentResponse> {
-  if (!agent) throw new Error('PersonaAgent not initialized. Call initPersonaAgent() first.');
-
-  const startTime = Date.now();
-
-  // Agent 실행
-  const config = sessionId ? { configurable: { thread_id: sessionId } } : undefined;
-  const result = await agent.invoke(
-    { messages: [{ role: 'user', content: message }] },
-    config
+  const queryRewriter = getQueryRewriter();
+  const result = queryRewriter.rewrite(
+    state.query,
+    state.conversationHistory as ChatMessage[]
   );
 
-  // 응답 추출
-  const lastMessage = result.messages?.[result.messages.length - 1];
-  const answer = typeof lastMessage?.content === 'string'
-    ? lastMessage.content
-    : JSON.stringify(lastMessage?.content);
+  if (result.method !== 'none') {
+    console.log(`[rewriteNode] "${state.query}" → "${result.rewritten}" [${result.changes.join(', ')}]`);
+    config.writer?.({
+      type: 'progress',
+      items: updateProgress(progress, 'rewrite', 'in_progress', `"${state.query}" → "${result.rewritten}"`),
+    });
+  }
 
-  // Sources 추출 (검색 결과)
-  const sources = await vectorStore.searchDiverse(message, 5);
+  const completedProgress = updateProgress(progress, 'rewrite', 'completed');
+  config.writer?.({ type: 'progress', items: completedProgress });
 
   return {
-    answer,
-    sources,
-    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-    metadata: {
-      searchQuery: message,
-      searchResults: sources.length,
-      processingTime: Date.now() - startTime,
+    rewrittenQuery: result.rewritten,
+    rewriteMethod: result.method as 'rule' | 'llm' | 'none',
+    needsClarification: result.needsClarification ?? false,
+    progress: completedProgress,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
     },
   };
 }
 
 /**
- * Persona Agent 스트리밍 쿼리
+ * searchNode - Hybrid Search (Dense + BM25 + RRF)
  */
-export async function* queryPersonaStream(
-  message: string,
-  sessionId?: string
-): AsyncGenerator<AgentStreamEvent> {
-  if (!agent) {
-    yield { type: 'error', error: 'PersonaAgent not initialized' };
-    return;
+async function searchNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const progress = updateProgress(state.progress, 'search', 'in_progress', 'Dense + Sparse (RRF 융합)');
+  config.writer?.({ type: 'progress', items: progress });
+
+  const searchQuery = state.rewrittenQuery || state.query;
+  const vectorStore = getVectorStore();
+  const sources = await vectorStore.searchHybrid(searchQuery, env.MAX_SEARCH_RESULTS);
+
+  const completedProgress = updateProgress(progress, 'search', 'completed', `${sources.length}건 발견`);
+  config.writer?.({ type: 'progress', items: completedProgress });
+
+  // Sources 이벤트 즉시 전송
+  config.writer?.({ type: 'sources', sources: sources as Document[] });
+
+  // Context 생성
+  const contextProgress = updateProgress(completedProgress, 'context', 'in_progress');
+  config.writer?.({ type: 'progress', items: contextProgress });
+
+  const context = buildContext(sources as Document[], state.query);
+  const contextCompleted = updateProgress(contextProgress, 'context', 'completed');
+  config.writer?.({ type: 'progress', items: contextCompleted });
+
+  return {
+    sources: sources as Document[],
+    context,
+    progress: contextCompleted,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+    },
+  };
+}
+
+/**
+ * analyzeNode - SEU 불확실성 측정 및 명확화 필요 여부 결정
+ */
+async function analyzeNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  let seuResult: SEUResult | undefined;
+
+  // SEU 측정 (텍스트 기반으로 모호하지 않을 때만)
+  if (ENABLE_SEU && !state.needsClarification) {
+    const progress = updateProgress(state.progress, 'context', 'in_progress', '의미적 모호성 측정 (SEU)');
+    config.writer?.({ type: 'progress', items: progress });
+
+    console.log('[analyzeNode] Running SEU uncertainty measurement...');
+    const seuService = getSEUService();
+    seuResult = await seuService.measureUncertainty(state.query, state.context);
   }
 
-  const startTime = Date.now();
-  let sources: Document[] = [];
+  // 최종 모호함 판단
+  const needsClarification = state.needsClarification || (seuResult?.isUncertain ?? false);
 
-  // Agent가 검색 전략을 결정하도록 함 (사전 검색 제거)
-  yield { type: 'status', tool: 'thinking', message: '질문 분석 중...', icon: '🤔' };
+  return {
+    seuResult,
+    needsClarification,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+    },
+  };
+}
 
-  // Agent 스트리밍 실행
-  const config = sessionId ? { configurable: { thread_id: sessionId } } : undefined;
-  const stream = await agent.stream(
-    { messages: [{ role: 'user', content: message }] },
-    config
-  );
+/**
+ * clarifyNode - A2UI 추천 질문 생성
+ */
+async function clarifyNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const reason = state.needsClarification && !state.seuResult?.isUncertain ? 'text-based' : 'SEU';
+  console.log(`[clarifyNode] Ambiguous query detected (${reason}), query="${state.query}"`);
 
-  for await (const chunk of stream) {
-    if (chunk && typeof chunk === 'object') {
-      for (const [nodeKey, value] of Object.entries(chunk)) {
-        // Agent 노드: Tool 호출 시작 감지
-        if (nodeKey === 'agent' && value && typeof value === 'object') {
-          const messages = (value as { messages?: unknown[] }).messages;
-          if (Array.isArray(messages)) {
-            for (const msg of messages) {
-              if (msg && typeof msg === 'object' && 'tool_calls' in msg) {
-                const toolCalls = (msg as { tool_calls?: unknown[] }).tool_calls;
-                if (Array.isArray(toolCalls)) {
-                  for (const toolCall of toolCalls) {
-                    if (toolCall && typeof toolCall === 'object' && 'name' in toolCall) {
-                      const toolName = (toolCall as { name: string }).name;
-                      const toolArgs = (toolCall as { args?: Record<string, unknown> }).args;
+  const progress = updateProgress(state.progress, 'context', 'in_progress', '추천 질문 생성 중');
+  config.writer?.({ type: 'progress', items: progress });
 
-                      if (toolName === 'search_documents') {
-                        const query = toolArgs?.query as string | undefined;
-                        yield {
-                          type: 'tool_call',
-                          tool: 'search_documents',
-                          phase: 'started',
-                          displayName: '문서 검색',
-                          icon: '🔍',
-                          metadata: { query },
-                        };
-                      } else if (toolName === 'collect_contact') {
-                        yield {
-                          type: 'tool_call',
-                          tool: 'collect_contact',
-                          phase: 'started',
-                          displayName: '연락처 수집',
-                          icon: '📧',
-                        };
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+  const queryRewriter = getQueryRewriter();
+  const suggestions = await queryRewriter.generateSuggestedQuestions(state.query, state.context);
 
-        // Tools 노드: Tool 실행 완료 감지
-        if (nodeKey === 'tools' && value && typeof value === 'object') {
-          const toolMessages = (value as { messages?: unknown[] }).messages;
-          if (Array.isArray(toolMessages)) {
-            for (const toolMsg of toolMessages) {
-              if (toolMsg && typeof toolMsg === 'object' && 'name' in toolMsg) {
-                const toolName = (toolMsg as { name: string }).name;
-                const content = (toolMsg as { content?: string }).content;
+  console.log(`[clarifyNode] Generated suggestions: ${JSON.stringify(suggestions)}`);
+  config.writer?.({
+    type: 'clarification',
+    suggestedQuestions: suggestions,
+  });
 
-                if (toolName === 'search_documents') {
-                  if (content && content !== '관련 문서를 찾지 못했습니다.') {
-                    // 결과 수 추정 (문서 구분자 기준)
-                    const resultCount = content.split('\n\n---\n\n').length;
-                    yield {
-                      type: 'tool_call',
-                      tool: 'search_documents',
-                      phase: 'completed',
-                      displayName: '문서 검색',
-                      icon: '✓',
-                      metadata: { resultCount },
-                    };
-                  } else {
-                    yield {
-                      type: 'tool_call',
-                      tool: 'search_documents',
-                      phase: 'completed',
-                      displayName: '문서 검색',
-                      icon: '✓',
-                      metadata: { resultCount: 0 },
-                    };
-                  }
-                } else if (toolName === 'collect_contact') {
-                  if (content && !content.includes('문제가 발생')) {
-                    yield {
-                      type: 'tool_call',
-                      tool: 'collect_contact',
-                      phase: 'completed',
-                      displayName: '연락처 수집',
-                      icon: '✓',
-                    };
-                  } else {
-                    yield {
-                      type: 'tool_call',
-                      tool: 'collect_contact',
-                      phase: 'error',
-                      displayName: '연락처 수집',
-                      icon: '✗',
-                      metadata: { error: content || 'Unknown error' },
-                    };
-                  }
-                }
-              }
-            }
-          }
-        }
+  // Escalation 체크 (SEU가 매우 높을 때)
+  if (state.seuResult?.shouldEscalate) {
+    console.log(`[clarifyNode] High uncertainty (${state.seuResult.uncertainty}), emitting escalation`);
+    config.writer?.({
+      type: 'escalation',
+      reason: '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.',
+      uncertainty: state.seuResult.uncertainty,
+    });
+  }
 
-        // 최종 응답 추출
-        if (value && typeof value === 'object' && 'content' in value) {
-          const content = (value as { content: unknown }).content;
-          if (typeof content === 'string' && content.length > 0) {
-            // 첫 콘텐츠 전에 sources 조회 (UI용)
-            if (sources.length === 0) {
-              sources = await vectorStore.searchDiverse(message, 3);
-              if (sources.length > 0) {
-                yield { type: 'sources', sources };
-              }
-              yield {
-                type: 'status',
-                tool: 'generate',
-                message: '답변 생성 중...',
-                icon: '✍️',
-                phase: 'started',
-              };
-            }
-            yield { type: 'content', content };
-          }
-        }
-      }
+  return {
+    clarificationQuestions: suggestions,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+    },
+  };
+}
+
+/**
+ * generateNode - LLM 스트리밍 응답 생성
+ */
+async function generateNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const progress = updateProgress(state.progress, 'generate', 'in_progress', 'LLM 스트리밍');
+  config.writer?.({ type: 'progress', items: progress });
+
+  const messages: ChatMessage[] = [
+    ...state.conversationHistory as ChatMessage[],
+    { role: 'user', content: state.query },
+  ];
+
+  let fullAnswer = '';
+  let tokenCount = 0;
+
+  for await (const chunk of llmService.chatStream(messages, state.context)) {
+    if (chunk.type === 'content' && chunk.content) {
+      fullAnswer += chunk.content;
+      tokenCount += 1; // 추정 (실제 토큰 수는 LLM 응답에서 가져와야 함)
+      config.writer?.({ type: 'content', content: chunk.content });
+    } else if (chunk.type === 'error' && chunk.error) {
+      config.writer?.({ type: 'error', error: chunk.error });
+      return { answer: '', metrics: state.metrics };
     }
   }
 
-  yield {
-    type: 'done',
-    metadata: {
-      searchQuery: message,
-      searchResults: sources.length,
-      processingTime: Date.now() - startTime,
+  const completedProgress = updateProgress(progress, 'generate', 'completed');
+  config.writer?.({ type: 'progress', items: completedProgress });
+
+  return {
+    answer: fullAnswer,
+    progress: completedProgress,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+      totalTokens: state.metrics.totalTokens + tokenCount,
     },
   };
 }
 
 /**
- * Agent 상태 확인
+ * followupNode - 팔로업 질문 생성
  */
-export function isPersonaAgentReady(): boolean {
-  return initialized && agent !== null;
+async function followupNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  try {
+    const queryRewriter = getQueryRewriter();
+    const followupQuestions = await queryRewriter.generateFollowupQuestions(
+      state.query,
+      state.context
+    );
+
+    if (followupQuestions.length > 0) {
+      console.log(`[followupNode] Generated followup questions: ${JSON.stringify(followupQuestions)}`);
+      config.writer?.({
+        type: 'followup',
+        suggestedQuestions: followupQuestions,
+      });
+    }
+
+    return {
+      followupQuestions,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1,
+      },
+    };
+  } catch (error) {
+    console.warn('[followupNode] Followup question generation failed:', error);
+    return {
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1,
+      },
+    };
+  }
+}
+
+/**
+ * doneNode - 최종 메타데이터 emit (그래프 종료 직전)
+ */
+async function doneNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const processingTime = Date.now() - state.metrics.startTime;
+
+  config.writer?.({
+    type: 'done',
+    metadata: {
+      searchQuery: state.rewrittenQuery || state.query,
+      searchResults: state.sources?.length || 0,
+      processingTime,
+      originalQuery: state.query !== state.rewrittenQuery ? state.query : undefined,
+      rewriteMethod: state.rewriteMethod !== 'none' ? state.rewriteMethod : undefined,
+      seuResult: state.seuResult,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+      totalTokens: state.metrics.totalTokens,
+    },
+  });
+
+  return {
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1,
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Context Builder (exported for testing)
+// ─────────────────────────────────────────────────────────────
+
+export function buildContext(documents: Document[], query: string): string {
+  if (documents.length === 0) {
+    return '관련된 문서를 찾을 수 없습니다. 일반적인 지식으로 답변하겠습니다.';
+  }
+
+  let context = `사용자 질문: ${query}\n\n관련 문서들:\n`;
+  let totalLength = context.length;
+
+  for (const doc of documents) {
+    const docContext = `[${doc.metadata.type}] ${doc.metadata.title || '제목 없음'}\n${doc.content}\n\n`;
+
+    if (totalLength + docContext.length > env.CONTEXT_WINDOW) {
+      break;
+    }
+
+    context += docContext;
+    totalLength += docContext.length;
+  }
+
+  return context.trim();
+}
+
+// ─────────────────────────────────────────────────────────────
+// Graph Definition
+// ─────────────────────────────────────────────────────────────
+
+function createPersonaGraph() {
+  const graph = new StateGraph(PersonaStateSchema as any)
+    .addNode('rewrite', rewriteNode)
+    .addNode('search', searchNode)
+    .addNode('analyze', analyzeNode)
+    .addNode('clarify', clarifyNode)
+    .addNode('generate', generateNode)
+    .addNode('followup', followupNode)
+    .addNode('done', doneNode)
+
+    // 순차 흐름
+    .addEdge(START, 'rewrite')
+    .addEdge('rewrite', 'search')
+    .addEdge('search', 'analyze')
+
+    // 조건부 분기: analyze 후 clarify 또는 generate
+    .addConditionalEdges('analyze', (state) => {
+      const s = state as PersonaState;
+      return s.needsClarification ? 'clarify' : 'generate';
+    })
+
+    // clarify 후에도 generate 실행 (clarification 제공 후 답변)
+    .addEdge('clarify', 'generate')
+
+    // generate 후 followup 생성 (clarification이 없을 때만)
+    .addConditionalEdges('generate', (state) => {
+      const s = state as PersonaState;
+      return s.needsClarification ? 'done' : 'followup';
+    })
+
+    // followup → done → END
+    .addEdge('followup', 'done')
+    .addEdge('done', END);
+
+  return graph.compile({
+    // Production: 무한 루프 방지
+    // recursionLimit: 10, // LangGraph v1에서 지원 확인 필요
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// RAGEngine (Class) - 기존 인터페이스 유지
+// ─────────────────────────────────────────────────────────────
+
+export class PersonaEngine {
+  private graph: ReturnType<typeof createPersonaGraph> | null = null;
+
+  async initialize(): Promise<void> {
+    try {
+      await initVectorStore();
+      console.log('RAG Engine: VectorStore initialized');
+
+      // BM25 엔진 초기화
+      try {
+        const vectorStore = getVectorStore();
+        const documents = await vectorStore.getAllDocuments();
+        if (documents.length > 0) {
+          await initBM25Engine(documents);
+          console.log('RAG Engine: BM25 initialized with corpus');
+        } else {
+          console.warn('RAG Engine: No documents for BM25, will use dense-only search');
+        }
+      } catch (bm25Error) {
+        console.warn('RAG Engine: BM25 initialization failed, will use dense-only:', bm25Error);
+      }
+
+      this.graph = createPersonaGraph();
+      console.log('RAG Engine initialized successfully (LangGraph StateGraph)');
+    } catch (error) {
+      console.error('Failed to initialize RAG Engine:', error);
+      throw error;
+    }
+  }
+
+  async processQuery(
+    query: string,
+    conversationHistory: ChatMessage[] = []
+  ): Promise<RAGResponse> {
+    if (!this.graph) throw new Error('RAGEngine not initialized');
+
+    const startTime = Date.now();
+
+    const input: PersonaState = {
+      query,
+      conversationHistory: conversationHistory as PersonaState['conversationHistory'],
+      progress: initProgress(),
+      metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
+      sources: [],
+      context: '',
+      answer: '',
+      needsClarification: false,
+      rewrittenQuery: undefined,
+      rewriteMethod: undefined,
+      seuResult: undefined,
+      clarificationQuestions: undefined,
+      followupQuestions: undefined,
+    };
+
+    const result = await this.graph.invoke(input) as PersonaState;
+
+    return {
+      answer: result.answer || '',
+      sources: result.sources as Document[],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: result.metrics?.totalTokens || 0 },
+      metadata: {
+        searchQuery: result.rewrittenQuery || query,
+        searchResults: result.sources?.length || 0,
+        processingTime: Date.now() - startTime,
+      },
+    };
+  }
+
+  async *processQueryStream(
+    query: string,
+    conversationHistory: ChatMessage[] = []
+  ): AsyncGenerator<RAGStreamEvent> {
+    if (!this.graph) {
+      yield { type: 'error', error: 'RAGEngine not initialized' };
+      return;
+    }
+
+    const startTime = Date.now();
+
+    const input: PersonaState = {
+      query,
+      conversationHistory: conversationHistory as PersonaState['conversationHistory'],
+      progress: initProgress(),
+      metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
+      sources: [],
+      context: '',
+      answer: '',
+      needsClarification: false,
+      rewrittenQuery: undefined,
+      rewriteMethod: undefined,
+      seuResult: undefined,
+      clarificationQuestions: undefined,
+      followupQuestions: undefined,
+    };
+
+    console.log('[RAGEngine] Starting stream with query:', query);
+
+    try {
+      // streamMode: "custom" - config.writer 이벤트 수신
+      // doneNode가 'done' 이벤트를 emit하므로 별도 처리 불필요
+      for await (const event of await this.graph.stream(input, {
+        streamMode: 'custom',
+      })) {
+        yield event as RAGStreamEvent;
+      }
+    } catch (error) {
+      console.error('[RAGEngine] Stream error:', error);
+      yield { type: 'error', error: 'Failed to process streaming query' };
+    }
+  }
+
+  async addDocument(document: Document): Promise<void> {
+    const vectorStore = getVectorStore();
+    await vectorStore.addDocument(document);
+  }
+
+  async deleteDocument(id: string): Promise<void> {
+    const vectorStore = getVectorStore();
+    await vectorStore.deleteDocument(id);
+  }
+
+  async searchDocuments(query: string, topK = 5): Promise<Document[]> {
+    const vectorStore = getVectorStore();
+    return await vectorStore.searchHybrid(query, topK);
+  }
+
+  async getEngineStatus() {
+    return {
+      vectorStore: true,
+      llmService: true,
+      modelInfo: llmService.getModelInfo(),
+    };
+  }
 }

@@ -11,6 +11,11 @@
 
 import type { ChatMessage } from './llmService';
 import { LLMService } from './llmService';
+import {
+  detectLanguage,
+  getLanguageInstruction,
+  type SupportedLanguage,
+} from '../utils/languageDetector';
 
 export interface RewriteResult {
   original: string;
@@ -54,48 +59,120 @@ const EXPANSION_KEYWORDS: Record<string, string[]> = {
 // 기존 AMBIGUOUS_PATTERNS는 제거하고 길이 threshold만 유지
 // @see ragEngine.ts - shouldAskClarification() with SEU
 
+/**
+ * 다국어 LLM 프롬프트 생성 함수들
+ * 사용자 쿼리 언어에 맞춰 동적 생성
+ */
+
 // LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 있을 때)
-const SUGGESTION_PROMPT_WITH_CONTEXT = `당신은 김동욱에 대한 질문을 추천하는 도우미입니다.
+function getSuggestionPromptWithContext(lang: SupportedLanguage): string {
+  const langInstruction = getLanguageInstruction(lang);
+  return `You are a helpful assistant that suggests questions about Kim Dongwook.
 
-사용자의 모호한 질문과 관련 문서를 보고, 실제 문서 내용을 기반으로 더 구체적인 질문 2개를 추천해주세요.
+Based on the user's ambiguous question and related documents, suggest 2 more specific questions.
 
-## 관련 문서
+## Related Documents
 {context}
 
-## 사용자 질문
+## User Question
 {query}
 
-## 규칙
-- 위 문서에서 실제로 답할 수 있는 내용을 기반으로 질문 생성
-- "더 자세히", "구체적으로" 같은 뻔한 표현 금지
-- 문서에 언급된 구체적인 키워드/주제를 활용
-- 각 질문은 한 문장으로 간결하게 (15자 이내)
-- 동어반복 금지: "이름이 뭐냐", "누구냐" 등 이미 알고 있는 정보 질문 금지
-- JSON 배열 형식으로만 응답 (예: ["질문1", "질문2"])
+## Rules
+- Generate questions based on actual document content
+- Avoid generic phrases like "tell me more", "in detail"
+- Use specific keywords/topics mentioned in documents
+- Each question should be concise (one sentence)
+- No redundant questions about already known info
+- ${langInstruction}
+- Respond ONLY with a JSON array (e.g., ["question1", "question2"])
 
-추천 질문:`;
+Suggested questions:`;
+}
 
 // LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 없을 때 - 폴백)
-const SUGGESTION_PROMPT_NO_CONTEXT = `당신은 김동욱에 대한 질문을 추천하는 도우미입니다.
+function getSuggestionPromptNoContext(lang: SupportedLanguage): string {
+  const langInstruction = getLanguageInstruction(lang);
+  return `You are a helpful assistant that suggests questions about Kim Dongwook.
 
-사용자의 모호한 질문을 보고, 김동욱에 대해 더 구체적으로 물어볼 수 있는 질문 2개를 추천해주세요.
+Based on the user's ambiguous question, suggest 2 more specific questions about Kim Dongwook.
 
-규칙:
-- 각 질문은 한 문장으로 간결하게
-- "김동욱"을 주어로 사용
-- 실제로 답변 가능한 구체적인 질문으로
-- 동어반복 금지: "이름이 뭐냐", "누구냐" 등 이미 알고 있는 정보 질문 금지
-- JSON 배열 형식으로만 응답 (예: ["질문1", "질문2"])
+User Question: {query}
 
-사용자 질문: {query}
+## Rules
+- Each question should be concise (one sentence)
+- Use "Kim Dongwook" as the subject
+- Questions should be answerable
+- No redundant questions about already known info
+- ${langInstruction}
+- Respond ONLY with a JSON array (e.g., ["question1", "question2"])
 
-추천 질문:`;
+Suggested questions:`;
+}
 
-// 폴백용 기본 추천 질문
-const FALLBACK_SUGGESTIONS = [
-  '김동욱이 현재 어떤 회사에서 일하나요?',
-  '김동욱의 주요 기술 스택은 무엇인가요?',
-];
+// 폴백용 기본 추천 질문 (다국어)
+const FALLBACK_SUGGESTIONS: Record<SupportedLanguage, string[]> = {
+  ko: [
+    '김동욱이 현재 어떤 회사에서 일하나요?',
+    '김동욱의 주요 기술 스택은 무엇인가요?',
+  ],
+  en: [
+    'What company does Kim Dongwook work at?',
+    'What are Kim Dongwook\'s main tech skills?',
+  ],
+  ja: [
+    'キム・ドンウクは現在どの会社で働いていますか？',
+    'キム・ドンウクの主な技術スタックは何ですか？',
+  ],
+};
+
+/**
+ * LLM 응답에서 JSON 문자열 배열 파싱
+ * @returns 파싱된 배열 또는 null (실패 시)
+ */
+function parseJsonStringArray(content: string, maxItems = 2): string[] | null {
+  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) return null;
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (
+      Array.isArray(parsed) &&
+      parsed.length > 0 &&
+      parsed.every((item): item is string => typeof item === 'string')
+    ) {
+      return parsed.slice(0, maxItems);
+    }
+  } catch {
+    // JSON 파싱 실패 - null 반환
+  }
+
+  return null;
+}
+
+// HITL: 팔로업 질문 생성 프롬프트
+function getFollowupPrompt(lang: SupportedLanguage): string {
+  const langInstruction = getLanguageInstruction(lang);
+  return `You are a helpful assistant that develops conversations about Kim Dongwook.
+
+Based on the user's question and related documents, suggest 2 follow-up questions the user might naturally ask after seeing the answer.
+
+## Related Documents
+{context}
+
+## User Question
+{query}
+
+## Rules
+- Don't repeat already answered content
+- Develop new keywords/topics mentioned in the answer
+- Avoid generic phrases like "tell me more"
+- Each question should be concise (one sentence)
+- Questions should be answerable from documents
+- ${langInstruction}
+- Respond ONLY with a JSON array (e.g., ["question1", "question2"])
+
+Follow-up questions:`;
+}
 
 export class QueryRewriter {
   private llmService: LLMService;
@@ -130,45 +207,23 @@ export class QueryRewriter {
    * @param context 검색된 문서 컨텍스트 (있으면 더 의미있는 질문 생성)
    */
   async generateSuggestedQuestions(query: string, context?: string): Promise<string[]> {
+    const lang = detectLanguage(query);
+
     try {
-      // 컨텍스트가 있으면 문서 기반 질문 생성, 없으면 기본 프롬프트
       const prompt = context
-        ? SUGGESTION_PROMPT_WITH_CONTEXT
-            .replace('{context}', context.slice(0, 1500)) // 토큰 제한
+        ? getSuggestionPromptWithContext(lang)
+            .replace('{context}', context.slice(0, 1500))
             .replace('{query}', query)
-        : SUGGESTION_PROMPT_NO_CONTEXT.replace('{query}', query);
+        : getSuggestionPromptNoContext(lang).replace('{query}', query);
 
-      const messages: ChatMessage[] = [
-        { role: 'user', content: prompt },
-      ];
-
-      // 빠른 응답을 위해 짧은 context 사용
+      const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
       const response = await this.llmService.chat(messages, '');
 
-      // JSON 배열 파싱 시도
-      const content = response.content.trim();
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        try {
-          const parsed = JSON.parse(jsonMatch[0]);
-          // 배열이고 모든 요소가 문자열인지 검증
-          if (
-            Array.isArray(parsed) &&
-            parsed.length > 0 &&
-            parsed.every((item): item is string => typeof item === 'string')
-          ) {
-            return parsed.slice(0, 2);
-          }
-        } catch (parseError) {
-          console.warn('Failed to parse LLM suggestion JSON:', parseError);
-        }
-      }
-
-      // 파싱 실패 시 폴백
-      return FALLBACK_SUGGESTIONS;
+      const parsed = parseJsonStringArray(response.content.trim());
+      return parsed ?? FALLBACK_SUGGESTIONS[lang];
     } catch (error) {
       console.warn('Failed to generate LLM suggestions, using fallback:', error);
-      return FALLBACK_SUGGESTIONS;
+      return FALLBACK_SUGGESTIONS[lang];
     }
   }
 
@@ -248,6 +303,30 @@ export class QueryRewriter {
     }
 
     return result;
+  }
+
+  /**
+   * HITL: 팔로업 질문 생성
+   * 응답 완료 후 대화를 발전시킬 수 있는 질문 제안
+   * @param query 사용자 쿼리
+   * @param context 검색된 문서 컨텍스트
+   */
+  async generateFollowupQuestions(query: string, context: string): Promise<string[]> {
+    const lang = detectLanguage(query);
+
+    try {
+      const prompt = getFollowupPrompt(lang)
+        .replace('{context}', context.slice(0, 1500))
+        .replace('{query}', query);
+
+      const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+      const response = await this.llmService.chat(messages, '');
+
+      return parseJsonStringArray(response.content.trim()) ?? [];
+    } catch (error) {
+      console.warn('Failed to generate followup questions:', error);
+      return [];
+    }
   }
 
   /**
