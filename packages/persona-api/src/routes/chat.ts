@@ -24,10 +24,9 @@ import {
 import {
   getDeviceService,
 } from '../services/deviceService';
-import { env } from '../config/env';
 
-// Feature flag
-const USE_DEEP_AGENT = env.USE_DEEP_AGENT === '1';
+
+// Feature flag removed - now using LangGraph RAGEngine
 
 // ─────────────────────────────────────────────────────────────
 // OpenAPI Schemas
@@ -123,8 +122,7 @@ export default async function chatRoutes(fastify: FastifyInstance) {
   const chatService = await createChatService(
     conversationStore,
     conversationLimiter,
-    contactService,
-    USE_DEEP_AGENT
+    contactService
   );
 
   // Helper: context 추출 (Device ID 포함)

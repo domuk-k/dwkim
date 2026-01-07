@@ -8,14 +8,7 @@
  */
 
 import { z } from 'zod';
-import { RAGEngine, type RAGResponse, type RAGStreamEvent } from './ragEngine';
-import {
-  initPersonaAgent,
-  queryPersona,
-  queryPersonaStream,
-  isPersonaAgentReady,
-  type AgentStreamEvent,
-} from './personaAgent';
+import { PersonaEngine, type RAGResponse, type RAGStreamEvent } from './personaAgent';
 import type { ChatMessage } from './llmService';
 import { ConversationStore } from './conversationStore';
 import { ConversationLimiter, THRESHOLDS } from './conversationLimiter';
@@ -83,7 +76,6 @@ export interface BlockedResponse {
 
 export type ChatStreamEvent =
   | { type: 'session'; sessionId: string }
-  | AgentStreamEvent
   | RAGStreamEvent;
 
 export interface ChatContext {
@@ -97,24 +89,21 @@ export interface ChatContext {
 // ─────────────────────────────────────────────────────────────
 
 export class ChatService {
-  private ragEngine: RAGEngine;
+  private personaEngine: PersonaEngine;
   private conversationStore: ConversationStore;
   private conversationLimiter: ConversationLimiter;
   private contactService: ContactService;
-  private useDeepAgent: boolean;
   private initialized = false;
 
   constructor(
     conversationStore: ConversationStore,
     conversationLimiter: ConversationLimiter,
-    contactService: ContactService,
-    useDeepAgent = false
+    contactService: ContactService
   ) {
-    this.ragEngine = new RAGEngine();
+    this.personaEngine = new PersonaEngine();
     this.conversationStore = conversationStore;
     this.conversationLimiter = conversationLimiter;
     this.contactService = contactService;
-    this.useDeepAgent = useDeepAgent;
   }
 
   /**
@@ -124,17 +113,11 @@ export class ChatService {
     if (this.initialized) return;
 
     try {
-      if (this.useDeepAgent) {
-        await initPersonaAgent();
-        console.log('ChatService: PersonaAgent initialized');
-      } else {
-        await this.ragEngine.initialize();
-        console.log('ChatService: RAG Engine initialized');
-      }
+      await this.personaEngine.initialize();
+      console.log('ChatService: RAG Engine initialized');
       this.initialized = true;
     } catch (error) {
       console.error('ChatService initialization failed:', error);
-      this.useDeepAgent = false;
       // 초기화 실패 시에도 서버는 계속 실행
     }
   }
@@ -223,16 +206,9 @@ export class ChatService {
     let usage: { promptTokens: number; completionTokens: number; totalTokens: number };
     let metadata: { searchQuery: string; searchResults: number; processingTime: number };
 
-    // DeepAgent 또는 RAG 엔진 사용
-    if (this.useDeepAgent && isPersonaAgentReady()) {
-      logEntry.engine = 'deepagent';
-      const response = await queryPersona(message, sessionId);
-      answer = response.answer;
-      sources = response.sources;
-      usage = response.usage;
-      metadata = response.metadata;
-    } else if (this.ragEngine) {
-      const response: RAGResponse = await this.ragEngine.processQuery(message, history);
+    // LangGraph RAG 엔진 사용
+    if (this.personaEngine) {
+      const response: RAGResponse = await this.personaEngine.processQuery(message, history);
       answer = response.answer;
       sources = response.sources;
       usage = response.usage;
@@ -308,16 +284,9 @@ export class ChatService {
     // 세션 시작 이벤트
     yield { type: 'session', sessionId };
 
-    // DeepAgent 또는 RAG 엔진 사용
-    if (this.useDeepAgent && isPersonaAgentReady()) {
-      for await (const event of queryPersonaStream(message, sessionId)) {
-        if (event.type === 'content') {
-          fullAnswer += event.content;
-        }
-        yield event;
-      }
-    } else if (this.ragEngine) {
-      for await (const event of this.ragEngine.processQueryStream(message, history)) {
+    // LangGraph RAG 엔진 사용
+    if (this.personaEngine) {
+      for await (const event of this.personaEngine.processQueryStream(message, history)) {
         if (event.type === 'content') {
           fullAnswer += event.content;
         }
@@ -352,22 +321,22 @@ export class ChatService {
    * 문서 검색
    */
   async searchDocuments(query: string, limit = 5): Promise<unknown[]> {
-    if (!this.ragEngine) {
+    if (!this.personaEngine) {
       throw new Error('RAG 엔진이 초기화되지 않았습니다.');
     }
-    return this.ragEngine.searchDocuments(query, limit);
+    return this.personaEngine.searchDocuments(query, limit);
   }
 
   /**
    * 엔진 상태 확인
    */
   async getEngineStatus(): Promise<{ status: string; components?: unknown }> {
-    if (!this.ragEngine) {
+    if (!this.personaEngine) {
       return {
         status: 'not_initialized',
       };
     }
-    const components = await this.ragEngine.getEngineStatus();
+    const components = await this.personaEngine.getEngineStatus();
     return {
       status: 'ready',
       components,
@@ -429,14 +398,12 @@ export class ChatService {
 export async function createChatService(
   conversationStore: ConversationStore,
   conversationLimiter: ConversationLimiter,
-  contactService: ContactService,
-  useDeepAgent = false
+  contactService: ContactService
 ): Promise<ChatService> {
   const service = new ChatService(
     conversationStore,
     conversationLimiter,
-    contactService,
-    useDeepAgent
+    contactService
   );
   await service.initialize();
   return service;

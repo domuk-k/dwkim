@@ -29,6 +29,7 @@ export default [
     ignores: [
       'dist/**',
       '.output/**',
+      '.vercel/**',
       'node_modules/**',
       '*.log',
       '.env*',

@@ -17,12 +17,18 @@ export interface SEUResult {
   avgSimilarity: number;
   /** 생성된 응답들 */
   responses: string[];
-  /** uncertainty > threshold */
+  /** uncertainty > UNCERTAINTY_THRESHOLD (clarification 트리거) */
   isUncertain: boolean;
+  /** uncertainty > ESCALATION_THRESHOLD (human escalation 트리거) */
+  shouldEscalate: boolean;
 }
 
 // Uncertainty threshold (0.5 = 50% similarity 이하면 불확실)
 const UNCERTAINTY_THRESHOLD = 0.4;
+
+// Human Escalation threshold (더 높은 불확실성 → 사람에게 연결)
+// clarification(0.4)보다 높은 값으로, 정말 불확실할 때만 트리거
+export const ESCALATION_THRESHOLD = 0.7;
 
 // 빠른 응답을 위한 짧은 프롬프트
 const QUICK_RESPONSE_SYSTEM = `당신은 김동욱에 대한 질문에 **한 문장**으로 핵심만 답변하는 AI입니다.
@@ -90,6 +96,7 @@ export class SEUService {
           avgSimilarity: 1,
           responses,
           isUncertain: false,
+          shouldEscalate: false,
         };
       }
 
@@ -118,15 +125,18 @@ export class SEUService {
         avgSimilarity: Math.round(avgSimilarity * 100) / 100,
         responses,
         isUncertain: uncertainty > UNCERTAINTY_THRESHOLD,
+        shouldEscalate: uncertainty > ESCALATION_THRESHOLD,
       };
     } catch (error) {
       console.error('SEU measurement failed:', error);
       // 실패 시 uncertain으로 처리 (안전한 기본값)
+      // escalation은 false로 - 에러 시 사람 연결까지는 안함
       return {
         uncertainty: 1,
         avgSimilarity: 0,
         responses: [],
         isUncertain: true,
+        shouldEscalate: false,
       };
     }
   }
