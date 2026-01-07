@@ -21,7 +21,7 @@ export const profile = {
   email: "dannyworks102@gmail.com",
   title: "Agent Engineer, Coxwave",
   github: "https://github.com/domuk-k",
-  website: "https://dwkim.vercel.app",
+  website: "https://domuk-k.vercel.app",
   project: "https://github.com/domuk-k/dwkim",
   bio: "Problem Solver 🧩 · Marathon Runner 🏃 · Opensource 💻 · casual Yogi 🧘",
   quote: "Own my agency",
