@@ -24,6 +24,7 @@ import {
 import {
   getDeviceService,
 } from '../services/deviceService';
+import { logInputBlocked, logHistoryRejected } from '../guardrails';
 
 
 // Feature flag removed - now using LangGraph RAGEngine
@@ -173,6 +174,23 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         return reply.send(response);
       } catch (error) {
         if (error instanceof z.ZodError) {
+          // 보안 관련 에러인지 확인 (history validation 등)
+          const isSecurityError = error.errors.some(
+            (e) => e.message === 'Invalid content in conversation history'
+          );
+
+          if (isSecurityError) {
+            logHistoryRejected(
+              context.clientIp,
+              'unknown', // session not yet determined
+              'Suspicious content in conversation history'
+            );
+          } else {
+            logInputBlocked(context.clientIp, 'Zod validation failed', {
+              errors: error.errors.map((e) => e.message),
+            });
+          }
+
           return reply.status(400).send({
             success: false,
             error: '입력 데이터 검증 실패',
@@ -205,6 +223,12 @@ export default async function chatRoutes(fastify: FastifyInstance) {
       const context = getContext(request);
 
       try {
+        // IP 차단 확인 (스트리밍에서도 동일하게 적용)
+        const blocked = await chatService.checkBlocked(context.clientIp);
+        if (blocked) {
+          return reply.status(429).send(blocked);
+        }
+
         const validatedData = ChatRequestSchema.parse(request.body);
 
         // Device 활동 추적 (비동기, 실패해도 스트리밍은 계속)
@@ -250,6 +274,23 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         console.error('Stream chat error:', error);
 
         if (error instanceof z.ZodError) {
+          // 보안 관련 에러인지 확인
+          const isSecurityError = error.errors.some(
+            (e) => e.message === 'Invalid content in conversation history'
+          );
+
+          if (isSecurityError) {
+            logHistoryRejected(
+              context.clientIp,
+              'unknown',
+              'Suspicious content in stream history'
+            );
+          } else {
+            logInputBlocked(context.clientIp, 'Stream validation failed', {
+              errors: error.errors.map((e) => e.message),
+            });
+          }
+
           return reply.status(400).send({
             success: false,
             error: '입력 데이터 검증 실패',

@@ -1,22 +1,45 @@
 #!/usr/bin/env tsx
+// NOTE: dotenv is preloaded via npm script (--require dotenv/config)
 
 import { QdrantClient } from '@qdrant/js-client-rest';
 import fs from 'fs/promises';
 import path from 'path';
 import { homedir } from 'os';
-import dotenv from 'dotenv';
+import { INJECTION_PATTERNS } from '../src/guardrails';
 import { OpenAIEmbeddings } from '../src/services/openaiEmbeddings';
 import { BM25Engine, getBM25Engine, resetBM25Engine } from '../src/services/bm25Engine';
-
-// Load .env.local first (for local dev), then .env
-dotenv.config({ path: '.env.local' });
-dotenv.config();
 
 // Configuration - Cogni as SSOT (Single Source of Truth)
 // about 콘텐츠도 cogni/persona에 tags: [persona]로 통합됨
 const COGNI_PERSONA_DIR = path.join(homedir(), '.cogni', 'notes', 'persona');
 const COGNI_NOTES_DIR = path.join(homedir(), '.cogni', 'notes');
 const COLLECTION_NAME = 'persona_documents';
+
+/**
+ * 문서 콘텐츠 보안 검증
+ * - Indirect Prompt Injection 패턴 탐지
+ * - 경고만 출력, 인덱싱은 진행 (false positive 대응)
+ *
+ * @see https://arxiv.org/abs/2511.15759
+ */
+function validateDocumentContent(content: string, filename: string): boolean {
+  const violations: string[] = [];
+
+  for (const pattern of INJECTION_PATTERNS) {
+    if (pattern.test(content)) {
+      violations.push(pattern.toString());
+    }
+  }
+
+  if (violations.length > 0) {
+    console.warn(`⚠️  [SECURITY] 의심스러운 패턴 감지: ${filename}`);
+    violations.forEach((v) => console.warn(`   - ${v}`));
+    // 경고만 출력, 인덱싱은 진행 (수동 검토 후 조치)
+    return false;
+  }
+
+  return true;
+}
 
 interface ChunkResult {
   id: string;
@@ -160,6 +183,10 @@ async function processPersonaFiles(): Promise<ChunkResult[]> {
 
   for (const file of mdFiles) {
     const content = await fs.readFile(path.join(COGNI_PERSONA_DIR, file), 'utf-8');
+
+    // 보안 검증 (경고만 출력, 인덱싱은 진행)
+    validateDocumentContent(content, file);
+
     const { frontmatter, body } = parseFrontmatter(content);
 
     // tags에 persona가 없으면 스킵
@@ -274,11 +301,15 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
     if (filePath.includes('/persona/')) continue;
 
     const content = await fs.readFile(filePath, 'utf-8');
+
+    // 보안 검증 (경고만 출력, 인덱싱은 진행)
+    validateDocumentContent(content, path.basename(filePath));
+
     const { frontmatter, body } = parseFrontmatter(content);
 
-    // tags에 blog 또는 rag가 있는지 확인
+    // tags에 blog 또는 persona가 있는지 확인 (rag 태그는 인덱싱에서 제외)
     const tags = (frontmatter.tags as string[]) || [];
-    const hasIndexableTag = tags.includes('blog') || tags.includes('rag');
+    const hasIndexableTag = tags.includes('blog') || tags.includes('persona');
     if (!hasIndexableTag) continue;
 
     // rag: false인 경우 스킵
@@ -300,9 +331,9 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
 
     console.log(`  📄 ${path.basename(filePath)}: ${chunks.length} chunks`);
 
-    // blog vs rag 태그에 따라 type 구분
-    const docType = tags.includes('blog') ? 'blog' : 'knowledge';
-    const idPrefix = tags.includes('blog') ? 'blog' : 'rag';
+    // blog vs persona 태그에 따라 type 구분
+    const docType = tags.includes('blog') ? 'blog' : 'persona';
+    const idPrefix = tags.includes('blog') ? 'blog' : 'persona';
 
     chunks.forEach((chunk, index) => {
       results.push({

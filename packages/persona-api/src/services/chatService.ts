@@ -18,21 +18,34 @@ import {
   generateRequestId,
   type ChatLogEntry,
 } from './chatLogger';
+import { containsSecurityKeyword } from '../guardrails';
 
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * 대화 히스토리 메시지 스키마
+ * - content 길이 제한: 1000자 (실제 응답이 길 수 있음)
+ * - 보안 키워드 검증: 가짜 assistant 메시지 주입 방지
+ */
+const ConversationMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z
+    .string()
+    .max(1000, '히스토리 메시지가 너무 깁니다')
+    .refine(
+      (content) => !containsSecurityKeyword(content),
+      { message: 'Invalid content in conversation history' }
+    ),
+});
+
 export const ChatRequestSchema = z.object({
   message: z.string().min(1).max(1000),
   sessionId: z.string().optional(),
   conversationHistory: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string(),
-      })
-    )
+    .array(ConversationMessageSchema)
+    .max(20, '대화 히스토리가 너무 깁니다')  // 최대 20개 메시지
     .optional(),
   options: z
     .object({

@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Redis } from 'ioredis';
+import { checkSecurityViolation } from '../guardrails';
 
 // 금지된 패턴들
 const FORBIDDEN_PATTERNS = [
@@ -14,18 +15,9 @@ const FORBIDDEN_PATTERNS = [
   /window\./gi,
 ];
 
-// 금지된 단어들 (실제 악의적인 것만)
-const FORBIDDEN_WORDS = [
-  'hack',
-  'exploit', 
-  'sql injection',
-  'xss attack',
-  'csrf token',
-  'drop table',
-  'delete from',
-  'truncate table',
-  'union select',
-];
+// Note: FORBIDDEN_WORDS 제거됨 - securityKeywords.ts와 FORBIDDEN_PATTERNS가
+// 더 정밀한 검증을 수행. 'hack', 'exploit' 등은 과도하게 광범위함.
+// See: plan file - RAG 보안 Level 1 구현
 
 interface AbuseDetectionOptions {
   suspiciousPatterns: RegExp[];
@@ -165,7 +157,7 @@ export class AbuseDetection {
     }
   }
 
-  private validateInput(input: string): { isValid: boolean; reason?: string } {
+  private validateInput(input: string): { isValid: boolean; reason?: string; securityViolation?: boolean } {
     // 길이 검증
     if (!input || input.trim().length === 0) {
       return { isValid: false, reason: '입력이 비어있습니다' };
@@ -175,18 +167,21 @@ export class AbuseDetection {
       return { isValid: false, reason: '입력이 너무 깁니다 (최대 1000자)' };
     }
 
-    // 금지어 검증
-    const lowerInput = input.toLowerCase();
-    for (const word of FORBIDDEN_WORDS) {
-      if (lowerInput.includes(word)) {
-        return {
-          isValid: false,
-          reason: `금지된 단어가 포함되어 있습니다: ${word}`,
-        };
-      }
+    // 🔒 보안 키워드/패턴 검증 (Prompt Injection 방어)
+    const securityCheck = checkSecurityViolation(input);
+    if (!securityCheck.safe) {
+      console.warn('[SECURITY] Prompt injection attempt detected:', {
+        reason: securityCheck.reason,
+        matched: securityCheck.matched,
+      });
+      return {
+        isValid: false,
+        reason: '요청을 처리할 수 없습니다',  // 공격자에게 힌트 주지 않음
+        securityViolation: true,
+      };
     }
 
-    // 패턴 검증
+    // 패턴 검증 (XSS/SQL Injection)
     for (const pattern of FORBIDDEN_PATTERNS) {
       if (pattern.test(input)) {
         return { isValid: false, reason: '금지된 패턴이 감지되었습니다' };
