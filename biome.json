@@ -42,17 +42,5 @@
   },
   "files": {
     "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"]
-  },
-  "overrides": [
-    {
-      "includes": ["packages/blog/**/*.astro"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedVariables": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }
