@@ -5,7 +5,7 @@
  * LLM 프롬프트 및 HITL UI 언어 결정에 사용
  */
 
-export type SupportedLanguage = 'ko' | 'en' | 'ja';
+export type SupportedLanguage = 'ko' | 'en' | 'ja'
 
 /**
  * 쿼리 언어 감지 (간단한 문자 범위 기반)
@@ -16,22 +16,22 @@ export type SupportedLanguage = 'ko' | 'en' | 'ja';
  * @param text - 감지할 텍스트 (null/undefined 허용, 기본값 'en' 반환)
  */
 export function detectLanguage(text: string | null | undefined): SupportedLanguage {
-  if (!text) return 'en';
+  if (!text) return 'en'
 
-  const trimmed = text.trim();
+  const trimmed = text.trim()
 
   // 한글 포함 여부
   if (/[\uAC00-\uD7AF]/.test(trimmed)) {
-    return 'ko';
+    return 'ko'
   }
 
   // 일본어 (히라가나, 카타카나, 한자)
   if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(trimmed)) {
-    return 'ja';
+    return 'ja'
   }
 
   // 기본값: 영어
-  return 'en';
+  return 'en'
 }
 
 /**
@@ -40,34 +40,36 @@ export function detectLanguage(text: string | null | undefined): SupportedLangua
 export function getLanguageInstruction(lang: SupportedLanguage): string {
   switch (lang) {
     case 'ko':
-      return '한국어로 답변하세요.';
+      return '한국어로 답변하세요.'
     case 'ja':
-      return '日本語で回答してください。';
-    case 'en':
+      return '日本語で回答してください。'
     default:
-      return 'Respond in English.';
+      return 'Respond in English.'
   }
 }
 
 /**
  * HITL UI 다국어 메시지
  */
-export const HITL_MESSAGES: Record<SupportedLanguage, {
-  feedbackPrompt: string;
-  feedbackGood: string;
-  feedbackOkay: string;
-  feedbackPoor: string;
-  feedbackDismiss: string;
-  exitPrompt: string;
-  exitQuestion: string;
-  exitGreat: string;
-  exitGood: string;
-  exitPoor: string;
-  exitSkip: string;
-  clarificationPrompt: string;
-  clarificationHint: string;
-  correctionThanks: string;
-}> = {
+export const HITL_MESSAGES: Record<
+  SupportedLanguage,
+  {
+    feedbackPrompt: string
+    feedbackGood: string
+    feedbackOkay: string
+    feedbackPoor: string
+    feedbackDismiss: string
+    exitPrompt: string
+    exitQuestion: string
+    exitGreat: string
+    exitGood: string
+    exitPoor: string
+    exitSkip: string
+    clarificationPrompt: string
+    clarificationHint: string
+    correctionThanks: string
+  }
+> = {
   ko: {
     feedbackPrompt: '이 응답이 어땠나요?',
     feedbackGood: '좋아요',
@@ -82,7 +84,7 @@ export const HITL_MESSAGES: Record<SupportedLanguage, {
     exitSkip: '스킵',
     clarificationPrompt: '더 구체적으로 물어보시겠어요?',
     clarificationHint: '↑↓ 선택 · Enter 질문 · ESC 닫기',
-    correctionThanks: '정정해주셔서 감사합니다! 피드백을 기록했어요.',
+    correctionThanks: '정정해주셔서 감사합니다! 피드백을 기록했어요.'
   },
   en: {
     feedbackPrompt: 'How was this response?',
@@ -98,7 +100,7 @@ export const HITL_MESSAGES: Record<SupportedLanguage, {
     exitSkip: 'Skip',
     clarificationPrompt: 'Want to be more specific?',
     clarificationHint: '↑↓ Select · Enter to ask · ESC to close',
-    correctionThanks: 'Thanks for the correction! Feedback recorded.',
+    correctionThanks: 'Thanks for the correction! Feedback recorded.'
   },
   ja: {
     feedbackPrompt: 'この回答はいかがでしたか？',
@@ -114,6 +116,6 @@ export const HITL_MESSAGES: Record<SupportedLanguage, {
     exitSkip: 'スキップ',
     clarificationPrompt: 'もっと具体的に聞きますか？',
     clarificationHint: '↑↓ 選択 · Enter 質問 · ESC 閉じる',
-    correctionThanks: 'ご訂正ありがとうございます！フィードバックを記録しました。',
-  },
-};
+    correctionThanks: 'ご訂正ありがとうございます！フィードバックを記録しました。'
+  }
+}

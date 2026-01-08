@@ -1,5 +1,4 @@
 ---
-import { Image } from 'astro:assets'
 import type { ImageOptimizerProps } from '../../types/component.types'
 
 const {
@@ -17,10 +16,10 @@ const {
 } = Astro.props as ImageOptimizerProps
 
 // Use eager loading for priority images
-const actualLoading = priority ? 'eager' : loading
+const _actualLoading = priority ? 'eager' : loading
 
 // Generate responsive image sizes
-const sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+const _sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
 ---
 
 <figure class={`optimized-image ${className || ''}`}>

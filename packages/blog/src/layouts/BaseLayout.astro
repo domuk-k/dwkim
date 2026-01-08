@@ -1,22 +1,16 @@
 ---
 import { themeConfig } from '@/config'
-import { ClientRouter } from 'astro:transitions'
-import ThemeManager from '@/components/ui/ThemeManager.astro'
-import FaviconThemeSwitcher from '@/components/ui/FaviconThemeSwitcher.astro'
-import TransitionWrapper from '@/components/layout/TransitionWrapper.astro'
-import Header from '@/components/layout/Header.astro'
 import type { LayoutProps } from '@/types'
-import Analytics from '@vercel/analytics/astro'
 
 type Props = LayoutProps
 
 const { type = 'page' } = Astro.props
-const language = themeConfig.site.language || 'en-US'
+const _language = themeConfig.site.language || 'en-US'
 const contentWidth = themeConfig.general.contentWidth
-const fadeAnimation = themeConfig.general.fadeAnimation
+const _fadeAnimation = themeConfig.general.fadeAnimation
 const widthValue = Math.min(parseFloat(contentWidth), 50)
 const shouldUseCustomWidth = widthValue > 25
-const finalWidth = shouldUseCustomWidth ? `${widthValue}rem` : '25rem'
+const _finalWidth = shouldUseCustomWidth ? `${widthValue}rem` : '25rem'
 ---
 
 <html lang={language}>

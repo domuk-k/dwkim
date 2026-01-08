@@ -1,5 +1,5 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // 复制KaTeX CSS文件到public目录
 const sourcePath = path.join(process.cwd(), 'node_modules/katex/dist/katex.min.css')

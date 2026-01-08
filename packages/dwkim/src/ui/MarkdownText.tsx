@@ -1,13 +1,16 @@
-import React, { useMemo } from 'react';
-import { Text } from 'ink';
-import { marked } from 'marked';
-import TerminalRenderer from 'marked-terminal';
-import { theme } from './theme.js';
+import { Text } from 'ink'
+import { marked } from 'marked'
+import { useMemo } from 'react'
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const TerminalRenderer = require('marked-terminal').default
+
+import { theme } from './theme.js'
 
 interface Props {
-  children: string;
+  children: string
   /** 기본 텍스트 색상 (marked-terminal이 오버라이드할 수 있음) */
-  color?: string;
+  color?: string
 }
 
 // marked-terminal 설정 (marked@12 API)
@@ -34,9 +37,9 @@ marked.setOptions({
     // 이모지 지원
     emoji: true,
     // 탭 크기
-    tab: 2,
-  }),
-});
+    tab: 2
+  })
+})
 
 /**
  * Markdown renderer for Ink using marked + marked-terminal
@@ -52,19 +55,18 @@ marked.setOptions({
  */
 export function MarkdownText({ children, color }: Props) {
   const rendered = useMemo(() => {
-    if (!children) return '';
+    if (!children) return ''
 
     try {
       // marked-terminal은 ANSI escape code가 포함된 문자열을 반환
-      const result = marked.parse(children, { async: false }) as string;
+      const result = marked.parse(children, { async: false }) as string
       // 끝의 불필요한 줄바꿈 제거
-      return result.replace(/\n+$/, '');
+      return result.replace(/\n+$/, '')
     } catch {
       // 파싱 실패 시 원본 반환
-      return children;
+      return children
     }
-  }, [children]);
+  }, [children])
 
-  return <Text color={color}>{rendered}</Text>;
+  return <Text color={color}>{rendered}</Text>
 }
-
