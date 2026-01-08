@@ -1,6 +1,7 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import OpenAI from 'openai'
 import { env } from '../config/env'
+import { getModel, getFallbackModel, type ModelPurpose } from '../config/models'
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -28,26 +29,37 @@ export interface ChatStreamChunk {
 // LLM 제공자 타입
 type LLMProvider = 'openrouter' | 'gemini' | 'none'
 
+export interface LLMServiceOptions {
+  /** 모델 용도: generation(사용자 대면) | utility(내부 처리) */
+  purpose?: ModelPurpose
+  /** 모델 직접 지정 (프로필 무시) */
+  model?: string
+}
+
 export class LLMService {
   private geminiClient?: ChatGoogleGenerativeAI
   private openRouterClient?: OpenAI
   private model: string = ''
   private systemPrompt: string = ''
   private llmProvider: LLMProvider
+  private purpose: ModelPurpose
 
-  constructor() {
+  constructor(options: LLMServiceOptions = {}) {
+    this.purpose = options.purpose || 'generation'
+
     const openRouterKey = env.OPENROUTER_API_KEY
     const googleKey = env.GOOGLE_API_KEY || env.GEMINI_API_KEY
 
     // OpenRouter 우선 (OpenAI SDK 직접 사용)
     if (openRouterKey) {
-      this.model = env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free'
+      // 모델 우선순위: 직접 지정 > 환경변수 오버라이드 > 프로필
+      this.model = options.model || this.resolveModel()
       this.openRouterClient = new OpenAI({
         apiKey: openRouterKey,
         baseURL: 'https://openrouter.ai/api/v1'
       })
       this.llmProvider = 'openrouter'
-      console.log(`LLM Service: Using OpenRouter (${this.model})`)
+      console.log(`LLM Service [${this.purpose}]: Using OpenRouter (${this.model})`)
     } else if (googleKey) {
       this.model = 'gemini-2.0-flash'
       this.geminiClient = new ChatGoogleGenerativeAI({
@@ -56,7 +68,7 @@ export class LLMService {
         temperature: 0.7
       })
       this.llmProvider = 'gemini'
-      console.log('LLM Service: Using Google Gemini')
+      console.log(`LLM Service [${this.purpose}]: Using Google Gemini`)
     } else {
       this.llmProvider = 'none'
       console.warn('LLM Service: No API key configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY.')
@@ -336,10 +348,44 @@ export class LLMService {
     }
   }
 
-  getModelInfo(): { model: string; maxTokens: number } {
+  getModelInfo(): { model: string; maxTokens: number; purpose: ModelPurpose } {
     return {
       model: this.model,
-      maxTokens: 100000
+      maxTokens: 100000,
+      purpose: this.purpose
     }
+  }
+
+  /**
+   * 환경 및 용도에 맞는 모델 결정
+   * 우선순위: 환경변수 오버라이드 > deprecated OPENROUTER_MODEL > 프로필
+   */
+  private resolveModel(): string {
+    // 환경변수 오버라이드 확인
+    if (this.purpose === 'generation' && env.LLM_GENERATION_MODEL) {
+      return env.LLM_GENERATION_MODEL
+    }
+    if (this.purpose === 'utility' && env.LLM_UTILITY_MODEL) {
+      return env.LLM_UTILITY_MODEL
+    }
+
+    // deprecated OPENROUTER_MODEL (하위 호환성)
+    if (env.OPENROUTER_MODEL) {
+      return env.OPENROUTER_MODEL
+    }
+
+    // 프로필 기반 모델 선택
+    return getModel(this.purpose, {
+      nodeEnv: env.NODE_ENV
+    })
+  }
+
+  /**
+   * Fallback 모델로 전환 (에러 시 사용)
+   */
+  switchToFallback(): void {
+    const fallback = getFallbackModel(env.NODE_ENV)
+    console.log(`LLM Service [${this.purpose}]: Switching to fallback model (${fallback})`)
+    this.model = fallback
   }
 }

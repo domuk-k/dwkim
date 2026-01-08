@@ -9,6 +9,13 @@ const envSchema = z
     GOOGLE_API_KEY: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
     OPENROUTER_API_KEY: z.string().optional(),
+
+    // LLM Model Configuration (optional overrides)
+    // If not set, uses MODEL_PROFILES based on NODE_ENV
+    LLM_GENERATION_MODEL: z.string().optional(), // User-facing responses (e.g., anthropic/claude-sonnet-4)
+    LLM_UTILITY_MODEL: z.string().optional(), // Internal processing (e.g., google/gemini-2.5-flash-lite)
+
+    /** @deprecated Use LLM_GENERATION_MODEL instead */
     OPENROUTER_MODEL: z.string().optional(),
 
     // OpenAI (for embeddings)
