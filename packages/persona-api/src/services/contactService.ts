@@ -110,6 +110,90 @@ export class ContactService {
   }
 
   /**
+   * Device ID 표시 포맷팅
+   * - 정상 ID: 앞 8자리 표시
+   * - temp- prefix: 임시 ID 표시 (세션용)
+   * - 없음: 웹 접속 가능성 안내
+   */
+  private formatDeviceId(deviceId?: string): string {
+    if (!deviceId) {
+      return '❌ N/A (웹 접속?)'
+    }
+    if (deviceId.startsWith('temp-')) {
+      const id = deviceId.slice(5)
+      return id.length > 8 ? `⚠️ Temp: \`${id.slice(0, 8)}...\`` : `⚠️ Temp: \`${id}\``
+    }
+    return deviceId.length > 8 ? `\`${deviceId.slice(0, 8)}...\`` : `\`${deviceId}\``
+  }
+
+  /**
+   * Discord Webhook 발송 (재시도 로직 포함)
+   * @param webhookUrl - Discord Webhook URL
+   * @param payload - Discord 메시지 페이로드
+   * @param maxRetries - 최대 재시도 횟수 (기본 3회)
+   */
+  private async sendDiscordWithRetry(
+    webhookUrl: string,
+    payload: object,
+    maxRetries = 3
+  ): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+        if (response.ok) {
+          return true
+        }
+
+        // Rate limit (429) - 재시도
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After')
+          const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, attempt) * 1000
+          console.warn(`Discord rate limited, waiting ${waitMs}ms (attempt ${attempt}/${maxRetries})`)
+          await this.sleep(waitMs)
+          continue
+        }
+
+        // 5xx 서버 에러 - 재시도
+        if (response.status >= 500) {
+          const waitMs = Math.pow(2, attempt) * 1000 // exponential backoff
+          console.warn(
+            `Discord server error ${response.status}, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries})`
+          )
+          await this.sleep(waitMs)
+          continue
+        }
+
+        // 4xx 클라이언트 에러 (429 제외) - 재시도 안함
+        console.error(`Discord notification failed: ${response.status}`)
+        return false
+      } catch (error) {
+        // 네트워크 에러 - 재시도
+        if (attempt < maxRetries) {
+          const waitMs = Math.pow(2, attempt) * 1000
+          console.warn(
+            `Discord network error, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries}):`,
+            error
+          )
+          await this.sleep(waitMs)
+          continue
+        }
+        console.error('Discord notification error after retries:', error)
+        return false
+      }
+    }
+    return false
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
    * 알림 발송 (Discord Webhook 또는 로그)
    */
   private async sendNotification(payload: NotificationPayload): Promise<void> {
@@ -128,50 +212,42 @@ export class ContactService {
 
     // Discord Webhook 발송 (설정된 경우)
     if (this.discordWebhookUrl) {
-      try {
-        const discordPayload = {
-          embeds: [
-            {
-              title: `${emoji} ${title}`,
-              color: payload.type === 'new_lead' ? 0x00ff00 : 0xff9900, // 초록 or 주황
-              fields: [
-                { name: '📧 Email', value: payload.contact.email || 'N/A', inline: true },
-                { name: '👤 Name', value: payload.contact.name || 'Anonymous', inline: true },
-                { name: '💬 Messages', value: String(payload.contact.messageCount), inline: true },
-                { name: '🏷️ Trigger', value: payload.contact.trigger, inline: true },
-                {
-                  name: '📱 Device ID',
-                  value: payload.contact.deviceId
-                    ? `\`${payload.contact.deviceId.slice(0, 8)}...\``
-                    : 'N/A',
-                  inline: true
-                },
-                {
-                  name: '🔑 Session ID',
-                  value: `\`${payload.contact.sessionId.slice(0, 20)}...\``,
-                  inline: true
-                },
-                ...(payload.contact.message
-                  ? [{ name: '📝 Message', value: payload.contact.message, inline: false }]
-                  : [])
-              ],
-              timestamp: payload.contact.collectedAt,
-              footer: { text: 'Persona API Lead Capture' }
-            }
-          ]
-        }
+      const discordPayload = {
+        embeds: [
+          {
+            title: `${emoji} ${title}`,
+            color: payload.type === 'new_lead' ? 0x00ff00 : 0xff9900, // 초록 or 주황
+            fields: [
+              { name: '📧 Email', value: payload.contact.email || 'N/A', inline: true },
+              { name: '👤 Name', value: payload.contact.name || 'Anonymous', inline: true },
+              { name: '💬 Messages', value: String(payload.contact.messageCount), inline: true },
+              { name: '🏷️ Trigger', value: payload.contact.trigger, inline: true },
+              { name: '📱 Device ID', value: this.formatDeviceId(payload.contact.deviceId), inline: true },
+              {
+                name: '🔑 Session ID',
+                value:
+                  payload.contact.sessionId.length > 20
+                    ? `\`${payload.contact.sessionId.slice(0, 20)}...\``
+                    : `\`${payload.contact.sessionId}\``,
+                inline: true
+              },
+              ...(payload.contact.message
+                ? [{ name: '📝 Message', value: payload.contact.message, inline: false }]
+                : [])
+            ],
+            timestamp: payload.contact.collectedAt,
+            footer: { text: 'Persona API Lead Capture' }
+          }
+        ]
+      }
 
-        const response = await fetch(this.discordWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(discordPayload)
+      const success = await this.sendDiscordWithRetry(this.discordWebhookUrl, discordPayload)
+      if (!success) {
+        chatLogger.warn({
+          type: 'discord_notification_failed',
+          payload: payload.type,
+          sessionId: payload.contact.sessionId
         })
-
-        if (!response.ok) {
-          console.error('Discord notification failed:', response.status)
-        }
-      } catch (error) {
-        console.error('Discord notification error:', error)
       }
     }
   }
