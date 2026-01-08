@@ -1,7 +1,7 @@
 ---
 title: "LLM 에이전트의 기본기: Planning, Memory, Tool"
-description: "Lilian Weng의 이론적 프레임워크부터 Anthropic의 실전 패턴, deepagents 구현까지 — 에이전트 기술의 핵심 흐름"
-pubDate: "2026-01-08"
+description: ""
+pubDate: "2026-01-06"
 ---
 
 # LLM 에이전트의 기본기: Planning, Memory, Tool
@@ -392,7 +392,7 @@ edit_file("/src/auth/login.ts",
 │  → todoListMiddleware                                       │
 └─────────────────────────────────────────────────────────────┘
                               ↓
-┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────┐
 │  Tool: 파일 탐색 및 분석                                    │
 │  → ls, glob, grep, read_file                                │
 └─────────────────────────────────────────────────────────────┘
@@ -510,3 +510,12 @@ LLM 에이전트는 마법이 아니다. **뇌(LLM) + 계획(Planning) + 기억(
 
 - [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
 - [Claude Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk)
+
+---
+
+## Related
+
+- [[lilian-weng-llm-agent-시스템-개요]] - 원문 정리 노트
+- [[ai-agent-tool-skill-개념정리]] - Agent/Tool/Skill 벤더별 비교
+- [[deepagents-스터디]] - deepagents 실습 로드맵
+- [[moc-ai-agent]] - AI Agent 허브
