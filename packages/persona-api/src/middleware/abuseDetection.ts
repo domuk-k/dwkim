@@ -426,10 +426,16 @@ export class AbuseDetection {
   }
 }
 
+interface AbuseDetectionPluginOptions {
+  redis: Redis;
+}
+
 // Fastify 플러그인으로 등록
-export async function abuseDetectionPlugin(fastify: FastifyInstance) {
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-  const abuseDetector = new AbuseDetection(redis, {
+export async function abuseDetectionPlugin(
+  fastify: FastifyInstance,
+  options: AbuseDetectionPluginOptions
+) {
+  const abuseDetector = new AbuseDetection(options.redis, {
     suspiciousPatterns: FORBIDDEN_PATTERNS,
     maxConsecutiveErrors: 10,
     blockDuration: 3600000, // 1 hour
