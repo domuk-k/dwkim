@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Text } from 'ink';
 import { marked } from 'marked';
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-const TerminalRenderer = require('marked-terminal').default;
+import TerminalRenderer from 'marked-terminal';
 import { theme } from './theme.js';
 
 interface Props {
@@ -69,71 +68,3 @@ export function MarkdownText({ children, color }: Props) {
   return <Text color={color}>{rendered}</Text>;
 }
 
-/**
- * 기존 심플 버전 (fallback용 또는 가벼운 사용)
- * marked-terminal 없이 기본 스타일만 적용
- */
-export function SimpleMarkdownText({
-  children,
-  color,
-}: {
-  children: string;
-  color?: string;
-}) {
-  const segments = parseSimpleMarkdown(children);
-
-  return (
-    <Text>
-      {segments.map((seg, i) => (
-        <Text
-          key={i}
-          bold={seg.bold}
-          italic={seg.italic}
-          color={seg.code ? theme.lavender : color}
-          backgroundColor={seg.code ? theme.surface : undefined}
-        >
-          {seg.code ? ` ${seg.text} ` : seg.text}
-        </Text>
-      ))}
-    </Text>
-  );
-}
-
-interface TextSegment {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  code?: boolean;
-}
-
-function parseSimpleMarkdown(text: string): TextSegment[] {
-  const segments: TextSegment[] = [];
-  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
-
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({ text: text.slice(lastIndex, match.index) });
-    }
-
-    const matched = match[0];
-
-    if (matched.startsWith('**') && matched.endsWith('**')) {
-      segments.push({ text: matched.slice(2, -2), bold: true });
-    } else if (matched.startsWith('*') && matched.endsWith('*')) {
-      segments.push({ text: matched.slice(1, -1), italic: true });
-    } else if (matched.startsWith('`') && matched.endsWith('`')) {
-      segments.push({ text: matched.slice(1, -1), code: true });
-    }
-
-    lastIndex = match.index + matched.length;
-  }
-
-  if (lastIndex < text.length) {
-    segments.push({ text: text.slice(lastIndex) });
-  }
-
-  return segments.length > 0 ? segments : [{ text }];
-}
