@@ -88,7 +88,12 @@ export async function createServer() {
       error: 'Too Many Requests',
       message: `Rate limit exceeded, retry in ${context.after}`,
       expiresIn: context.after
-    })
+    }),
+    // /sync/* 경로는 내부 사용이므로 rate limit 제외
+    allowList: (request: FastifyRequest) => {
+      const url = request.url || ''
+      return url.startsWith('/sync/') || url.startsWith('/api/v1/sync/')
+    }
   }
 
   // Redis가 있으면 Redis 기반, 없으면 메모리 기반 Rate Limiting
@@ -121,17 +126,23 @@ export async function createServer() {
   if (rateLimiter && abuseDetection) {
     fastify.addHook('preHandler', async (request, reply) => {
       const clientIp = request.ip
+      const url = request.url || ''
 
-      // Rate limiting 체크
-      const rateLimitResult = await rateLimiter.checkLimit(clientIp)
-      if (!rateLimitResult.allowed) {
-        return reply.status(429).send({
-          error: 'Rate limit exceeded',
-          retryAfter: rateLimitResult.retryAfter
-        })
+      // /sync/* 경로는 내부 사용이므로 rate limit 건너뛰기
+      const isSyncRoute = url.startsWith('/sync/') || url.startsWith('/api/v1/sync/')
+
+      // Rate limiting 체크 (sync 경로 제외)
+      if (!isSyncRoute) {
+        const rateLimitResult = await rateLimiter.checkLimit(clientIp)
+        if (!rateLimitResult.allowed) {
+          return reply.status(429).send({
+            error: 'Rate limit exceeded',
+            retryAfter: rateLimitResult.retryAfter
+          })
+        }
       }
 
-      // Abuse detection 체크
+      // Abuse detection 체크 (sync 경로는 abuseDetection 내부에서 예외 처리됨)
       const abuseResult = await abuseDetection.checkAbuse(request, reply)
       if (!abuseResult) {
         return
