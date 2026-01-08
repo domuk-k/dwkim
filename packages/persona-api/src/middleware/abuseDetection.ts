@@ -201,18 +201,22 @@ export class AbuseDetection {
 
   async checkAbuse(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
     const clientIP = this.getClientIP(request)
+    const url = request.url || ''
+
+    // /sync/* 경로는 내부 사용이므로 입력 길이 검증 건너뛰기
+    const isSyncRoute = url.startsWith('/sync/') || url.startsWith('/api/v1/sync/')
 
     try {
-      // 블랙리스트 확인
+      // 블랙리스트 확인 (sync 경로도 블랙리스트는 확인)
       const isBlacklisted = await this.isBlacklisted(clientIP)
-      if (isBlacklisted) {
+      if (isBlacklisted && !isSyncRoute) {
         console.warn('Blocked request from blacklisted IP:', { ip: clientIP })
         reply.status(403).send({ error: 'Access denied' })
         return false
       }
 
-      // 입력 검증 (POST 요청의 경우)
-      if (request.method === 'POST' && request.body) {
+      // 입력 검증 (POST 요청의 경우, sync 경로 제외)
+      if (request.method === 'POST' && request.body && !isSyncRoute) {
         const body = JSON.stringify(request.body)
         const validationResult = this.validateInput(body)
 

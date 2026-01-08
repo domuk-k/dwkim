@@ -1,4 +1,3 @@
-import { Document as LangChainDocument } from '@langchain/core/documents'
 import { QdrantVectorStore } from '@langchain/qdrant'
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { env } from '../config/env'
@@ -101,7 +100,9 @@ export class VectorStore {
 
       const qdrantConfig = {
         client: this.qdrantClient,
-        collectionName: this.collectionName
+        collectionName: this.collectionName,
+        // initQdrantData.ts에서 'dense' named vector로 컬렉션 생성하므로 매칭 필요
+        contentVector: 'dense'
       }
 
       // 기존 컬렉션 연결 시도
@@ -133,51 +134,46 @@ export class VectorStore {
   }
 
   async addDocument(document: Document): Promise<void> {
-    if (!this.vectorStore) {
-      console.warn('Vector store not available - skipping document add')
-      return
-    }
-
-    try {
-      const langchainDoc = new LangChainDocument({
-        pageContent: document.content,
-        metadata: {
-          ...document.metadata,
-          docId: document.id
-        }
-      })
-
-      await this.vectorStore.addDocuments([langchainDoc], {
-        ids: [document.id]
-      })
-
-      console.log(`Document added: ${document.id}`)
-    } catch (error) {
-      console.error('Failed to add document:', error)
-      throw new Error('Failed to add document to vector store')
-    }
+    // 단일 문서는 addDocuments로 위임
+    await this.addDocuments([document])
   }
 
   async addDocuments(documents: Document[]): Promise<void> {
-    if (!this.vectorStore) {
+    // Qdrant 클라이언트를 직접 사용 (LangChain은 named vector 미지원)
+    if (!this.qdrantClient || !this.embeddings) {
       console.warn('Vector store not available - skipping documents add')
       return
     }
 
     try {
-      const langchainDocs = documents.map(
-        (doc) =>
-          new LangChainDocument({
-            pageContent: doc.content,
-            metadata: {
-              ...doc.metadata,
-              docId: doc.id
-            }
-          })
-      )
+      // 1. Dense 임베딩 생성
+      const contents = documents.map((doc) => doc.content)
+      const denseVectors = await this.embeddings.embedDocuments(contents)
+      console.log(`Embedded ${denseVectors.length}/${documents.length} documents`)
 
-      await this.vectorStore.addDocuments(langchainDocs, {
-        ids: documents.map((d) => d.id)
+      // 2. Qdrant에 직접 업서트 (named vector 'dense' 사용)
+      const points = documents.map((doc, idx) => ({
+        id: idx, // 임시 integer ID (Qdrant 요구사항)
+        vector: {
+          dense: denseVectors[idx]
+          // Note: sparse vector는 생략 (BM25 재인덱싱 시 전체 컬렉션 대상으로 수행)
+        },
+        payload: {
+          content: doc.content,
+          ...doc.metadata,
+          docId: doc.id
+        }
+      }))
+
+      // UUID 기반 ID로 변환 (문자열 ID 지원)
+      const pointsWithUUID = points.map((point, idx) => ({
+        ...point,
+        id: documents[idx].id // 원래 문자열 UUID 사용
+      }))
+
+      await this.qdrantClient.upsert(this.collectionName, {
+        wait: true,
+        points: pointsWithUUID
       })
 
       console.log(`${documents.length} documents added`)
@@ -199,52 +195,55 @@ export class VectorStore {
   async searchDiverse(
     query: string,
     topK: number = 5,
-    filter?: Record<string, unknown>
+    _filter?: Record<string, unknown>
   ): Promise<Document[]> {
-    if (!this.vectorStore) {
+    // Qdrant 클라이언트를 직접 사용 (LangChain은 named vector 미지원)
+    if (!this.qdrantClient || !this.embeddings) {
       console.warn('Vector store not available - returning mock results')
       return this.getMockResults(query)
     }
 
     try {
-      // 1. 넓은 범위에서 후보 검색 (점수 포함)
+      // 1. Dense 벡터 생성 및 검색
       const fetchK = Math.max(topK * 5, 30)
-      const resultsWithScore = await this.vectorStore.similaritySearchWithScore(
-        query,
-        fetchK,
-        filter
-      )
+      const denseVector = await this.embeddings.embedQuery(query)
 
-      console.log(
-        `VectorStore: Fetched ${resultsWithScore.length} candidates for query: "${query}"`
-      )
+      const results = await this.qdrantClient.query(this.collectionName, {
+        query: denseVector,
+        using: 'dense',
+        limit: fetchK,
+        with_payload: true,
+        score_threshold: RELEVANCE_THRESHOLD
+      })
 
-      // 2. 유사도 threshold 필터링 (관련 없는 문서 제외)
-      const relevantResults = resultsWithScore.filter(([, score]) => score >= RELEVANCE_THRESHOLD)
-      console.log(
-        `VectorStore: ${relevantResults.length}/${resultsWithScore.length} passed threshold (>=${RELEVANCE_THRESHOLD})`
-      )
+      console.log(`VectorStore: Fetched ${results.points.length} candidates for query: "${query}"`)
 
-      if (relevantResults.length === 0) {
+      if (results.points.length === 0) {
         console.log('VectorStore: No relevant results found')
         return []
       }
 
-      // 3. 키워드 부스팅: 제목에 쿼리 포함된 문서 우선
+      // 2. 키워드 부스팅: 제목에 쿼리 포함된 문서 우선
       const queryLower = query.toLowerCase()
-      const boostedResults = [...relevantResults].sort(([a], [b]) => {
-        const aTitle = (a.metadata.title || '').toLowerCase()
-        const bTitle = (b.metadata.title || '').toLowerCase()
+      const boostedResults = [...results.points].sort((a, b) => {
+        const aPayload = a.payload as Record<string, unknown>
+        const bPayload = b.payload as Record<string, unknown>
+        const aTitle = ((aPayload?.title as string) || '').toLowerCase()
+        const bTitle = ((bPayload?.title as string) || '').toLowerCase()
         const aMatch = aTitle.includes(queryLower) ? 1 : 0
         const bMatch = bTitle.includes(queryLower) ? 1 : 0
         return bMatch - aMatch
       })
 
-      // 4. 동일 문서 중복 제거 (첫 번째 청크만 유지)
+      // 3. 동일 문서 중복 제거 (첫 번째 청크만 유지)
       const seen = new Set<string>()
       const diverseResults = boostedResults
-        .filter(([doc]) => {
-          const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50)
+        .filter((point) => {
+          const payload = point.payload as Record<string, unknown>
+          const key =
+            (payload?.title as string) ||
+            (payload?.docId as string) ||
+            ((payload?.content as string) || '').slice(0, 50)
           if (seen.has(key)) return false
           seen.add(key)
           return true
@@ -252,7 +251,7 @@ export class VectorStore {
         .slice(0, topK)
 
       console.log(`VectorStore: Returning ${diverseResults.length} diverse results`)
-      return this.mapResultsWithScore(diverseResults)
+      return this.mapQdrantResults(diverseResults)
     } catch (error) {
       console.error('Diverse search failed:', error)
       return this.getMockResults(query)
@@ -386,27 +385,6 @@ export class VectorStore {
     })
   }
 
-  private mapResultsWithScore(results: [LangChainDocument, number][]): Document[] {
-    return results.map(([doc, score], index) => ({
-      id: doc.metadata.docId || `result-${index}`,
-      content: doc.pageContent,
-      metadata: {
-        type: doc.metadata.type || 'experience',
-        title: doc.metadata.title,
-        category: doc.metadata.category,
-        source: doc.metadata.source,
-        pubDate: doc.metadata.pubDate,
-        keywords: doc.metadata.keywords,
-        chunkIndex: doc.metadata.chunkIndex,
-        totalChunks: doc.metadata.totalChunks,
-        createdAt: doc.metadata.createdAt,
-        path: doc.metadata.path,
-        tags: doc.metadata.tags
-      },
-      score: Math.round(score * 100) / 100 // 소수점 2자리
-    }))
-  }
-
   private getMockResults(query: string): Document[] {
     return [
       {
@@ -454,9 +432,12 @@ export class VectorStore {
         url: string
         collectionName: string
         apiKey?: string
+        contentVector?: string
       } = {
         url: qdrantUrl,
-        collectionName: this.collectionName
+        collectionName: this.collectionName,
+        // initQdrantData.ts에서 'dense' named vector로 컬렉션 생성하므로 매칭 필요
+        contentVector: 'dense'
       }
 
       if (env.QDRANT_API_KEY) {
