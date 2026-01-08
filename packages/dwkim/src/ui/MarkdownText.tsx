@@ -53,6 +53,20 @@ marked.setOptions({
  * - Links [text](url)
  * - Horizontal rules (---)
  */
+/**
+ * marked-terminal 후처리: 리스트 내부 인라인 마크다운 수동 처리
+ * marked-terminal이 리스트 아이템 내부의 **bold**, `code` 등을 처리 못하는 버그 우회
+ */
+function postProcessMarkdown(text: string): string {
+  return (
+    text
+      // **bold** → ANSI bold (\x1b[1m...\x1b[22m)
+      .replace(/\*\*([^*]+)\*\*/g, '\x1b[1m$1\x1b[22m')
+      // `code` → ANSI yellow (\x1b[33m...\x1b[39m)
+      .replace(/`([^`]+)`/g, '\x1b[33m$1\x1b[39m')
+  )
+}
+
 export function MarkdownText({ children, color }: Props) {
   const rendered = useMemo(() => {
     if (!children) return ''
@@ -60,8 +74,10 @@ export function MarkdownText({ children, color }: Props) {
     try {
       // marked-terminal은 ANSI escape code가 포함된 문자열을 반환
       const result = marked.parse(children, { async: false }) as string
+      // 후처리: 리스트 내부 인라인 마크다운 처리
+      const processed = postProcessMarkdown(result)
       // 끝의 불필요한 줄바꿈 제거
-      return result.replace(/\n+$/, '')
+      return processed.replace(/\n+$/, '')
     } catch {
       // 파싱 실패 시 원본 반환
       return children
