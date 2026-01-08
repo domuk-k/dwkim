@@ -482,22 +482,22 @@
 }
 
 /* Shiki dual theme - dark mode switching */
-html.dark .astro-code,
-html.dark .astro-code span {
+html.dark pre[style*="--shiki"],
+html.dark pre[style*="--shiki"] span {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
 
 /* Light mode uses default shiki colors */
-html.light .astro-code,
-html.light .astro-code span {
+html.light pre[style*="--shiki"],
+html.light pre[style*="--shiki"] span {
   color: var(--shiki-light) !important;
   background-color: var(--shiki-light-bg) !important;
 }
 
 /* Beige mode uses light theme */
-html.beige .astro-code,
-html.beige .astro-code span {
+html.beige pre[style*="--shiki"],
+html.beige pre[style*="--shiki"] span {
   color: var(--shiki-light) !important;
   background-color: var(--shiki-light-bg) !important;
 }
