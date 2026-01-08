@@ -1,11 +1,9 @@
 ---
+import { themeConfig } from '@/config'
+import { formatDate } from '@/utils/date'
 import type { FormattedDateProps } from '@/types'
 
-const {
-  date,
-  format,
-  context = 'default'
-} = Astro.props as FormattedDateProps & { context?: 'list' | 'post' | 'default' }
+const { date, format, context = 'default' } = Astro.props as FormattedDateProps & { context?: 'list' | 'post' | 'default' }
 ---
 
 <time

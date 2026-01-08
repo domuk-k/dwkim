@@ -1,12 +1,13 @@
 ---
 import { getCollection } from 'astro:content'
+import FlashCard from './FlashCard.astro'
 import { themeConfig } from '@/config'
 
 const { flashCardsCount = 3 } = themeConfig.hero
 
 // Get posts with highlights, sorted by date
 const allPosts = await getCollection('posts')
-const _postsWithHighlights = allPosts
+const postsWithHighlights = allPosts
   .filter((post) => post.data.highlight)
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   .slice(0, flashCardsCount)

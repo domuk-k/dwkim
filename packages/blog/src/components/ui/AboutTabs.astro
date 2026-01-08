@@ -6,7 +6,7 @@ const runnerEntry = await getEntry('about', 'runner')!
 const contributorEntry = await getEntry('about', 'contributor')!
 const coachEntry = await getEntry('about', 'coach')!
 
-const [_DeveloperContent, _RunnerContent, _ContributorContent, _CoachContent] = await Promise.all([
+const [DeveloperContent, RunnerContent, ContributorContent, CoachContent] = await Promise.all([
   render(developerEntry),
   render(runnerEntry),
   render(contributorEntry),

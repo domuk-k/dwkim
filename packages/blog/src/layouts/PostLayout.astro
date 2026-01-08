@@ -1,7 +1,21 @@
 ---
 import '@/styles/global.css'
-import { themeConfig } from '@/config'
 import type { PostLayoutProps } from '@/types'
+import FormattedDate from '@/components/widgets/FormattedDate.astro'
+import FootnoteScroll from '@/components/widgets/FootnoteScroll.astro'
+import BaseHead from '@/components/layout/BaseHead.astro'
+import Footer from '@/components/layout/Footer.astro'
+import BackButton from '@/components/ui/BackButton.astro'
+import TableOfContents from '@/components/ui/TableOfContents.astro'
+import GradientMask from '@/components/ui/GradientMask.astro'
+import ImageViewer from '@/components/ui/ImageViewer.astro'
+import GitHubCard from '@/components/ui/GitHubCard.astro'
+import XPOST from '@/components/ui/XPOST.astro'
+import CopyCode from '@/components/ui/CopyCode.astro'
+import MermaidInit from '@/components/ui/MermaidInit.astro'
+import BaseLayout from '@/layouts/BaseLayout.astro'
+
+import { themeConfig } from '@/config'
 
 const { title, description, pubDate, image, readingTime, toc } = Astro.props as PostLayoutProps
 
@@ -10,7 +24,7 @@ const ogImage = `/open-graph/${postSlug}.png`
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href
 const imageUrl = image ? new URL(image, Astro.site).href : new URL(ogImage, Astro.site).href
 
-const _jsonLd = {
+const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
   headline: title,

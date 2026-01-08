@@ -1,7 +1,7 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import OpenAI from 'openai'
 import { env } from '../config/env'
-import { getModel, getFallbackModel, type ModelPurpose } from '../config/models'
+import { getFallbackModel, getModel, type ModelPurpose } from '../config/models'
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'

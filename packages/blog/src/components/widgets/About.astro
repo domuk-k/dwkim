@@ -1,8 +1,11 @@
 ---
+import AboutTabs from '@/components/ui/AboutTabs.astro'
+import Snippet from '@/components/ui/Snippet.astro'
+import FlipWords from '@/components/ui/FlipWords.astro'
 import { themeConfig } from '@/config'
 
-const _showFlipWords = themeConfig.hero.flipWords
-const _roles = ['developer', 'writer', 'runner']
+const showFlipWords = themeConfig.hero.flipWords
+const roles = ['developer', 'writer', 'runner']
 ---
 
 <div class="about">
