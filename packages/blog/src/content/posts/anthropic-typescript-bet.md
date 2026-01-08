@@ -106,8 +106,8 @@ Boris Cherny가 TypeScript 책을 쓴 게 2019년이다. 5년 후, 그는 그 �
 
 ## Related
 
-- [[boris-cherny-claude-code]] - Boris Cherny 상세 프로필/워크플로우
-- [[ai-native-mindset]] - AI Native 개발자 마인드셋
+- Boris Cherny 상세 프로필/워크플로우
+- AI Native 개발자 마인드셋
 
 ## Sources
 

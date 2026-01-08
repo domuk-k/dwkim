@@ -1,6 +1,6 @@
 ---
 title: "LLM 시대, 아키텍처는 누가 지키는가?"
-description: ""
+description: "LLM이 생성하는 코드가 늘어나는 시대, ADL과 ArchUnit으로 아키텍처 규칙을 테스트로 강제하는 방법."
 pubDate: "2026-01-06"
 ---
 

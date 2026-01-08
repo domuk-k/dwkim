@@ -1,6 +1,6 @@
 ---
 title: "소프트웨어 아키텍처 The Basics 스터디"
-description: ""
+description: "Mark Richards의 소프트웨어 아키텍처 기초 스터디. DDIA, 클린 아키텍처 등 함께 읽을 레퍼런스와 LLM 시대 아키텍트의 방향성."
 pubDate: "2026-01-05"
 ---
 
@@ -35,7 +35,7 @@ pubDate: "2026-01-05"
 - [System Architecture for Agentic LLMs (UC Berkeley)](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2025/EECS-2025-5.pdf) - 에이전트 시스템 아키텍처
 
 ### 🔧 아키텍처 테스팅 도구
-- [[ts-arch-modern-architecture-testing]] - ts-arch inspired 현대적 아키텍처 테스팅 도구
+- ts-arch inspired 현대적 아키텍처 테스팅 도구
 - [ts-arch GitHub](https://github.com/ts-arch/ts-arch) - TypeScript 아키텍처 테스팅 라이브러리
 - [ArchUnitTS](https://lukasniessen.github.io/ArchUnitTS/) - ArchUnit의 TypeScript 버전
 
@@ -54,7 +54,7 @@ pubDate: "2026-01-05"
 
 ## 나의 관점 & 적용
 
-> [[사업과-전문가의-길]]에서 정리한 것처럼, 나는 "작은 파이프라인들을 가진 전문가 영역"으로 성장하고 싶다.
+> "작은 파이프라인들을 가진 전문가 영역"으로 성장하고 싶다.
 
 **이 스터디가 내 방향성에 기여하는 점:**
 - 아키텍처 역량 = 시니어 개발자/테크리드의 핵심 스킬
