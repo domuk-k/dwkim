@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { Redis } from 'ioredis'
+import type { Redis } from 'ioredis'
 
 // 금지된 패턴들
 const FORBIDDEN_PATTERNS = [

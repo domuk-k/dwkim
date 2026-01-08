@@ -152,15 +152,17 @@ export class ContactService {
         // Rate limit (429) - 재시도
         if (response.status === 429) {
           const retryAfter = response.headers.get('Retry-After')
-          const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, attempt) * 1000
-          console.warn(`Discord rate limited, waiting ${waitMs}ms (attempt ${attempt}/${maxRetries})`)
+          const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 2 ** attempt * 1000
+          console.warn(
+            `Discord rate limited, waiting ${waitMs}ms (attempt ${attempt}/${maxRetries})`
+          )
           await this.sleep(waitMs)
           continue
         }
 
         // 5xx 서버 에러 - 재시도
         if (response.status >= 500) {
-          const waitMs = Math.pow(2, attempt) * 1000 // exponential backoff
+          const waitMs = 2 ** attempt * 1000 // exponential backoff
           console.warn(
             `Discord server error ${response.status}, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries})`
           )
@@ -174,7 +176,7 @@ export class ContactService {
       } catch (error) {
         // 네트워크 에러 - 재시도
         if (attempt < maxRetries) {
-          const waitMs = Math.pow(2, attempt) * 1000
+          const waitMs = 2 ** attempt * 1000
           console.warn(
             `Discord network error, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries}):`,
             error
@@ -222,7 +224,11 @@ export class ContactService {
               { name: '👤 Name', value: payload.contact.name || 'Anonymous', inline: true },
               { name: '💬 Messages', value: String(payload.contact.messageCount), inline: true },
               { name: '🏷️ Trigger', value: payload.contact.trigger, inline: true },
-              { name: '📱 Device ID', value: this.formatDeviceId(payload.contact.deviceId), inline: true },
+              {
+                name: '📱 Device ID',
+                value: this.formatDeviceId(payload.contact.deviceId),
+                inline: true
+              },
               {
                 name: '🔑 Session ID',
                 value:
