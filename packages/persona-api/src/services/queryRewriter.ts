@@ -172,7 +172,8 @@ export class QueryRewriter {
   private llmService: LLMService
 
   constructor() {
-    this.llmService = new LLMService()
+    // 쿼리 재작성/질문 생성은 내부 처리용이므로 utility 모델 사용
+    this.llmService = new LLMService({ purpose: 'utility' })
   }
 
   /**

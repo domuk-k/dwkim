@@ -178,7 +178,14 @@ type PersonaState = z.infer<typeof PersonaStateSchema>
 // ─────────────────────────────────────────────────────────────
 
 const ENABLE_SEU = env.ENABLE_SEU === 'true'
-const llmService = new LLMService()
+
+/**
+ * 용도별 LLM 인스턴스
+ * - generationLLM: 사용자 대면 응답 (고품질 모델)
+ * - utilityLLM: 내부 처리 - 질문 생성 등 (가성비 모델)
+ */
+const generationLLM = new LLMService({ purpose: 'generation' })
+const utilityLLM = new LLMService({ purpose: 'utility' })
 
 // Progress 헬퍼
 function updateProgress(
@@ -398,7 +405,7 @@ async function generateNode(
   let fullAnswer = ''
   let tokenCount = 0
 
-  for await (const chunk of llmService.chatStream(messages, state.context)) {
+  for await (const chunk of generationLLM.chatStream(messages, state.context)) {
     if (chunk.type === 'content' && chunk.content) {
       fullAnswer += chunk.content
       tokenCount += 1 // 추정 (실제 토큰 수는 LLM 응답에서 가져와야 함)
@@ -701,7 +708,10 @@ export class PersonaEngine {
     return {
       vectorStore: true,
       llmService: true,
-      modelInfo: llmService.getModelInfo()
+      modelInfo: {
+        generation: generationLLM.getModelInfo(),
+        utility: utilityLLM.getModelInfo()
+      }
     }
   }
 }
