@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 const envSchema = z
   .object({
@@ -53,37 +53,42 @@ const envSchema = z
     API_HOST: z.string().default('localhost:3000'),
 
     // NPM (optional, set by package.json)
-    npm_package_version: z.string().optional(),
+    npm_package_version: z.string().optional()
   })
   .refine(
-    (data) => process.env.NODE_ENV === 'test' || data.GOOGLE_API_KEY || data.GEMINI_API_KEY || data.OPENROUTER_API_KEY,
+    (data) =>
+      process.env.NODE_ENV === 'test' ||
+      data.GOOGLE_API_KEY ||
+      data.GEMINI_API_KEY ||
+      data.OPENROUTER_API_KEY,
     {
-      message: 'At least one LLM API key is required (GOOGLE_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY)',
+      message:
+        'At least one LLM API key is required (GOOGLE_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY)'
     }
-  );
+  )
 
-export type Env = z.infer<typeof envSchema>;
+export type Env = z.infer<typeof envSchema>
 
 function validateEnv(): Env {
-  const result = envSchema.safeParse(process.env);
+  const result = envSchema.safeParse(process.env)
 
   if (!result.success) {
-    console.error('Environment validation failed:');
-    console.error(result.error.format());
-    throw new Error('Invalid environment configuration');
+    console.error('Environment validation failed:')
+    console.error(result.error.format())
+    throw new Error('Invalid environment configuration')
   }
 
   // 설정 요약 로그 (민감 정보 제외)
-  console.log('=== Configuration Summary ===');
-  console.log(`NODE_ENV: ${result.data.NODE_ENV}`);
-  console.log(`QDRANT_URL: ${result.data.QDRANT_URL || 'NOT SET (mock mode)'}`);
-  console.log(`MAX_SEARCH_RESULTS: ${result.data.MAX_SEARCH_RESULTS}`);
-  console.log(`CONTEXT_WINDOW: ${result.data.CONTEXT_WINDOW}`);
-  console.log(`RATE_LIMIT_MAX: ${result.data.RATE_LIMIT_MAX}`);
-  console.log(`LOG_LEVEL: ${result.data.LOG_LEVEL}`);
-  console.log('=============================');
+  console.log('=== Configuration Summary ===')
+  console.log(`NODE_ENV: ${result.data.NODE_ENV}`)
+  console.log(`QDRANT_URL: ${result.data.QDRANT_URL || 'NOT SET (mock mode)'}`)
+  console.log(`MAX_SEARCH_RESULTS: ${result.data.MAX_SEARCH_RESULTS}`)
+  console.log(`CONTEXT_WINDOW: ${result.data.CONTEXT_WINDOW}`)
+  console.log(`RATE_LIMIT_MAX: ${result.data.RATE_LIMIT_MAX}`)
+  console.log(`LOG_LEVEL: ${result.data.LOG_LEVEL}`)
+  console.log('=============================')
 
-  return result.data;
+  return result.data
 }
 
-export const env = validateEnv();
+export const env = validateEnv()

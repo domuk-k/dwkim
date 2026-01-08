@@ -1,6 +1,5 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import { theme } from './theme.js';
+import { Box, Text } from 'ink'
+import { theme } from './theme.js'
 
 /**
  * HITL: Response Feedback Prompt (UI Only)
@@ -17,14 +16,14 @@ export function FeedbackPrompt() {
       <Text color={theme.subtext}>How was this response?</Text>
       <Text>
         <Text color={theme.success}>[1]</Text>
-        <Text color={theme.subtext}> Good  </Text>
+        <Text color={theme.subtext}> Good </Text>
         <Text color={theme.warning}>[2]</Text>
-        <Text color={theme.subtext}> Okay  </Text>
+        <Text color={theme.subtext}> Okay </Text>
         <Text color={theme.error}>[3]</Text>
-        <Text color={theme.subtext}> Poor  </Text>
+        <Text color={theme.subtext}> Poor </Text>
         <Text color={theme.muted}>[d]</Text>
         <Text color={theme.subtext}> Dismiss</Text>
       </Text>
     </Box>
-  );
+  )
 }

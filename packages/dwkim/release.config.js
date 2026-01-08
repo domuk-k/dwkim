@@ -22,9 +22,9 @@ export default {
           { type: 'refactor', scope: 'dwkim', release: 'patch' },
           // Global scope rules (fallback)
           { type: 'feat', release: 'minor' },
-          { type: 'fix', release: 'patch' },
-        ],
-      },
+          { type: 'fix', release: 'patch' }
+        ]
+      }
     ],
     // 2. Generate release notes
     [
@@ -36,10 +36,10 @@ export default {
             { type: 'feat', section: 'Features' },
             { type: 'fix', section: 'Bug Fixes' },
             { type: 'perf', section: 'Performance' },
-            { type: 'refactor', section: 'Refactoring' },
-          ],
-        },
-      },
+            { type: 'refactor', section: 'Refactoring' }
+          ]
+        }
+      }
     ],
     // 3. Update CHANGELOG.md
     '@semantic-release/changelog',
@@ -50,10 +50,10 @@ export default {
       '@semantic-release/git',
       {
         assets: ['CHANGELOG.md', 'package.json'],
-        message: 'chore(dwkim): release ${nextRelease.version} [skip ci]',
-      },
+        message: 'chore(dwkim): release ${nextRelease.version} [skip ci]'
+      }
     ],
     // 6. Create GitHub release
-    '@semantic-release/github',
-  ],
-};
+    '@semantic-release/github'
+  ]
+}

@@ -20,10 +20,10 @@
     "package.json"
   ],
   "scripts": {
-    "build": "node script/build.js",
-    "build:binary": "pkg dist/index.js --targets node20-linux-x64,node20-macos-x64,node20-macos-arm64,node20-win-x64 --output dist/bin/dwkim",
-    "dev": "tsx watch src/index.tsx",
-    "lint": "tsc"
+    "build": "bun script/build.js",
+    "build:binary": "bunx pkg dist/index.js --targets node20-linux-x64,node20-macos-x64,node20-macos-arm64,node20-win-x64 --output dist/bin/dwkim",
+    "dev": "bun --watch src/index.tsx",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@catppuccin/palette": "^1.7.1",
@@ -38,6 +38,7 @@
     "@anolilab/semantic-release-pnpm": "^3.2.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "@types/bun": "latest",
     "@types/marked-terminal": "^6.1.1",
     "@types/node": "^20.10.0",
     "@types/react": "^19.2.7",
@@ -45,7 +46,6 @@
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "esbuild": "^0.20.0",
     "semantic-release": "^25.0.2",
-    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
   "pkg": {

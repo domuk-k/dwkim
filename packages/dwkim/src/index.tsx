@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import React from 'react';
-import { render } from 'ink';
-import { App, type Mode } from './ui/App.js';
+import { render } from 'ink'
+import { App, type Mode } from './ui/App.js'
 
-const command = process.argv[2];
+const command = process.argv[2]
 
 function showHelp() {
   console.log(`
@@ -20,27 +19,25 @@ function showHelp() {
 예시:
   dwkim              # 프로필 + 채팅
   dwkim profile      # 프로필만
-`);
+`)
 }
 
 function main() {
-  let mode: Mode = 'full';
+  let mode: Mode = 'full'
 
   switch (command) {
     case 'help':
-      showHelp();
-      return;
+      showHelp()
+      return
 
     case 'profile':
-      mode = 'profile';
-      break;
-
-    case undefined:
+      mode = 'profile'
+      break
     default:
-      mode = 'full';
+      mode = 'full'
   }
 
-  render(<App mode={mode} />);
+  render(<App mode={mode} />)
 }
 
-main();
+main()

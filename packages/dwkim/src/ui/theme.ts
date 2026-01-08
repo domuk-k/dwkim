@@ -1,7 +1,7 @@
-import { flavors } from '@catppuccin/palette';
+import { flavors } from '@catppuccin/palette'
 
 // Catppuccin Mocha (기본 다크 테마)
-const mocha = flavors.mocha.colors;
+const mocha = flavors.mocha.colors
 
 export const theme = {
   // 주요 색상
@@ -28,7 +28,7 @@ export const theme = {
   // 아이콘/강조
   lavender: mocha.lavender.hex,
   peach: mocha.peach.hex,
-  teal: mocha.teal.hex,
-} as const;
+  teal: mocha.teal.hex
+} as const
 
-export type Theme = typeof theme;
+export type Theme = typeof theme

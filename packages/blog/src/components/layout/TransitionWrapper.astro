@@ -4,7 +4,7 @@ import type { TransitionProps } from '@/types'
 type Props = TransitionProps
 
 const { type, class: className = '' } = Astro.props
-const transitionName = type === 'post' ? 'post-content' : 'page-content'
+const _transitionName = type === 'post' ? 'post-content' : 'page-content'
 ---
 
 <div transition:name={transitionName} class={className} id="transition-wrapper">

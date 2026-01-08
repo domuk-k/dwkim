@@ -1,22 +1,22 @@
-import pino from 'pino';
-import { env } from '../config/env';
+import pino from 'pino'
+import { env } from '../config/env'
 
 export interface ChatLogEntry {
-  requestId: string;
-  timestamp: string;
-  clientIp: string;
-  userAgent?: string;
+  requestId: string
+  timestamp: string
+  clientIp: string
+  userAgent?: string
   request: {
-    message: string;
-    historyLength: number;
-  };
+    message: string
+    historyLength: number
+  }
   response?: {
-    answerPreview: string; // 첫 100자
-    sourcesCount: number;
-    processingTimeMs: number;
-  };
-  error?: string;
-  engine: 'deepagent' | 'rag' | 'mock';
+    answerPreview: string // 첫 100자
+    sourcesCount: number
+    processingTimeMs: number
+  }
+  error?: string
+  engine: 'deepagent' | 'rag' | 'mock'
 }
 
 // 콘솔 로깅만 (Fly.io가 자동 수집)
@@ -24,33 +24,29 @@ export const chatLogger = pino({
   name: 'chat',
   level: env.LOG_LEVEL,
   // production에서는 JSON, dev에서는 pretty
-  transport: env.NODE_ENV !== 'production'
-    ? { target: 'pino-pretty', options: { colorize: true } }
-    : undefined,
-});
+  transport:
+    env.NODE_ENV !== 'production'
+      ? { target: 'pino-pretty', options: { colorize: true } }
+      : undefined
+})
 
 // 간편 로깅 함수들
 export function logChatRequest(entry: Omit<ChatLogEntry, 'timestamp' | 'response'>) {
   chatLogger.info({
     type: 'chat_request',
     ...entry,
-    timestamp: new Date().toISOString(),
-  });
+    timestamp: new Date().toISOString()
+  })
 }
 
 export function logChatResponse(entry: ChatLogEntry) {
   chatLogger.info({
     type: 'chat_response',
-    ...entry,
-  });
+    ...entry
+  })
 }
 
-export function logChatError(
-  requestId: string,
-  clientIp: string,
-  message: string,
-  error: unknown
-) {
+export function logChatError(requestId: string, clientIp: string, message: string, error: unknown) {
   chatLogger.error({
     type: 'chat_error',
     requestId,
@@ -58,11 +54,11 @@ export function logChatError(
     message,
     error: error instanceof Error ? error.message : String(error),
     stack: error instanceof Error ? error.stack : undefined,
-    timestamp: new Date().toISOString(),
-  });
+    timestamp: new Date().toISOString()
+  })
 }
 
 // 요청 ID 생성
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }

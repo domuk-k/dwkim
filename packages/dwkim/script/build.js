@@ -1,39 +1,36 @@
-import * as esbuild from 'esbuild';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { builtinModules } from 'module';
+import { builtinModules } from 'node:module'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import * as esbuild from 'esbuild'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const projectRoot = join(__dirname, '..')
 
 // Ink의 optional dependencies를 빈 모듈로 대체
 const emptyModulePlugin = {
   name: 'empty-module',
   setup(build) {
-    const emptyModules = ['react-devtools-core', 'yoga-wasm-web'];
+    const emptyModules = ['react-devtools-core', 'yoga-wasm-web']
 
     emptyModules.forEach((mod) => {
       build.onResolve({ filter: new RegExp(`^${mod}$`) }, () => ({
         path: mod,
-        namespace: 'empty-module',
-      }));
-    });
+        namespace: 'empty-module'
+      }))
+    })
 
     build.onLoad({ filter: /.*/, namespace: 'empty-module' }, () => ({
       contents: 'export default {}; export const connectToDevTools = () => {};',
-      loader: 'js',
-    }));
-  },
-};
+      loader: 'js'
+    }))
+  }
+}
 
 // Node.js 내장 모듈 (node: prefix 포함)
-const nodeBuiltins = [
-  ...builtinModules,
-  ...builtinModules.map((m) => `node:${m}`),
-];
+const nodeBuiltins = [...builtinModules, ...builtinModules.map((m) => `node:${m}`)]
 
-console.log('🚀 Starting build...');
+console.log('🚀 Starting build...')
 
 try {
   await esbuild.build({
@@ -48,12 +45,12 @@ try {
     plugins: [emptyModulePlugin],
     external: nodeBuiltins,
     banner: {
-      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
-    },
-  });
+      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`
+    }
+  })
 
-  console.log('✅ Build completed successfully');
+  console.log('✅ Build completed successfully')
 } catch (error) {
-  console.error('❌ Build failed:', error);
-  process.exit(1);
+  console.error('❌ Build failed:', error)
+  process.exit(1)
 }

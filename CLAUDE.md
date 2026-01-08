@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-This is a **pnpm workspace monorepo** with three main packages:
+This is a **Bun workspace monorepo** with three main packages:
 
 ### 1. `packages/dwkim/` - CLI Personal Agent
 - **Purpose**: CLI 기반 개인 에이전트 (터미널에서 김동욱에 대해 대화)
@@ -32,55 +32,66 @@ This is a **pnpm workspace monorepo** with three main packages:
 
 ### Workspace-level (from root)
 ```bash
-pnpm dev                  # Start all packages in dev mode
-pnpm build                # Build all packages
-pnpm lint                 # Lint all packages
-pnpm release:dwkim        # Build and publish dwkim to npm
+bun run build             # Build all packages
+bun run dev               # Start all packages in dev mode
+bun run lint              # Lint all packages with Biome
+bun run lint:fix          # Auto-fix lint issues
+bun run format            # Format all files with Biome
+bun run release:dwkim     # Build and publish dwkim to npm
 ```
 
 ### Package-specific Commands
 
 #### dwkim CLI (`packages/dwkim/`)
 ```bash
-pnpm dev                 # Watch mode with tsx
-pnpm build               # Custom esbuild
-pnpm lint                # TypeScript check
+bun run dev              # Watch mode
+bun run build            # Custom esbuild
+bun run type-check       # TypeScript check
 ```
 
 #### persona-api (`packages/persona-api/`)
 ```bash
-pnpm dev                 # Development server
-pnpm build               # TypeScript build
-pnpm start               # Production server
-pnpm test                # Jest tests
-pnpm test:watch          # Watch tests
-pnpm test:coverage       # Coverage report
-pnpm lint                # ESLint
-pnpm lint:fix            # ESLint with auto-fix
-pnpm type-check          # TypeScript check
+bun run dev              # Development server
+bun run build            # TypeScript build
+bun run start            # Production server
+bun test                 # Bun tests
+bun test --watch         # Watch tests
+bun test --coverage      # Coverage report
+bun run type-check       # TypeScript check
 
 # Vector DB initialization (choose one)
-pnpm init-qdrant         # Initialize Qdrant vector DB
-pnpm init-qdrant:clean   # Clean and reinitialize Qdrant
-pnpm init-neon           # Initialize Neon postgres vector DB
-pnpm init-neon:clean     # Clean and reinitialize Neon
+bun run init-qdrant      # Initialize Qdrant vector DB
+bun run init-qdrant:clean # Clean and reinitialize Qdrant
+bun run init-neon        # Initialize Neon postgres vector DB
+bun run init-neon:clean  # Clean and reinitialize Neon
 
-pnpm manage              # Manage vector DB data
-pnpm docker:up           # Start Docker containers
-pnpm docker:down         # Stop Docker containers
+bun run manage           # Manage vector DB data
+bun run docker:up        # Start Docker containers
+bun run docker:down      # Stop Docker containers
 ```
 
 #### blog (`packages/blog/`)
 ```bash
-pnpm dev                 # Astro dev server
-pnpm build               # Astro static build (runs sync-cogni prebuild)
-pnpm preview             # Preview built site
-pnpm lint                # ESLint
-pnpm lint:fix            # ESLint with auto-fix
-pnpm new <title>         # Create new blog post (use _title for drafts)
-pnpm sync-cogni          # Sync posts from Cogni SSOT
-pnpm update-theme        # Update Chiri theme to latest
+bun run dev              # Astro dev server
+bun run build            # Astro static build (runs sync-cogni prebuild)
+bun run preview          # Preview built site
+bun run new <title>      # Create new blog post (use _title for drafts)
+bun run sync-cogni       # Sync posts from Cogni SSOT
+bun run update-theme     # Update Chiri theme to latest
 ```
+
+## Tooling
+
+### Package Manager: Bun
+- Fast JavaScript runtime and package manager
+- Uses `bun.lock` for lockfile
+- Workspace configuration in root `package.json` with `"workspaces": ["packages/*"]`
+
+### Linting & Formatting: Biome
+- Configuration in `biome.json` at root level
+- Replaces ESLint and Prettier for unified lint/format
+- Run `bun run lint` to check, `bun run lint:fix` to auto-fix
+- Pre-commit hooks via Husky + lint-staged
 
 ## Architecture Notes
 
@@ -114,7 +125,7 @@ pnpm update-theme        # Update Chiri theme to latest
   - `contactService.ts` - 연락처 수집
 - **Infra**: `src/infra/redis.ts` (graceful fallback to memory)
 - **Data**: `~/.cogni/notes/persona/` (SSOT for indexing)
-- **Tests**: Jest with tests in `src/__tests__/`, run single test with `pnpm test -- path/to/test`
+- **Tests**: Bun test with tests in `src/__tests__/`
 
 ### Blog Architecture
 - **Content Collections**: Defined in `src/content.config.ts`
@@ -130,9 +141,9 @@ pnpm update-theme        # Update Chiri theme to latest
 ### Development Patterns
 - **Error Handling**: Always provide fallbacks (especially for Redis)
 - **TypeScript**: Strict mode across all packages
-- **Testing**: Jest for persona-api only
-- **Versioning**: Semantic Release for dwkim (`pnpm release:dwkim`), Changesets for others (`pnpm changeset`)
-- **Linting**: Husky + lint-staged for pre-commit hooks
+- **Testing**: Bun test for persona-api
+- **Versioning**: Semantic Release for dwkim (`bun run release:dwkim`), Changesets for others (`bunx changeset`)
+- **Linting**: Biome via Husky + lint-staged for pre-commit hooks
 
 ### Git Commit Convention
 Use **scoped commits** with conventional commit format:
@@ -165,6 +176,6 @@ feat(persona-api): add new RAG endpoint
 
 ### Deployment
 - **persona-api**: Deploy with `fly deploy` from packages/persona-api/
-- **blog**: Deploy with `pnpm deploy` from packages/blog/
+- **blog**: Deploy with `bun run deploy` from packages/blog/
 - **Rate Limiting**: 8 req/min in production
 - **Health Check**: `/health` endpoint for monitoring

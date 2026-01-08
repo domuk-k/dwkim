@@ -1,9 +1,9 @@
-import { QdrantVectorStore } from '@langchain/qdrant';
-import { QdrantClient } from '@qdrant/js-client-rest';
-import { Document as LangChainDocument } from '@langchain/core/documents';
-import { OpenAIEmbeddings } from './openaiEmbeddings';
-import { getBM25Engine, type SparseVector } from './bm25Engine';
-import { env } from '../config/env';
+import { Document as LangChainDocument } from '@langchain/core/documents'
+import { QdrantVectorStore } from '@langchain/qdrant'
+import { QdrantClient } from '@qdrant/js-client-rest'
+import { env } from '../config/env'
+import { getBM25Engine, type SparseVector } from './bm25Engine'
+import { OpenAIEmbeddings } from './openaiEmbeddings'
 
 export type DocumentType =
   | 'resume'
@@ -13,48 +13,52 @@ export type DocumentType =
   | 'about'
   | 'post'
   | 'blog'
-  | 'knowledge'  // RAG 전용 지식 문서
-  | 'cogni';
+  | 'knowledge' // RAG 전용 지식 문서
+  | 'cogni'
 
-export type DocumentSource = 'persona-api' | 'blog' | 'cogni';
+export type DocumentSource = 'persona-api' | 'blog' | 'cogni'
 
 export interface Document {
-  id: string;
-  content: string;
+  id: string
+  content: string
   metadata: {
-    type: DocumentType;
-    title?: string;
-    category?: string;
-    source?: DocumentSource;
-    pubDate?: string;
-    keywords?: string[];
-    chunkIndex?: number;
-    totalChunks?: number;
-    createdAt?: string;
-    path?: string;        // Cogni 노트 파일 경로
-    tags?: string[];      // Cogni 노트 태그
-  };
-  score?: number;  // 유사도 점수 (0~1, 높을수록 관련성 높음)
+    type: DocumentType
+    title?: string
+    category?: string
+    source?: DocumentSource
+    pubDate?: string
+    keywords?: string[]
+    chunkIndex?: number
+    totalChunks?: number
+    createdAt?: string
+    path?: string // Cogni 노트 파일 경로
+    tags?: string[] // Cogni 노트 태그
+  }
+  score?: number // 유사도 점수 (0~1, 높을수록 관련성 높음)
 }
 
 // 유사도 점수 threshold (이 값 이하는 관련 없는 것으로 간주)
 // Qdrant 코사인 유사도: 0 = 무관, 1 = 동일
-const RELEVANCE_THRESHOLD = 0.3;
+const RELEVANCE_THRESHOLD = 0.3
 
 export class VectorStore {
-  private vectorStore: QdrantVectorStore | null = null;
-  private embeddings: OpenAIEmbeddings | null = null;
-  private qdrantClient: QdrantClient | null = null;
-  private initialized = false;
-  private collectionName = 'persona_documents';
+  private vectorStore: QdrantVectorStore | null = null
+  private embeddings: OpenAIEmbeddings | null = null
+  private qdrantClient: QdrantClient | null = null
+  private _initialized = false
+  private collectionName = 'persona_documents'
+
+  get initialized(): boolean {
+    return this._initialized
+  }
 
   constructor() {
     // OpenAI text-embedding-3-large: 강력한 시맨틱 이해력
     if (env.OPENAI_API_KEY) {
       this.embeddings = new OpenAIEmbeddings({
         modelName: 'text-embedding-3-large',
-        dimensions: 3072,
-      });
+        dimensions: 3072
+      })
     }
   }
 
@@ -62,29 +66,29 @@ export class VectorStore {
     try {
       // Mock 모드 체크
       if (env.USE_VECTOR_STORE === 'false' || env.MOCK_MODE === 'true') {
-        console.log('Vector store disabled - using mock mode');
-        this.initialized = true;
-        return;
+        console.log('Vector store disabled - using mock mode')
+        this._initialized = true
+        return
       }
 
-      const qdrantUrl = env.QDRANT_URL;
+      const qdrantUrl = env.QDRANT_URL
       if (!qdrantUrl) {
-        console.warn('QDRANT_URL not set - vector store will use mock mode');
-        this.initialized = true;
-        return;
+        console.warn('QDRANT_URL not set - vector store will use mock mode')
+        this._initialized = true
+        return
       }
 
       if (!this.embeddings) {
-        throw new Error('Embeddings not initialized');
+        throw new Error('Embeddings not initialized')
       }
 
       // Qdrant 클라이언트 설정
-      const url = new URL(qdrantUrl);
-      const isHttps = url.protocol === 'https:';
+      const url = new URL(qdrantUrl)
+      const isHttps = url.protocol === 'https:'
       // HTTPS 외부 접근시 포트 443 사용, 내부/로컬은 URL에서 추출
-      const port = isHttps ? 443 : parseInt(url.port || '6333');
+      const port = isHttps ? 443 : parseInt(url.port || '6333', 10)
 
-      console.log(`Connecting to Qdrant: ${url.hostname}:${port} (${isHttps ? 'HTTPS' : 'HTTP'})`);
+      console.log(`Connecting to Qdrant: ${url.hostname}:${port} (${isHttps ? 'HTTPS' : 'HTTP'})`)
 
       // QdrantClient 직접 생성 (포트 명시)
       this.qdrantClient = new QdrantClient({
@@ -92,50 +96,46 @@ export class VectorStore {
         port,
         https: isHttps,
         apiKey: env.QDRANT_API_KEY,
-        checkCompatibility: false, // 버전 체크 스킵
-      });
+        checkCompatibility: false // 버전 체크 스킵
+      })
 
       const qdrantConfig = {
         client: this.qdrantClient,
-        collectionName: this.collectionName,
-      };
+        collectionName: this.collectionName
+      }
 
       // 기존 컬렉션 연결 시도
       try {
         this.vectorStore = await QdrantVectorStore.fromExistingCollection(
           this.embeddings,
           qdrantConfig
-        );
-        console.log('Vector store initialized with Qdrant (existing collection)');
+        )
+        console.log('Vector store initialized with Qdrant (existing collection)')
       } catch (existingError) {
-        console.log('fromExistingCollection failed:', existingError);
-        console.log('Creating new collection...');
-        this.vectorStore = await QdrantVectorStore.fromDocuments(
-          [],
-          this.embeddings,
-          qdrantConfig
-        );
-        console.log('Vector store initialized with Qdrant (new collection)');
+        console.log('fromExistingCollection failed:', existingError)
+        console.log('Creating new collection...')
+        this.vectorStore = await QdrantVectorStore.fromDocuments([], this.embeddings, qdrantConfig)
+        console.log('Vector store initialized with Qdrant (new collection)')
       }
-      this.initialized = true;
+      this._initialized = true
     } catch (error) {
-      console.error('Failed to initialize vector store:', error);
+      console.error('Failed to initialize vector store:', error)
 
       // 프로덕션에서는 실패하도록 (silent failure 방지)
       if (env.NODE_ENV === 'production') {
-        throw new Error(`Vector store initialization failed: ${error}`);
+        throw new Error(`Vector store initialization failed: ${error}`)
       }
 
       // 개발 환경에서만 mock 모드 허용
-      console.warn('Falling back to mock mode (development only)');
-      this.initialized = true;
+      console.warn('Falling back to mock mode (development only)')
+      this._initialized = true
     }
   }
 
   async addDocument(document: Document): Promise<void> {
     if (!this.vectorStore) {
-      console.warn('Vector store not available - skipping document add');
-      return;
+      console.warn('Vector store not available - skipping document add')
+      return
     }
 
     try {
@@ -143,25 +143,25 @@ export class VectorStore {
         pageContent: document.content,
         metadata: {
           ...document.metadata,
-          docId: document.id,
-        },
-      });
+          docId: document.id
+        }
+      })
 
       await this.vectorStore.addDocuments([langchainDoc], {
-        ids: [document.id],
-      });
+        ids: [document.id]
+      })
 
-      console.log(`Document added: ${document.id}`);
+      console.log(`Document added: ${document.id}`)
     } catch (error) {
-      console.error('Failed to add document:', error);
-      throw new Error('Failed to add document to vector store');
+      console.error('Failed to add document:', error)
+      throw new Error('Failed to add document to vector store')
     }
   }
 
   async addDocuments(documents: Document[]): Promise<void> {
     if (!this.vectorStore) {
-      console.warn('Vector store not available - skipping documents add');
-      return;
+      console.warn('Vector store not available - skipping documents add')
+      return
     }
 
     try {
@@ -171,19 +171,19 @@ export class VectorStore {
             pageContent: doc.content,
             metadata: {
               ...doc.metadata,
-              docId: doc.id,
-            },
+              docId: doc.id
+            }
           })
-      );
+      )
 
       await this.vectorStore.addDocuments(langchainDocs, {
-        ids: documents.map((d) => d.id),
-      });
+        ids: documents.map((d) => d.id)
+      })
 
-      console.log(`${documents.length} documents added`);
+      console.log(`${documents.length} documents added`)
     } catch (error) {
-      console.error('Failed to add documents:', error);
-      throw new Error('Failed to add documents to vector store');
+      console.error('Failed to add documents:', error)
+      throw new Error('Failed to add documents to vector store')
     }
   }
 
@@ -202,50 +202,60 @@ export class VectorStore {
     filter?: Record<string, unknown>
   ): Promise<Document[]> {
     if (!this.vectorStore) {
-      console.warn('Vector store not available - returning mock results');
-      return this.getMockResults(query);
+      console.warn('Vector store not available - returning mock results')
+      return this.getMockResults(query)
     }
 
     try {
       // 1. 넓은 범위에서 후보 검색 (점수 포함)
-      const fetchK = Math.max(topK * 5, 30);
-      const resultsWithScore = await this.vectorStore.similaritySearchWithScore(query, fetchK, filter);
+      const fetchK = Math.max(topK * 5, 30)
+      const resultsWithScore = await this.vectorStore.similaritySearchWithScore(
+        query,
+        fetchK,
+        filter
+      )
 
-      console.log(`VectorStore: Fetched ${resultsWithScore.length} candidates for query: "${query}"`);
+      console.log(
+        `VectorStore: Fetched ${resultsWithScore.length} candidates for query: "${query}"`
+      )
 
       // 2. 유사도 threshold 필터링 (관련 없는 문서 제외)
-      const relevantResults = resultsWithScore.filter(([, score]) => score >= RELEVANCE_THRESHOLD);
-      console.log(`VectorStore: ${relevantResults.length}/${resultsWithScore.length} passed threshold (>=${RELEVANCE_THRESHOLD})`);
+      const relevantResults = resultsWithScore.filter(([, score]) => score >= RELEVANCE_THRESHOLD)
+      console.log(
+        `VectorStore: ${relevantResults.length}/${resultsWithScore.length} passed threshold (>=${RELEVANCE_THRESHOLD})`
+      )
 
       if (relevantResults.length === 0) {
-        console.log('VectorStore: No relevant results found');
-        return [];
+        console.log('VectorStore: No relevant results found')
+        return []
       }
 
       // 3. 키워드 부스팅: 제목에 쿼리 포함된 문서 우선
-      const queryLower = query.toLowerCase();
+      const queryLower = query.toLowerCase()
       const boostedResults = [...relevantResults].sort(([a], [b]) => {
-        const aTitle = (a.metadata.title || '').toLowerCase();
-        const bTitle = (b.metadata.title || '').toLowerCase();
-        const aMatch = aTitle.includes(queryLower) ? 1 : 0;
-        const bMatch = bTitle.includes(queryLower) ? 1 : 0;
-        return bMatch - aMatch;
-      });
+        const aTitle = (a.metadata.title || '').toLowerCase()
+        const bTitle = (b.metadata.title || '').toLowerCase()
+        const aMatch = aTitle.includes(queryLower) ? 1 : 0
+        const bMatch = bTitle.includes(queryLower) ? 1 : 0
+        return bMatch - aMatch
+      })
 
       // 4. 동일 문서 중복 제거 (첫 번째 청크만 유지)
-      const seen = new Set<string>();
-      const diverseResults = boostedResults.filter(([doc]) => {
-        const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      }).slice(0, topK);
+      const seen = new Set<string>()
+      const diverseResults = boostedResults
+        .filter(([doc]) => {
+          const key = doc.metadata.title || doc.metadata.docId || doc.pageContent.slice(0, 50)
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        .slice(0, topK)
 
-      console.log(`VectorStore: Returning ${diverseResults.length} diverse results`);
-      return this.mapResultsWithScore(diverseResults);
+      console.log(`VectorStore: Returning ${diverseResults.length} diverse results`)
+      return this.mapResultsWithScore(diverseResults)
     } catch (error) {
-      console.error('Diverse search failed:', error);
-      return this.getMockResults(query);
+      console.error('Diverse search failed:', error)
+      return this.getMockResults(query)
     }
   }
 
@@ -263,96 +273,98 @@ export class VectorStore {
     query: string,
     topK: number = 5,
     options?: {
-      prefetchLimit?: number;  // prefetch 후보 수 (기본: topK * 2)
-      denseFallback?: boolean; // BM25 실패 시 Dense only 폴백 (기본: true)
+      prefetchLimit?: number // prefetch 후보 수 (기본: topK * 2)
+      denseFallback?: boolean // BM25 실패 시 Dense only 폴백 (기본: true)
     }
   ): Promise<Document[]> {
     // Mock 모드 체크
     if (!this.qdrantClient || !this.embeddings) {
-      console.warn('Vector store not available - returning mock results');
-      return this.getMockResults(query);
+      console.warn('Vector store not available - returning mock results')
+      return this.getMockResults(query)
     }
 
     try {
-      const prefetchLimit = options?.prefetchLimit ?? topK * 2;
-      const denseFallback = options?.denseFallback ?? true;
+      const prefetchLimit = options?.prefetchLimit ?? topK * 2
+      const denseFallback = options?.denseFallback ?? true
 
       // 1. Dense vector 생성
-      const denseVector = await this.embeddings.embedQuery(query);
+      const denseVector = await this.embeddings.embedQuery(query)
 
       // 2. Sparse vector 생성 (BM25)
-      const bm25Engine = getBM25Engine();
-      let sparseVector: SparseVector | null = null;
+      const bm25Engine = getBM25Engine()
+      let sparseVector: SparseVector | null = null
 
       if (bm25Engine.isInitialized()) {
-        sparseVector = bm25Engine.generateSparseVector(query);
+        sparseVector = bm25Engine.generateSparseVector(query)
         // 빈 sparse vector는 null 처리
         if (sparseVector.indices.length === 0) {
-          console.log(`VectorStore: Query "${query}" has no BM25 tokens (OOV)`);
-          sparseVector = null;
+          console.log(`VectorStore: Query "${query}" has no BM25 tokens (OOV)`)
+          sparseVector = null
         }
       } else {
-        console.warn('VectorStore: BM25 engine not initialized, using dense only');
+        console.warn('VectorStore: BM25 engine not initialized, using dense only')
       }
 
       // 3. Hybrid 또는 Dense only 검색
-      let results;
+      let results
 
       if (sparseVector) {
         // Hybrid Search with RRF
-        console.log(`VectorStore: Hybrid searching for: "${query}"`);
+        console.log(`VectorStore: Hybrid searching for: "${query}"`)
         results = await this.qdrantClient.query(this.collectionName, {
           prefetch: [
             {
               query: sparseVector,
               using: 'sparse',
-              limit: prefetchLimit,
+              limit: prefetchLimit
             },
             {
               query: denseVector,
               using: 'dense',
-              limit: prefetchLimit,
-            },
+              limit: prefetchLimit
+            }
           ],
           query: { fusion: 'rrf' },
           limit: topK,
-          with_payload: true,
-        });
+          with_payload: true
+        })
       } else if (denseFallback) {
         // Dense only fallback
-        console.log(`VectorStore: Dense-only searching for: "${query}"`);
+        console.log(`VectorStore: Dense-only searching for: "${query}"`)
         results = await this.qdrantClient.query(this.collectionName, {
           query: denseVector,
           using: 'dense',
           limit: topK,
-          with_payload: true,
-        });
+          with_payload: true
+        })
       } else {
-        console.warn('VectorStore: No sparse vector and fallback disabled');
-        return [];
+        console.warn('VectorStore: No sparse vector and fallback disabled')
+        return []
       }
 
-      console.log(`VectorStore: Hybrid returned ${results.points.length} results`);
+      console.log(`VectorStore: Hybrid returned ${results.points.length} results`)
 
       // 4. 결과 매핑
-      return this.mapQdrantResults(results.points);
+      return this.mapQdrantResults(results.points)
     } catch (error) {
-      console.error('Hybrid search failed:', error);
+      console.error('Hybrid search failed:', error)
       // 에러 시 기존 searchDiverse로 폴백
-      return this.searchDiverse(query, topK);
+      return this.searchDiverse(query, topK)
     }
   }
 
   /**
    * Qdrant 직접 쿼리 결과를 Document로 매핑
    */
-  private mapQdrantResults(points: Array<{
-    id: string | number;
-    score?: number;
-    payload?: Record<string, unknown> | null;
-  }>): Document[] {
+  private mapQdrantResults(
+    points: Array<{
+      id: string | number
+      score?: number
+      payload?: Record<string, unknown> | null
+    }>
+  ): Document[] {
     return points.map((point, index) => {
-      const payload = point.payload || {};
+      const payload = point.payload || {}
       return {
         id: (payload.docId as string) || `result-${index}`,
         content: (payload.content as string) || '',
@@ -367,11 +379,11 @@ export class VectorStore {
           totalChunks: payload.totalChunks as number | undefined,
           createdAt: payload.createdAt as string | undefined,
           path: payload.path as string | undefined,
-          tags: payload.tags as string[] | undefined,
+          tags: payload.tags as string[] | undefined
         },
-        score: point.score ? Math.round(point.score * 1000) / 1000 : undefined,
-      };
-    });
+        score: point.score ? Math.round(point.score * 1000) / 1000 : undefined
+      }
+    })
   }
 
   private mapResultsWithScore(results: [LangChainDocument, number][]): Document[] {
@@ -389,10 +401,10 @@ export class VectorStore {
         totalChunks: doc.metadata.totalChunks,
         createdAt: doc.metadata.createdAt,
         path: doc.metadata.path,
-        tags: doc.metadata.tags,
+        tags: doc.metadata.tags
       },
-      score: Math.round(score * 100) / 100,  // 소수점 2자리
-    }));
+      score: Math.round(score * 100) / 100 // 소수점 2자리
+    }))
   }
 
   private getMockResults(query: string): Document[] {
@@ -402,24 +414,24 @@ export class VectorStore {
         content: `dwkim은 풀스택 개발자로서 다양한 기술 스택을 활용합니다. 질문: "${query}"`,
         metadata: {
           type: 'experience',
-          title: 'Mock Response',
-        },
-      },
-    ];
+          title: 'Mock Response'
+        }
+      }
+    ]
   }
 
   async deleteDocument(id: string): Promise<void> {
     if (!this.vectorStore) {
-      console.warn('Vector store not available - skipping delete');
-      return;
+      console.warn('Vector store not available - skipping delete')
+      return
     }
 
     try {
-      await this.vectorStore.delete({ ids: [id] });
-      console.log(`Document deleted: ${id}`);
+      await this.vectorStore.delete({ ids: [id] })
+      console.log(`Document deleted: ${id}`)
     } catch (error) {
-      console.error('Failed to delete document:', error);
-      throw new Error('Failed to delete document from vector store');
+      console.error('Failed to delete document:', error)
+      throw new Error('Failed to delete document from vector store')
     }
   }
 
@@ -428,57 +440,52 @@ export class VectorStore {
    */
   async resetCollection(): Promise<void> {
     if (!this.embeddings) {
-      throw new Error('Embeddings not initialized');
+      throw new Error('Embeddings not initialized')
     }
 
-    const qdrantUrl = env.QDRANT_URL;
+    const qdrantUrl = env.QDRANT_URL
     if (!qdrantUrl) {
-      throw new Error('QDRANT_URL not set');
+      throw new Error('QDRANT_URL not set')
     }
 
     try {
       // 새 컬렉션으로 초기화 (기존 데이터 덮어쓰기)
       const qdrantConfig: {
-        url: string;
-        collectionName: string;
-        apiKey?: string;
+        url: string
+        collectionName: string
+        apiKey?: string
       } = {
         url: qdrantUrl,
-        collectionName: this.collectionName,
-      };
+        collectionName: this.collectionName
+      }
 
       if (env.QDRANT_API_KEY) {
-        qdrantConfig.apiKey = env.QDRANT_API_KEY;
+        qdrantConfig.apiKey = env.QDRANT_API_KEY
       }
 
       // 빈 문서로 새 컬렉션 생성 (기존 컬렉션 덮어쓰기)
-      this.vectorStore = await QdrantVectorStore.fromDocuments(
-        [],
-        this.embeddings,
-        qdrantConfig
-      );
+      this.vectorStore = await QdrantVectorStore.fromDocuments([], this.embeddings, qdrantConfig)
 
-      console.log('Collection reset successfully');
+      console.log('Collection reset successfully')
     } catch (error) {
-      console.error('Failed to reset collection:', error);
-      throw error;
+      console.error('Failed to reset collection:', error)
+      throw error
     }
   }
 
   async getCollectionInfo(): Promise<{
-    initialized: boolean;
-    hasVectorStore: boolean;
-    provider: string;
-    collectionName: string;
+    initialized: boolean
+    hasVectorStore: boolean
+    provider: string
+    collectionName: string
   }> {
     return {
       initialized: this.initialized,
       hasVectorStore: this.vectorStore !== null,
       provider: 'qdrant',
-      collectionName: this.collectionName,
-    };
+      collectionName: this.collectionName
+    }
   }
-
 
   /**
    * 파일 경로 기반으로 문서 삭제
@@ -486,8 +493,8 @@ export class VectorStore {
    */
   async deleteDocumentsByPath(path: string): Promise<number> {
     if (!this.qdrantClient) {
-      console.warn('Qdrant client not available - skipping delete by path');
-      return 0;
+      console.warn('Qdrant client not available - skipping delete by path')
+      return 0
     }
 
     try {
@@ -497,31 +504,31 @@ export class VectorStore {
           must: [
             {
               key: 'path',
-              match: { value: path },
-            },
-          ],
+              match: { value: path }
+            }
+          ]
         },
         limit: 100,
         with_payload: false,
-        with_vector: false,
-      });
+        with_vector: false
+      })
 
       if (scrollResult.points.length === 0) {
-        console.log(`No documents found for path: ${path}`);
-        return 0;
+        console.log(`No documents found for path: ${path}`)
+        return 0
       }
 
       // 포인트 ID 추출 및 삭제
-      const pointIds = scrollResult.points.map((p) => p.id);
+      const pointIds = scrollResult.points.map((p) => p.id)
       await this.qdrantClient.delete(this.collectionName, {
-        points: pointIds as string[],
-      });
+        points: pointIds as string[]
+      })
 
-      console.log(`Deleted ${pointIds.length} chunks for path: ${path}`);
-      return pointIds.length;
+      console.log(`Deleted ${pointIds.length} chunks for path: ${path}`)
+      return pointIds.length
     } catch (error) {
-      console.error('Failed to delete documents by path:', error);
-      throw new Error(`Failed to delete documents for path: ${path}`);
+      console.error('Failed to delete documents by path:', error)
+      throw new Error(`Failed to delete documents for path: ${path}`)
     }
   }
 
@@ -531,22 +538,22 @@ export class VectorStore {
    */
   async upsertDocuments(documents: Document[], path: string): Promise<void> {
     if (!this.vectorStore) {
-      console.warn('Vector store not available - skipping upsert');
-      return;
+      console.warn('Vector store not available - skipping upsert')
+      return
     }
 
     try {
       // 1. 기존 문서 삭제
-      await this.deleteDocumentsByPath(path);
+      await this.deleteDocumentsByPath(path)
 
       // 2. 새 문서 추가
       if (documents.length > 0) {
-        await this.addDocuments(documents);
-        console.log(`Upserted ${documents.length} chunks for path: ${path}`);
+        await this.addDocuments(documents)
+        console.log(`Upserted ${documents.length} chunks for path: ${path}`)
       }
     } catch (error) {
-      console.error('Failed to upsert documents:', error);
-      throw new Error(`Failed to upsert documents for path: ${path}`);
+      console.error('Failed to upsert documents:', error)
+      throw new Error(`Failed to upsert documents for path: ${path}`)
     }
   }
 
@@ -556,30 +563,30 @@ export class VectorStore {
    */
   async getAllDocuments(limit: number = 500): Promise<Array<{ id: string; content: string }>> {
     if (!this.qdrantClient) {
-      console.warn('Qdrant client not available');
-      return [];
+      console.warn('Qdrant client not available')
+      return []
     }
 
     try {
       const scrollResult = await this.qdrantClient.scroll(this.collectionName, {
         limit,
         with_payload: true,
-        with_vector: false,
-      });
+        with_vector: false
+      })
 
       const documents = scrollResult.points.map((point) => {
-        const payload = point.payload as Record<string, unknown>;
+        const payload = point.payload as Record<string, unknown>
         return {
           id: String(point.id),
-          content: (payload.content as string) || '',
-        };
-      });
+          content: (payload.content as string) || ''
+        }
+      })
 
-      console.log(`VectorStore: Loaded ${documents.length} documents for BM25 indexing`);
-      return documents;
+      console.log(`VectorStore: Loaded ${documents.length} documents for BM25 indexing`)
+      return documents
     } catch (error) {
-      console.error('Failed to get all documents:', error);
-      return [];
+      console.error('Failed to get all documents:', error)
+      return []
     }
   }
 
@@ -588,8 +595,8 @@ export class VectorStore {
    */
   async getDocumentsByTag(tag: string, limit: number = 100): Promise<Document[]> {
     if (!this.qdrantClient) {
-      console.warn('Qdrant client not available');
-      return [];
+      console.warn('Qdrant client not available')
+      return []
     }
 
     try {
@@ -598,17 +605,17 @@ export class VectorStore {
           must: [
             {
               key: 'tags',
-              match: { any: [tag] },
-            },
-          ],
+              match: { any: [tag] }
+            }
+          ]
         },
         limit,
         with_payload: true,
-        with_vector: false,
-      });
+        with_vector: false
+      })
 
       return scrollResult.points.map((point) => {
-        const payload = point.payload as Record<string, unknown>;
+        const payload = point.payload as Record<string, unknown>
         return {
           id: point.id as string,
           content: (payload.content as string) || '',
@@ -617,13 +624,13 @@ export class VectorStore {
             title: payload.title as string | undefined,
             path: payload.path as string | undefined,
             tags: payload.tags as string[] | undefined,
-            source: payload.source as DocumentSource | undefined,
-          },
-        };
-      });
+            source: payload.source as DocumentSource | undefined
+          }
+        }
+      })
     } catch (error) {
-      console.error('Failed to get documents by tag:', error);
-      return [];
+      console.error('Failed to get documents by tag:', error)
+      return []
     }
   }
 }
@@ -632,8 +639,8 @@ export class VectorStore {
 // Singleton Pattern
 // ─────────────────────────────────────────────────────────────
 
-let instance: VectorStore | null = null;
-let initializationPromise: Promise<void> | null = null;
+let instance: VectorStore | null = null
+let initializationPromise: Promise<void> | null = null
 
 /**
  * VectorStore 싱글턴 인스턴스 반환
@@ -641,9 +648,9 @@ let initializationPromise: Promise<void> | null = null;
  */
 export function getVectorStore(): VectorStore {
   if (!instance) {
-    instance = new VectorStore();
+    instance = new VectorStore()
   }
-  return instance;
+  return instance
 }
 
 /**
@@ -653,21 +660,21 @@ export function getVectorStore(): VectorStore {
 export async function initVectorStore(): Promise<void> {
   if (initializationPromise) {
     // 이미 초기화 중이면 기존 Promise 재사용
-    return initializationPromise;
+    return initializationPromise
   }
 
-  const store = getVectorStore();
-  if (store['initialized']) {
+  const store = getVectorStore()
+  if (store.initialized) {
     // 이미 초기화 완료됨
-    return;
+    return
   }
 
   // 초기화 시작
   initializationPromise = store.initialize().finally(() => {
-    initializationPromise = null;
-  });
+    initializationPromise = null
+  })
 
-  return initializationPromise;
+  return initializationPromise
 }
 
 /**
@@ -675,6 +682,6 @@ export async function initVectorStore(): Promise<void> {
  * 프로덕션 코드에서는 사용하지 말 것
  */
 export function resetVectorStore(): void {
-  instance = null;
-  initializationPromise = null;
+  instance = null
+  initializationPromise = null
 }

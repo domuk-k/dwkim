@@ -1,6 +1,6 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { PersonaEngine } from '../services/personaAgent';
-import { env } from '../config/env';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { env } from '../config/env'
+import { PersonaEngine } from '../services/personaAgent'
 
 export default async function healthRoutes(fastify: FastifyInstance) {
   // GET / (when registered with /health prefix, becomes /health)
@@ -19,21 +19,21 @@ export default async function healthRoutes(fastify: FastifyInstance) {
               timestamp: { type: 'string', format: 'date-time' },
               uptime: {
                 type: 'number',
-                description: 'Server uptime in seconds',
-              },
-            },
-          },
-        },
-      },
+                description: 'Server uptime in seconds'
+              }
+            }
+          }
+        }
+      }
     },
     async () => {
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-      };
+        uptime: process.uptime()
+      }
     }
-  );
+  )
 
   // GET /detailed (when registered with /health prefix, becomes /health/detailed)
   fastify.get(
@@ -57,66 +57,64 @@ export default async function healthRoutes(fastify: FastifyInstance) {
                 properties: {
                   server: { type: 'boolean' },
                   redis: { type: 'boolean' },
-                  ragEngine: { type: 'object' },
-                },
+                  ragEngine: { type: 'object' }
+                }
               },
               memory: {
                 type: 'object',
                 properties: {
                   used: { type: 'number' },
                   total: { type: 'number' },
-                  percentage: { type: 'number' },
-                },
-              },
-            },
-          },
-        },
-      },
+                  percentage: { type: 'number' }
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         // 메모리 사용량 확인
-        const memUsage = process.memoryUsage();
+        const memUsage = process.memoryUsage()
         const memoryInfo = {
           used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
           total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
-          percentage: Math.round(
-            (memUsage.heapUsed / memUsage.heapTotal) * 100
-          ),
-        };
+          percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)
+        }
 
         // Redis 연결 확인
-        let redisStatus = false;
+        let redisStatus = false
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (fastify as any).redis.ping();
-          redisStatus = true;
+          await (fastify as any).redis.ping()
+          redisStatus = true
         } catch (error) {
-          fastify.log.error({ err: error }, 'Redis health check failed');
+          fastify.log.error({ err: error }, 'Redis health check failed')
         }
 
         // RAG 엔진 상태 확인
         let ragEngineStatus: Record<string, unknown> = {
           status: 'not_initialized',
-          components: {},
-        };
+          components: {}
+        }
         try {
-          const personaEngine = new PersonaEngine();
-          const engineStatus = await personaEngine.getEngineStatus();
+          const personaEngine = new PersonaEngine()
+          const engineStatus = await personaEngine.getEngineStatus()
           ragEngineStatus = {
             status: 'ready',
-            components: engineStatus,
-          };
+            components: engineStatus
+          }
         } catch (error) {
-          fastify.log.error({ err: error }, 'RAG Engine health check failed');
+          fastify.log.error({ err: error }, 'RAG Engine health check failed')
           ragEngineStatus = {
             status: 'error',
             components: {
               vectorStore: false,
               llmService: false,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-          };
+              error: error instanceof Error ? error.message : 'Unknown error'
+            }
+          }
         }
 
         const health = {
@@ -128,22 +126,21 @@ export default async function healthRoutes(fastify: FastifyInstance) {
           components: {
             server: true,
             redis: redisStatus,
-            ragEngine: ragEngineStatus,
+            ragEngine: ragEngineStatus
           },
-          memory: memoryInfo,
-        };
+          memory: memoryInfo
+        }
 
-        return reply.send(health);
+        return reply.send(health)
       } catch (error) {
-        fastify.log.error({ err: error }, 'Detailed health check failed');
+        fastify.log.error({ err: error }, 'Detailed health check failed')
         return reply.status(503).send({
           status: 'unhealthy',
           timestamp: new Date().toISOString(),
           error: 'Detailed health check failed',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        });
+          details: error instanceof Error ? error.message : 'Unknown error'
+        })
       }
     }
-  );
-
+  )
 }

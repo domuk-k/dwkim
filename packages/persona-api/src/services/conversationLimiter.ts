@@ -5,32 +5,32 @@
  * - 5회 이상: 연락처 제안 (shouldSuggestContact)
  * - 30회 이상: IP 차단 + 연락처 수집 기회
  */
-import type { IRedisClient } from '../infra/redis';
+import type { IRedisClient } from '../infra/redis'
 
 // 임계값 설정
 export const THRESHOLDS = {
-  SUGGEST_CONTACT: 5,      // 연락처 제안 시작
-  BLOCK_IP: 30,            // IP 차단 시작
-  BLOCK_DURATION_MS: 5 * 60 * 1000,  // 5분 차단
-} as const;
+  SUGGEST_CONTACT: 5, // 연락처 제안 시작
+  BLOCK_IP: 30, // IP 차단 시작
+  BLOCK_DURATION_MS: 5 * 60 * 1000 // 5분 차단
+} as const
 
 export interface ConversationStatus {
-  messageCount: number;
-  shouldSuggestContact: boolean;
-  shouldBlockIp: boolean;
-  isBlocked: boolean;
-  blockExpiresAt?: string;
-  blockMessage?: string;
+  messageCount: number
+  shouldSuggestContact: boolean
+  shouldBlockIp: boolean
+  isBlocked: boolean
+  blockExpiresAt?: string
+  blockMessage?: string
 }
 
-const BLOCK_KEY_PREFIX = 'block:';
+const BLOCK_KEY_PREFIX = 'block:'
 
 export class ConversationLimiter {
-  private redis: IRedisClient | null = null;
-  private memoryBlockList: Map<string, number> = new Map(); // IP -> unblock timestamp
+  private redis: IRedisClient | null = null
+  private memoryBlockList: Map<string, number> = new Map() // IP -> unblock timestamp
 
   constructor(redis?: IRedisClient | null) {
-    this.redis = redis || null;
+    this.redis = redis || null
   }
 
   /**
@@ -38,47 +38,47 @@ export class ConversationLimiter {
    */
   async isBlocked(clientIp: string): Promise<{ blocked: boolean; expiresAt?: string }> {
     if (this.redis) {
-      const ttl = await this.redis.ttl(`${BLOCK_KEY_PREFIX}${clientIp}`);
+      const ttl = await this.redis.ttl(`${BLOCK_KEY_PREFIX}${clientIp}`)
       if (ttl > 0) {
-        const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
-        return { blocked: true, expiresAt };
+        const expiresAt = new Date(Date.now() + ttl * 1000).toISOString()
+        return { blocked: true, expiresAt }
       }
-      return { blocked: false };
+      return { blocked: false }
     }
 
-    const unblockTime = this.memoryBlockList.get(clientIp);
+    const unblockTime = this.memoryBlockList.get(clientIp)
     if (unblockTime && Date.now() < unblockTime) {
       return {
         blocked: true,
-        expiresAt: new Date(unblockTime).toISOString(),
-      };
+        expiresAt: new Date(unblockTime).toISOString()
+      }
     }
 
     // 만료된 항목 정리
     if (unblockTime) {
-      this.memoryBlockList.delete(clientIp);
+      this.memoryBlockList.delete(clientIp)
     }
-    return { blocked: false };
+    return { blocked: false }
   }
 
   /**
    * IP 차단
    */
   async blockIp(clientIp: string, durationMs = THRESHOLDS.BLOCK_DURATION_MS): Promise<string> {
-    const expiresAt = new Date(Date.now() + durationMs);
+    const expiresAt = new Date(Date.now() + durationMs)
 
     if (this.redis) {
       await this.redis.setex(
         `${BLOCK_KEY_PREFIX}${clientIp}`,
         Math.ceil(durationMs / 1000),
         expiresAt.toISOString()
-      );
+      )
     } else {
-      this.memoryBlockList.set(clientIp, expiresAt.getTime());
+      this.memoryBlockList.set(clientIp, expiresAt.getTime())
     }
 
-    console.log(`🚫 IP blocked: ${clientIp} until ${expiresAt.toISOString()}`);
-    return expiresAt.toISOString();
+    console.log(`🚫 IP blocked: ${clientIp} until ${expiresAt.toISOString()}`)
+    return expiresAt.toISOString()
   }
 
   /**
@@ -86,35 +86,32 @@ export class ConversationLimiter {
    */
   async unblockIp(clientIp: string): Promise<void> {
     if (this.redis) {
-      await this.redis.del(`${BLOCK_KEY_PREFIX}${clientIp}`);
+      await this.redis.del(`${BLOCK_KEY_PREFIX}${clientIp}`)
     } else {
-      this.memoryBlockList.delete(clientIp);
+      this.memoryBlockList.delete(clientIp)
     }
   }
 
   /**
    * 대화 상태 평가
    */
-  async evaluateConversation(
-    clientIp: string,
-    messageCount: number
-  ): Promise<ConversationStatus> {
-    const blockStatus = await this.isBlocked(clientIp);
+  async evaluateConversation(clientIp: string, messageCount: number): Promise<ConversationStatus> {
+    const blockStatus = await this.isBlocked(clientIp)
 
     const status: ConversationStatus = {
       messageCount,
       shouldSuggestContact: messageCount >= THRESHOLDS.SUGGEST_CONTACT,
       shouldBlockIp: messageCount >= THRESHOLDS.BLOCK_IP,
       isBlocked: blockStatus.blocked,
-      blockExpiresAt: blockStatus.expiresAt,
-    };
+      blockExpiresAt: blockStatus.expiresAt
+    }
 
     // 30회 도달 시 차단 메시지 생성
     if (status.shouldBlockIp && !status.isBlocked) {
-      status.blockMessage = this.generateFriendlyBlockMessage();
+      status.blockMessage = this.generateFriendlyBlockMessage()
     }
 
-    return status;
+    return status
   }
 
   /**
@@ -131,7 +128,7 @@ dwkim이 직접 답변드리면 더 좋을 것 같아요:
 
 혹시 이메일 주소를 남겨주시면 제가 dwkim에게 전달해서 연락드릴게요!
 
-5분 후에 다시 대화할 수 있어요. 잠시만 기다려주세요! ☕`;
+5분 후에 다시 대화할 수 있어요. 잠시만 기다려주세요! ☕`
   }
 
   /**
@@ -142,21 +139,21 @@ dwkim이 직접 답변드리면 더 좋을 것 같아요:
 
 이메일 주소를 남겨주시겠어요? 24시간 내로 연락드릴게요! 😊
 
-(원하지 않으시면 그냥 질문을 계속하셔도 돼요)`;
+(원하지 않으시면 그냥 질문을 계속하셔도 돼요)`
   }
 }
 
 // 전역 인스턴스
-let conversationLimiter: ConversationLimiter | null = null;
+let conversationLimiter: ConversationLimiter | null = null
 
 export function initConversationLimiter(redis?: IRedisClient | null): ConversationLimiter {
-  conversationLimiter = new ConversationLimiter(redis);
-  return conversationLimiter;
+  conversationLimiter = new ConversationLimiter(redis)
+  return conversationLimiter
 }
 
 export function getConversationLimiter(): ConversationLimiter {
   if (!conversationLimiter) {
-    conversationLimiter = new ConversationLimiter();
+    conversationLimiter = new ConversationLimiter()
   }
-  return conversationLimiter;
+  return conversationLimiter
 }

@@ -5,27 +5,13 @@
  * 라우트는 입출력 처리와 에러 핸들링만 담당
  */
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { z } from 'zod';
-import {
-  createChatService,
-  ChatRequestSchema,
-  type ChatContext,
-} from '../services/chatService';
-import {
-  getConversationStore,
-} from '../services/conversationStore';
-import {
-  getConversationLimiter,
-} from '../services/conversationLimiter';
-import {
-  getContactService,
-} from '../services/contactService';
-import {
-  getDeviceService,
-} from '../services/deviceService';
-import { logInputBlocked, logHistoryRejected } from '../guardrails';
-
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { z } from 'zod'
+import { type ChatContext, ChatRequestSchema, createChatService } from '../services/chatService'
+import { getContactService } from '../services/contactService'
+import { getConversationLimiter } from '../services/conversationLimiter'
+import { getConversationStore } from '../services/conversationStore'
+import { getDeviceService } from '../services/deviceService'
 
 // Feature flag removed - now using LangGraph RAGEngine
 
@@ -41,11 +27,11 @@ const chatBodySchema = {
       type: 'string',
       description: '사용자 메시지',
       minLength: 1,
-      maxLength: 1000,
+      maxLength: 1000
     },
     sessionId: {
       type: 'string',
-      description: '세션 ID (서버사이드 히스토리용)',
+      description: '세션 ID (서버사이드 히스토리용)'
     },
     conversationHistory: {
       type: 'array',
@@ -54,9 +40,9 @@ const chatBodySchema = {
         type: 'object',
         properties: {
           role: { type: 'string', enum: ['user', 'assistant'] },
-          content: { type: 'string' },
-        },
-      },
+          content: { type: 'string' }
+        }
+      }
     },
     options: {
       type: 'object',
@@ -65,16 +51,16 @@ const chatBodySchema = {
           type: 'number',
           minimum: 1,
           maximum: 10,
-          default: 5,
+          default: 5
         },
         includeSources: {
           type: 'boolean',
-          default: true,
-        },
-      },
-    },
-  },
-};
+          default: true
+        }
+      }
+    }
+  }
+}
 
 const chatResponseSchema = {
   type: 'object',
@@ -92,22 +78,22 @@ const chatResponseSchema = {
           properties: {
             promptTokens: { type: 'number' },
             completionTokens: { type: 'number' },
-            totalTokens: { type: 'number' },
-          },
+            totalTokens: { type: 'number' }
+          }
         },
         metadata: {
           type: 'object',
           properties: {
             searchQuery: { type: 'string' },
             searchResults: { type: 'number' },
-            processingTime: { type: 'number' },
-          },
-        },
-      },
+            processingTime: { type: 'number' }
+          }
+        }
+      }
     },
-    error: { type: 'string' },
-  },
-};
+    error: { type: 'string' }
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Routes
@@ -115,23 +101,23 @@ const chatResponseSchema = {
 
 export default async function chatRoutes(fastify: FastifyInstance) {
   // ChatService 생성 (DI 패턴 - 싱글턴 없이 직접 인스턴스 관리)
-  const conversationStore = getConversationStore();
-  const conversationLimiter = getConversationLimiter();
-  const contactService = getContactService();
-  const deviceService = getDeviceService();
+  const conversationStore = getConversationStore()
+  const conversationLimiter = getConversationLimiter()
+  const contactService = getContactService()
+  const deviceService = getDeviceService()
 
   const chatService = await createChatService(
     conversationStore,
     conversationLimiter,
     contactService
-  );
+  )
 
   // Helper: context 추출 (Device ID 포함)
   const getContext = (request: FastifyRequest): ChatContext => ({
     clientIp: request.ip,
     userAgent: request.headers['user-agent'],
-    deviceId: request.headers['x-device-id'] as string | undefined,
-  });
+    deviceId: request.headers['x-device-id'] as string | undefined
+  })
 
   // ─────────────────────────────────────────────────────────────
   // POST /chat - 일반 채팅
@@ -143,69 +129,57 @@ export default async function chatRoutes(fastify: FastifyInstance) {
         description: '개인화된 RAG 기반 채팅 API',
         tags: ['Chat'],
         body: chatBodySchema,
-        response: { 200: chatResponseSchema },
-      },
+        response: { 200: chatResponseSchema }
+      }
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const context = getContext(request);
+      const context = getContext(request)
 
       try {
         // IP 차단 확인
-        const blocked = await chatService.checkBlocked(context.clientIp);
+        const blocked = await chatService.checkBlocked(context.clientIp)
         if (blocked) {
-          return reply.status(429).send(blocked);
+          return reply.status(429).send(blocked)
         }
 
         // 입력 검증
-        const validatedData = ChatRequestSchema.parse(request.body);
+        const validatedData = ChatRequestSchema.parse(request.body)
 
         // Device 활동 추적 (비동기, 실패해도 요청은 계속)
         if (context.deviceId && deviceService) {
           deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
             console.warn('Device tracking failed:', {
               deviceId: context.deviceId?.slice(0, 8),
-              error: error instanceof Error ? error.message : String(error),
-            });
-          });
+              error: error instanceof Error ? error.message : String(error)
+            })
+          })
         }
 
         // 채팅 처리
-        const response = await chatService.handleChat(validatedData, context);
-        return reply.send(response);
+        const response = await chatService.handleChat(validatedData, context)
+        return reply.send(response)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          // 보안 관련 에러인지 확인 (history validation 등)
-          const isSecurityError = error.errors.some(
-            (e) => e.message === 'Invalid content in conversation history'
-          );
-
-          if (isSecurityError) {
-            logHistoryRejected(
-              context.clientIp,
-              'unknown', // session not yet determined
-              'Suspicious content in conversation history'
-            );
-          } else {
-            logInputBlocked(context.clientIp, 'Zod validation failed', {
-              errors: error.errors.map((e) => e.message),
-            });
-          }
+          console.warn('Chat validation failed:', {
+            clientIp: context.clientIp,
+            errors: error.errors.map((e) => e.message)
+          })
 
           return reply.status(400).send({
             success: false,
             error: '입력 데이터 검증 실패',
-            details: error.errors,
-          });
+            details: error.errors
+          })
         }
 
-        console.error('Chat API error:', error);
+        console.error('Chat API error:', error)
         return reply.status(500).send({
           success: false,
-          error: '서버 내부 오류가 발생했습니다.',
-        });
+          error: '서버 내부 오류가 발생했습니다.'
+        })
       }
     }
-  );
+  )
 
   // ─────────────────────────────────────────────────────────────
   // POST /chat/stream - 스트리밍 채팅 (SSE)
@@ -216,103 +190,93 @@ export default async function chatRoutes(fastify: FastifyInstance) {
       schema: {
         description: '스트리밍 RAG 채팅 API (Server-Sent Events)',
         tags: ['Chat'],
-        body: chatBodySchema,
-      },
+        body: chatBodySchema
+      }
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const context = getContext(request);
+      const context = getContext(request)
 
       try {
         // IP 차단 확인 (스트리밍에서도 동일하게 적용)
-        const blocked = await chatService.checkBlocked(context.clientIp);
+        const blocked = await chatService.checkBlocked(context.clientIp)
         if (blocked) {
-          return reply.status(429).send(blocked);
+          return reply.status(429).send(blocked)
         }
 
-        const validatedData = ChatRequestSchema.parse(request.body);
+        const validatedData = ChatRequestSchema.parse(request.body)
 
         // Device 활동 추적 (비동기, 실패해도 스트리밍은 계속)
         if (context.deviceId && deviceService) {
           deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
             console.warn('Device tracking failed:', {
               deviceId: context.deviceId?.slice(0, 8),
-              error: error instanceof Error ? error.message : String(error),
-            });
-          });
+              error: error instanceof Error ? error.message : String(error)
+            })
+          })
         }
 
         // SSE 헤더 설정
         reply.raw.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-        });
+          Connection: 'keep-alive',
+          'Access-Control-Allow-Origin': '*'
+        })
 
         // 스트리밍 처리 (개별 이벤트 에러 핸들링)
         try {
           for await (const event of chatService.handleStreamChat(validatedData, context)) {
             if (!reply.raw.writableEnded) {
-              reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+              reply.raw.write(`data: ${JSON.stringify(event)}\n\n`)
             }
           }
         } catch (streamError) {
-          console.error('Stream iteration error:', streamError);
+          console.error('Stream iteration error:', streamError)
           // 스트림 중 에러 발생 시 에러 이벤트 전송
           if (!reply.raw.writableEnded) {
-            reply.raw.write(`data: ${JSON.stringify({
-              type: 'error',
-              error: '스트리밍 중 오류가 발생했습니다.'
-            })}\n\n`);
+            reply.raw.write(
+              `data: ${JSON.stringify({
+                type: 'error',
+                error: '스트리밍 중 오류가 발생했습니다.'
+              })}\n\n`
+            )
           }
         }
 
         if (!reply.raw.writableEnded) {
-          reply.raw.end();
+          reply.raw.end()
         }
       } catch (error) {
-        console.error('Stream chat error:', error);
+        console.error('Stream chat error:', error)
 
         if (error instanceof z.ZodError) {
-          // 보안 관련 에러인지 확인
-          const isSecurityError = error.errors.some(
-            (e) => e.message === 'Invalid content in conversation history'
-          );
-
-          if (isSecurityError) {
-            logHistoryRejected(
-              context.clientIp,
-              'unknown',
-              'Suspicious content in stream history'
-            );
-          } else {
-            logInputBlocked(context.clientIp, 'Stream validation failed', {
-              errors: error.errors.map((e) => e.message),
-            });
-          }
+          console.warn('Stream validation failed:', {
+            clientIp: context.clientIp,
+            errors: error.errors.map((e) => e.message)
+          })
 
           return reply.status(400).send({
             success: false,
-            error: '입력 데이터 검증 실패',
-          });
+            error: '입력 데이터 검증 실패'
+          })
         }
 
         // 헤더가 아직 전송되지 않은 경우
         if (!reply.raw.headersSent) {
           return reply.status(500).send({
             success: false,
-            error: '서버 오류가 발생했습니다.',
-          });
+            error: '서버 오류가 발생했습니다.'
+          })
         }
 
         // 헤더가 이미 전송된 경우 SSE 에러 이벤트
         if (!reply.raw.writableEnded) {
-          reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`);
-          reply.raw.end();
+          reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`)
+          reply.raw.end()
         }
       }
     }
-  );
+  )
 
   // ─────────────────────────────────────────────────────────────
   // GET /search - 문서 검색
@@ -330,41 +294,41 @@ export default async function chatRoutes(fastify: FastifyInstance) {
             q: {
               type: 'string',
               description: '검색 쿼리',
-              minLength: 1,
+              minLength: 1
             },
             limit: {
               type: 'number',
               description: '검색 결과 수',
               minimum: 1,
               maximum: 20,
-              default: 5,
-            },
-          },
-        },
-      },
+              default: 5
+            }
+          }
+        }
+      }
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const { q, limit = 5 } = request.query as { q: string; limit?: number };
-        const results = await chatService.searchDocuments(q, limit);
+        const { q, limit = 5 } = request.query as { q: string; limit?: number }
+        const results = await chatService.searchDocuments(q, limit)
 
         return reply.send({
           success: true,
           data: {
             query: q,
             results,
-            count: results.length,
-          },
-        });
+            count: results.length
+          }
+        })
       } catch (error) {
-        console.error('Search API error:', error);
+        console.error('Search API error:', error)
         return reply.status(500).send({
           success: false,
-          error: '검색 중 오류가 발생했습니다.',
-        });
+          error: '검색 중 오류가 발생했습니다.'
+        })
       }
     }
-  );
+  )
 
   // ─────────────────────────────────────────────────────────────
   // GET /status - 엔진 상태
@@ -374,29 +338,29 @@ export default async function chatRoutes(fastify: FastifyInstance) {
     {
       schema: {
         description: 'RAG 엔진 상태 확인',
-        tags: ['System'],
-      },
+        tags: ['System']
+      }
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const status = await chatService.getEngineStatus();
+        const status = await chatService.getEngineStatus()
 
         return reply.send({
           success: status.status === 'ready',
           data: {
             ...status,
-            timestamp: new Date().toISOString(),
-          },
-        });
+            timestamp: new Date().toISOString()
+          }
+        })
       } catch (error) {
-        console.error('Status check error:', error);
+        console.error('Status check error:', error)
         return reply.status(500).send({
           success: false,
-          error: '상태 확인 중 오류가 발생했습니다.',
-        });
+          error: '상태 확인 중 오류가 발생했습니다.'
+        })
       }
     }
-  );
+  )
 
   // ─────────────────────────────────────────────────────────────
   // POST /contact - 연락처 수집
@@ -414,72 +378,68 @@ export default async function chatRoutes(fastify: FastifyInstance) {
             email: {
               type: 'string',
               format: 'email',
-              description: '이메일 주소',
+              description: '이메일 주소'
             },
             name: {
               type: 'string',
-              description: '이름 (선택)',
+              description: '이름 (선택)'
             },
             message: {
               type: 'string',
-              description: '전달할 메시지 (선택)',
+              description: '전달할 메시지 (선택)'
             },
             sessionId: {
               type: 'string',
-              description: '세션 ID',
-            },
-          },
+              description: '세션 ID'
+            }
+          }
         },
         response: {
           200: {
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              message: { type: 'string' },
-            },
-          },
-        },
-      },
+              message: { type: 'string' }
+            }
+          }
+        }
+      }
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const context = getContext(request);
+      const context = getContext(request)
 
       try {
         const body = request.body as {
-          email: string;
-          name?: string;
-          message?: string;
-          sessionId?: string;
-        };
+          email: string
+          name?: string
+          message?: string
+          sessionId?: string
+        }
 
-        const result = await chatService.collectContact(
-          body.email,
-          context,
-          {
-            name: body.name,
-            message: body.message,
-            sessionId: body.sessionId,
-          }
-        );
+        const result = await chatService.collectContact(body.email, context, {
+          name: body.name,
+          message: body.message,
+          sessionId: body.sessionId
+        })
 
         // Device-Email 연결 (비동기, 실패해도 응답은 계속)
         if (context.deviceId && deviceService) {
           deviceService.linkEmail(context.deviceId, body.email).catch((error) => {
             console.warn('Device-email linking failed:', {
               deviceId: context.deviceId?.slice(0, 8),
-              error: error instanceof Error ? error.message : String(error),
-            });
-          });
+              error: error instanceof Error ? error.message : String(error)
+            })
+          })
         }
 
-        return reply.send(result);
+        return reply.send(result)
       } catch (error) {
-        console.error('Contact collection error:', error);
+        console.error('Contact collection error:', error)
         return reply.status(500).send({
           success: false,
-          error: '연락처 저장 중 오류가 발생했습니다.',
-        });
+          error: '연락처 저장 중 오류가 발생했습니다.'
+        })
       }
     }
-  );
+  )
 }

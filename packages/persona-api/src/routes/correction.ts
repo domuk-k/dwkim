@@ -1,12 +1,12 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { saveCorrection, getCorrections } from '../services/correctionService';
-import { detectLanguage, HITL_MESSAGES } from '../utils/languageDetector';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { getCorrections, saveCorrection } from '../services/correctionService'
+import { detectLanguage, HITL_MESSAGES } from '../utils/languageDetector'
 
 interface CorrectionBody {
-  originalQuery: string;
-  originalResponse: string;
-  correctionMessage: string;
-  sessionId?: string;
+  originalQuery: string
+  originalResponse: string
+  correctionMessage: string
+  sessionId?: string
 }
 
 /**
@@ -28,62 +28,62 @@ export default async function correctionRoutes(fastify: FastifyInstance) {
           properties: {
             originalQuery: {
               type: 'string',
-              description: 'The original user query',
+              description: 'The original user query'
             },
             originalResponse: {
               type: 'string',
-              description: 'The agent response that was wrong',
+              description: 'The agent response that was wrong'
             },
             correctionMessage: {
               type: 'string',
-              description: 'User message explaining the correction',
+              description: 'User message explaining the correction'
             },
             sessionId: {
               type: 'string',
-              description: 'Session ID',
-            },
+              description: 'Session ID'
+            }
           },
-          required: ['originalQuery', 'originalResponse', 'correctionMessage'],
+          required: ['originalQuery', 'originalResponse', 'correctionMessage']
         },
         response: {
           200: {
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              message: { type: 'string' },
-            },
-          },
-        },
-      },
+              message: { type: 'string' }
+            }
+          }
+        }
+      }
     },
     async (request: FastifyRequest<{ Body: CorrectionBody }>, reply: FastifyReply) => {
       try {
-        const { originalQuery, originalResponse, correctionMessage, sessionId } = request.body;
+        const { originalQuery, originalResponse, correctionMessage, sessionId } = request.body
 
         await saveCorrection({
           originalQuery,
           originalResponse,
           correctionMessage,
-          sessionId,
-        });
+          sessionId
+        })
 
         // 사용자 언어에 맞는 응답 메시지
-        const lang = detectLanguage(originalQuery);
-        const messages = HITL_MESSAGES[lang];
+        const lang = detectLanguage(originalQuery)
+        const messages = HITL_MESSAGES[lang]
 
         return reply.send({
           success: true,
-          message: messages.correctionThanks,
-        });
+          message: messages.correctionThanks
+        })
       } catch (error) {
-        fastify.log.error({ err: error }, 'Correction submission failed');
+        fastify.log.error({ err: error }, 'Correction submission failed')
         return reply.status(500).send({
           success: false,
-          message: 'Failed to save correction',
-        });
+          message: 'Failed to save correction'
+        })
       }
     }
-  );
+  )
 
   // GET /api/v1/correction - 수정 피드백 목록 (관리자용)
   fastify.get(
@@ -96,36 +96,36 @@ export default async function correctionRoutes(fastify: FastifyInstance) {
         querystring: {
           type: 'object',
           properties: {
-            limit: { type: 'integer', default: 20 },
-          },
+            limit: { type: 'integer', default: 20 }
+          }
         },
         response: {
           200: {
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              data: { type: 'array' },
-            },
-          },
-        },
-      },
+              data: { type: 'array' }
+            }
+          }
+        }
+      }
     },
     async (request: FastifyRequest<{ Querystring: { limit?: number } }>, reply: FastifyReply) => {
       try {
-        const limit = request.query.limit || 20;
-        const corrections = await getCorrections(limit);
+        const limit = request.query.limit || 20
+        const corrections = await getCorrections(limit)
 
         return reply.send({
           success: true,
-          data: corrections,
-        });
+          data: corrections
+        })
       } catch (error) {
-        fastify.log.error({ err: error }, 'Correction list fetch failed');
+        fastify.log.error({ err: error }, 'Correction list fetch failed')
         return reply.status(500).send({
           success: false,
-          message: 'Failed to fetch corrections',
-        });
+          message: 'Failed to fetch corrections'
+        })
       }
     }
-  );
+  )
 }
