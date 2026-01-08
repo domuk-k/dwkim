@@ -7,7 +7,8 @@
  * @see https://arxiv.org/pdf/2502.21239 (Semantic Volume for uncertainty quantification)
  */
 
-import { type ChatMessage, LLMService } from './llmService'
+import { utilityLLM } from './llmInstances'
+import type { ChatMessage } from './llmService'
 import { OpenAIEmbeddings } from './openaiEmbeddings'
 
 export interface SEUResult {
@@ -64,13 +65,11 @@ function cosineSimilarity(a: number[], b: number[]): number {
  * SEU Service - Semantic Embedding Uncertainty estimation
  */
 export class SEUService {
-  private llmService: LLMService
+  // utilityLLM은 llmInstances에서 공유 인스턴스 사용
   private embeddings: OpenAIEmbeddings
   private numSamples: number
 
   constructor(numSamples = 2) {
-    // SEU 측정은 내부 처리용이므로 utility 모델 사용
-    this.llmService = new LLMService({ purpose: 'utility' })
     this.embeddings = new OpenAIEmbeddings()
     this.numSamples = numSamples
   }
@@ -156,7 +155,7 @@ export class SEUService {
     // 병렬로 응답 생성
     const promises = prompts.slice(0, this.numSamples).map((promptVariant) => {
       const messages: ChatMessage[] = [{ role: 'user', content: promptVariant }]
-      return this.llmService.chat(messages, `${QUICK_RESPONSE_SYSTEM}\n\n${context}`)
+      return utilityLLM.chat(messages, `${QUICK_RESPONSE_SYSTEM}\n\n${context}`)
     })
 
     const results = await Promise.allSettled(promises)

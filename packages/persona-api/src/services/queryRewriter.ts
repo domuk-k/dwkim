@@ -14,8 +14,8 @@ import {
   getLanguageInstruction,
   type SupportedLanguage
 } from '../utils/languageDetector'
+import { utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
-import { LLMService } from './llmService'
 
 export interface RewriteResult {
   original: string
@@ -169,12 +169,7 @@ Follow-up questions:`
 }
 
 export class QueryRewriter {
-  private llmService: LLMService
-
-  constructor() {
-    // 쿼리 재작성/질문 생성은 내부 처리용이므로 utility 모델 사용
-    this.llmService = new LLMService({ purpose: 'utility' })
-  }
+  // utilityLLM은 llmInstances에서 공유 인스턴스 사용
 
   /**
    * 모호한 쿼리인지 확인 (길이 기반만)
@@ -212,7 +207,7 @@ export class QueryRewriter {
         : getSuggestionPromptNoContext(lang).replace('{query}', query)
 
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }]
-      const response = await this.llmService.chat(messages, '')
+      const response = await utilityLLM.chat(messages, '')
 
       const parsed = parseJsonStringArray(response.content.trim())
       return parsed ?? FALLBACK_SUGGESTIONS[lang]
@@ -312,7 +307,7 @@ export class QueryRewriter {
         .replace('{query}', query)
 
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }]
-      const response = await this.llmService.chat(messages, '')
+      const response = await utilityLLM.chat(messages, '')
 
       return parseJsonStringArray(response.content.trim()) ?? []
     } catch (error) {
