@@ -9,18 +9,21 @@
  * @see https://github.com/langchain-ai/langgraph/blob/main/docs/docs/how-tos/streaming.md
  */
 
-import type { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { END, START, StateGraph } from '@langchain/langgraph'
-import { z } from 'zod'
+import {
+  Annotation,
+  END,
+  type LangGraphRunnableConfig,
+  START,
+  StateGraph
+} from '@langchain/langgraph'
 import { env } from '../config/env'
 import { initBM25Engine } from './bm25Engine'
-import { type ChatMessage, LLMService } from './llmService'
-import { getQueryRewriter } from './queryRewriter'
-import { getSEUService, type SEUResult } from './seuService'
+import { generationLLM, utilityLLM } from './llmInstances'
+import type { ChatMessage } from './llmService'
 import { type Document, getVectorStore, initVectorStore } from './vectorStore'
 
 // ─────────────────────────────────────────────────────────────
-// Types (ragEngine.ts에서 유지)
+// Types
 // ─────────────────────────────────────────────────────────────
 
 export interface RAGResponse {
@@ -38,15 +41,21 @@ export interface RAGResponse {
   }
 }
 
+export interface SEUResult {
+  uncertainty: number
+  avgSimilarity: number
+  responses: string[]
+  isUncertain: boolean
+  shouldEscalate: boolean
+}
+
 type RAGStreamMetadata = RAGResponse['metadata'] & {
   shouldSuggestContact?: boolean
   messageCount?: number
   originalQuery?: string
   rewriteMethod?: string
   seuResult?: SEUResult
-  /** LangGraph 노드 실행 횟수 */
   nodeExecutions?: number
-  /** LLM 토큰 사용량 */
   totalTokens?: number
 }
 
@@ -57,7 +66,7 @@ export interface ProgressItem {
   detail?: string
 }
 
-// Discriminated Union
+// Discriminated Union for SSE Events
 interface RAGSourcesEvent {
   type: 'sources'
   sources: Document[]
@@ -103,91 +112,94 @@ export type RAGStreamEvent =
   | RAGProgressEvent
 
 // ─────────────────────────────────────────────────────────────
-// State Schema (Zod)
+// State Schema (LangGraph Annotation Pattern)
 // ─────────────────────────────────────────────────────────────
 
-const SourceSchema = z.object({
-  content: z.string(),
-  metadata: z.record(z.unknown()),
-  score: z.number().optional()
-})
-
-const PersonaStateSchema = z.object({
+const PersonaStateAnnotation = Annotation.Root({
   // Input
-  query: z.string(),
-  conversationHistory: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant', 'system']),
-        content: z.string()
-      })
-    )
-    .default([]),
+  query: Annotation<string>,
+  conversationHistory: Annotation<ChatMessage[]>({
+    reducer: (_, b) => b, // 덮어쓰기
+    default: () => []
+  }),
 
   // Query Processing
-  rewrittenQuery: z.string().optional(),
-  rewriteMethod: z.enum(['rule', 'llm', 'none']).optional(),
-  needsClarification: z.boolean().default(false),
+  rewrittenQuery: Annotation<string | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined
+  }),
+  rewriteMethod: Annotation<'rule' | 'llm' | 'none' | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined
+  }),
+  needsClarification: Annotation<boolean>({
+    reducer: (_, b) => b,
+    default: () => false
+  }),
 
   // Search Results
-  sources: z.array(SourceSchema).default([]),
-  context: z.string().default(''),
+  sources: Annotation<Document[]>({
+    reducer: (_, b) => b,
+    default: () => []
+  }),
+  context: Annotation<string>({
+    reducer: (_, b) => b,
+    default: () => ''
+  }),
 
   // SEU Analysis
-  seuResult: z
-    .object({
-      uncertainty: z.number(),
-      avgSimilarity: z.number(),
-      responses: z.array(z.string()),
-      isUncertain: z.boolean(),
-      shouldEscalate: z.boolean()
-    })
-    .optional(),
+  seuResult: Annotation<SEUResult | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined
+  }),
 
   // Output
-  answer: z.string().default(''),
-  clarificationQuestions: z.array(z.string()).optional(),
-  followupQuestions: z.array(z.string()).optional(),
+  answer: Annotation<string>({
+    reducer: (_, b) => b,
+    default: () => ''
+  }),
+  clarificationQuestions: Annotation<string[] | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined
+  }),
+  followupQuestions: Annotation<string[] | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined
+  }),
 
   // Metrics
-  metrics: z
-    .object({
-      nodeExecutions: z.number().default(0),
-      totalTokens: z.number().default(0),
-      startTime: z.number().default(0)
-    })
-    .default({ nodeExecutions: 0, totalTokens: 0, startTime: 0 }),
+  metrics: Annotation<{
+    nodeExecutions: number
+    totalTokens: number
+    startTime: number
+  }>({
+    reducer: (_, b) => b,
+    default: () => ({ nodeExecutions: 0, totalTokens: 0, startTime: 0 })
+  }),
 
   // Progress
-  progress: z
-    .array(
-      z.object({
-        id: z.string(),
-        label: z.string(),
-        status: z.enum(['pending', 'in_progress', 'completed', 'skipped']),
-        detail: z.string().optional()
-      })
-    )
-    .default([])
+  progress: Annotation<ProgressItem[]>({
+    reducer: (_, b) => b,
+    default: () => []
+  })
 })
 
-type PersonaState = z.infer<typeof PersonaStateSchema>
+type PersonaState = typeof PersonaStateAnnotation.State
 
 // ─────────────────────────────────────────────────────────────
-// Shared Resources
+// Shared LLM Instances (Exported for DI)
 // ─────────────────────────────────────────────────────────────
 
 const ENABLE_SEU = env.ENABLE_SEU === 'true'
 
-/**
- * 용도별 LLM 인스턴스
- * - generationLLM: 사용자 대면 응답 (고품질 모델)
- * - utilityLLM: 내부 처리 - 질문 생성 등 (가성비 모델)
- */
-const generationLLM = new LLMService({ purpose: 'generation' })
-const utilityLLM = new LLMService({ purpose: 'utility' })
+// LLM 인스턴스는 llmInstances.ts에서 import (순환 의존성 방지)
+// 하위 호환성을 위해 re-export
+export { generationLLM, utilityLLM }
 
-// Progress 헬퍼
+// ─────────────────────────────────────────────────────────────
+// Progress Helpers
+// ─────────────────────────────────────────────────────────────
+
 function updateProgress(
   progress: ProgressItem[],
   id: string,
@@ -207,7 +219,33 @@ function initProgress(): ProgressItem[] {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Nodes (Pure Functions + config.writer)
+// Context Builder
+// ─────────────────────────────────────────────────────────────
+
+export function buildContext(documents: Document[], query: string): string {
+  if (documents.length === 0) {
+    return '관련된 문서를 찾을 수 없습니다. 일반적인 지식으로 답변하겠습니다.'
+  }
+
+  let context = `사용자 질문: ${query}\n\n관련 문서들:\n`
+  let totalLength = context.length
+
+  for (const doc of documents) {
+    const docContext = `[${doc.metadata.type}] ${doc.metadata.title || '제목 없음'}\n${doc.content}\n\n`
+
+    if (totalLength + docContext.length > env.CONTEXT_WINDOW) {
+      break
+    }
+
+    context += docContext
+    totalLength += docContext.length
+  }
+
+  return context.trim()
+}
+
+// ─────────────────────────────────────────────────────────────
+// Nodes (Pure Functions + Error Resilience)
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -225,35 +263,54 @@ async function rewriteNode(
   )
   config.writer?.({ type: 'progress', items: progress })
 
-  const queryRewriter = getQueryRewriter()
-  const result = queryRewriter.rewrite(state.query, state.conversationHistory as ChatMessage[])
+  try {
+    // Dynamic import to avoid circular dependency
+    const { getQueryRewriter } = await import('./queryRewriter')
+    const queryRewriter = getQueryRewriter()
+    const result = queryRewriter.rewrite(state.query, state.conversationHistory)
 
-  if (result.method !== 'none') {
-    console.log(
-      `[rewriteNode] "${state.query}" → "${result.rewritten}" [${result.changes.join(', ')}]`
-    )
-    config.writer?.({
-      type: 'progress',
-      items: updateProgress(
-        progress,
-        'rewrite',
-        'in_progress',
-        `"${state.query}" → "${result.rewritten}"`
+    if (result.method !== 'none') {
+      console.log(
+        `[rewriteNode] "${state.query}" → "${result.rewritten}" [${result.changes.join(', ')}]`
       )
-    })
-  }
+      config.writer?.({
+        type: 'progress',
+        items: updateProgress(
+          progress,
+          'rewrite',
+          'in_progress',
+          `"${state.query}" → "${result.rewritten}"`
+        )
+      })
+    }
 
-  const completedProgress = updateProgress(progress, 'rewrite', 'completed')
-  config.writer?.({ type: 'progress', items: completedProgress })
+    const completedProgress = updateProgress(progress, 'rewrite', 'completed')
+    config.writer?.({ type: 'progress', items: completedProgress })
 
-  return {
-    rewrittenQuery: result.rewritten,
-    rewriteMethod: result.method as 'rule' | 'llm' | 'none',
-    needsClarification: result.needsClarification ?? false,
-    progress: completedProgress,
-    metrics: {
-      ...state.metrics,
-      nodeExecutions: state.metrics.nodeExecutions + 1
+    return {
+      rewrittenQuery: result.rewritten,
+      rewriteMethod: result.method as 'rule' | 'llm' | 'none',
+      needsClarification: result.needsClarification ?? false,
+      progress: completedProgress,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
+    }
+  } catch (error) {
+    console.error('[rewriteNode] Error:', error)
+    const skippedProgress = updateProgress(progress, 'rewrite', 'skipped', '쿼리 분석 실패')
+    config.writer?.({ type: 'progress', items: skippedProgress })
+
+    return {
+      rewrittenQuery: state.query, // 원본 쿼리 사용
+      rewriteMethod: 'none',
+      needsClarification: false,
+      progress: skippedProgress,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
     }
   }
 }
@@ -273,36 +330,52 @@ async function searchNode(
   )
   config.writer?.({ type: 'progress', items: progress })
 
-  const searchQuery = state.rewrittenQuery || state.query
-  const vectorStore = getVectorStore()
-  const sources = await vectorStore.searchHybrid(searchQuery, env.MAX_SEARCH_RESULTS)
+  try {
+    const searchQuery = state.rewrittenQuery || state.query
+    const vectorStore = getVectorStore()
+    const sources = await vectorStore.searchHybrid(searchQuery, env.MAX_SEARCH_RESULTS)
 
-  const completedProgress = updateProgress(
-    progress,
-    'search',
-    'completed',
-    `${sources.length}건 발견`
-  )
-  config.writer?.({ type: 'progress', items: completedProgress })
+    const completedProgress = updateProgress(
+      progress,
+      'search',
+      'completed',
+      `${sources.length}건 발견`
+    )
+    config.writer?.({ type: 'progress', items: completedProgress })
 
-  // Sources 이벤트 즉시 전송
-  config.writer?.({ type: 'sources', sources: sources as Document[] })
+    // Sources 이벤트 즉시 전송
+    config.writer?.({ type: 'sources', sources: sources as Document[] })
 
-  // Context 생성
-  const contextProgress = updateProgress(completedProgress, 'context', 'in_progress')
-  config.writer?.({ type: 'progress', items: contextProgress })
+    // Context 생성
+    const contextProgress = updateProgress(completedProgress, 'context', 'in_progress')
+    config.writer?.({ type: 'progress', items: contextProgress })
 
-  const context = buildContext(sources as Document[], state.query)
-  const contextCompleted = updateProgress(contextProgress, 'context', 'completed')
-  config.writer?.({ type: 'progress', items: contextCompleted })
+    const context = buildContext(sources as Document[], state.query)
+    const contextCompleted = updateProgress(contextProgress, 'context', 'completed')
+    config.writer?.({ type: 'progress', items: contextCompleted })
 
-  return {
-    sources: sources as Document[],
-    context,
-    progress: contextCompleted,
-    metrics: {
-      ...state.metrics,
-      nodeExecutions: state.metrics.nodeExecutions + 1
+    return {
+      sources: sources as Document[],
+      context,
+      progress: contextCompleted,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
+    }
+  } catch (error) {
+    console.error('[searchNode] Error:', error)
+    const skippedProgress = updateProgress(progress, 'search', 'skipped', '검색 실패')
+    config.writer?.({ type: 'progress', items: skippedProgress })
+
+    return {
+      sources: [],
+      context: '검색 중 오류가 발생했습니다. 일반적인 지식으로 답변하겠습니다.',
+      progress: skippedProgress,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
     }
   }
 }
@@ -316,19 +389,24 @@ async function analyzeNode(
 ): Promise<Partial<PersonaState>> {
   let seuResult: SEUResult | undefined
 
-  // SEU 측정 (텍스트 기반으로 모호하지 않을 때만)
-  if (ENABLE_SEU && !state.needsClarification) {
-    const progress = updateProgress(
-      state.progress,
-      'context',
-      'in_progress',
-      '의미적 모호성 측정 (SEU)'
-    )
-    config.writer?.({ type: 'progress', items: progress })
+  try {
+    // SEU 측정 (텍스트 기반으로 모호하지 않을 때만)
+    if (ENABLE_SEU && !state.needsClarification) {
+      const progress = updateProgress(
+        state.progress,
+        'context',
+        'in_progress',
+        '의미적 모호성 측정 (SEU)'
+      )
+      config.writer?.({ type: 'progress', items: progress })
 
-    console.log('[analyzeNode] Running SEU uncertainty measurement...')
-    const seuService = getSEUService()
-    seuResult = await seuService.measureUncertainty(state.query, state.context)
+      console.log('[analyzeNode] Running SEU uncertainty measurement...')
+      const { getSEUService } = await import('./seuService')
+      const seuService = getSEUService()
+      seuResult = await seuService.measureUncertainty(state.query, state.context)
+    }
+  } catch (error) {
+    console.warn('[analyzeNode] SEU measurement failed, skipping:', error)
   }
 
   // 최종 모호함 판단
@@ -351,38 +429,50 @@ async function clarifyNode(
   state: PersonaState,
   config: LangGraphRunnableConfig
 ): Promise<Partial<PersonaState>> {
-  const reason = state.needsClarification && !state.seuResult?.isUncertain ? 'text-based' : 'SEU'
-  console.log(`[clarifyNode] Ambiguous query detected (${reason}), query="${state.query}"`)
+  try {
+    const reason = state.needsClarification && !state.seuResult?.isUncertain ? 'text-based' : 'SEU'
+    console.log(`[clarifyNode] Ambiguous query detected (${reason}), query="${state.query}"`)
 
-  const progress = updateProgress(state.progress, 'context', 'in_progress', '추천 질문 생성 중')
-  config.writer?.({ type: 'progress', items: progress })
+    const progress = updateProgress(state.progress, 'context', 'in_progress', '추천 질문 생성 중')
+    config.writer?.({ type: 'progress', items: progress })
 
-  const queryRewriter = getQueryRewriter()
-  const suggestions = await queryRewriter.generateSuggestedQuestions(state.query, state.context)
+    const { getQueryRewriter } = await import('./queryRewriter')
+    const queryRewriter = getQueryRewriter()
+    const suggestions = await queryRewriter.generateSuggestedQuestions(state.query, state.context)
 
-  console.log(`[clarifyNode] Generated suggestions: ${JSON.stringify(suggestions)}`)
-  config.writer?.({
-    type: 'clarification',
-    suggestedQuestions: suggestions
-  })
-
-  // Escalation 체크 (SEU가 매우 높을 때)
-  if (state.seuResult?.shouldEscalate) {
-    console.log(
-      `[clarifyNode] High uncertainty (${state.seuResult.uncertainty}), emitting escalation`
-    )
+    console.log(`[clarifyNode] Generated suggestions: ${JSON.stringify(suggestions)}`)
     config.writer?.({
-      type: 'escalation',
-      reason: '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.',
-      uncertainty: state.seuResult.uncertainty
+      type: 'clarification',
+      suggestedQuestions: suggestions
     })
-  }
 
-  return {
-    clarificationQuestions: suggestions,
-    metrics: {
-      ...state.metrics,
-      nodeExecutions: state.metrics.nodeExecutions + 1
+    // Escalation 체크 (SEU가 매우 높을 때)
+    if (state.seuResult?.shouldEscalate) {
+      console.log(
+        `[clarifyNode] High uncertainty (${state.seuResult.uncertainty}), emitting escalation`
+      )
+      config.writer?.({
+        type: 'escalation',
+        reason: '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.',
+        uncertainty: state.seuResult.uncertainty
+      })
+    }
+
+    return {
+      clarificationQuestions: suggestions,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
+    }
+  } catch (error) {
+    console.warn('[clarifyNode] Failed to generate clarification questions:', error)
+    return {
+      clarificationQuestions: [],
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
     }
   }
 }
@@ -397,35 +487,53 @@ async function generateNode(
   const progress = updateProgress(state.progress, 'generate', 'in_progress', 'LLM 스트리밍')
   config.writer?.({ type: 'progress', items: progress })
 
-  const messages: ChatMessage[] = [
-    ...(state.conversationHistory as ChatMessage[]),
-    { role: 'user', content: state.query }
-  ]
+  try {
+    const messages: ChatMessage[] = [
+      ...state.conversationHistory,
+      { role: 'user', content: state.query }
+    ]
 
-  let fullAnswer = ''
-  let tokenCount = 0
+    let fullAnswer = ''
+    let tokenCount = 0
 
-  for await (const chunk of generationLLM.chatStream(messages, state.context)) {
-    if (chunk.type === 'content' && chunk.content) {
-      fullAnswer += chunk.content
-      tokenCount += 1 // 추정 (실제 토큰 수는 LLM 응답에서 가져와야 함)
-      config.writer?.({ type: 'content', content: chunk.content })
-    } else if (chunk.type === 'error' && chunk.error) {
-      config.writer?.({ type: 'error', error: chunk.error })
-      return { answer: '', metrics: state.metrics }
+    for await (const chunk of generationLLM.chatStream(messages, state.context)) {
+      if (chunk.type === 'content' && chunk.content) {
+        fullAnswer += chunk.content
+        tokenCount += 1
+        config.writer?.({ type: 'content', content: chunk.content })
+      } else if (chunk.type === 'error' && chunk.error) {
+        config.writer?.({ type: 'error', error: chunk.error })
+        return {
+          answer: '',
+          progress: updateProgress(progress, 'generate', 'skipped', 'LLM 오류'),
+          metrics: state.metrics
+        }
+      }
     }
-  }
 
-  const completedProgress = updateProgress(progress, 'generate', 'completed')
-  config.writer?.({ type: 'progress', items: completedProgress })
+    const completedProgress = updateProgress(progress, 'generate', 'completed')
+    config.writer?.({ type: 'progress', items: completedProgress })
 
-  return {
-    answer: fullAnswer,
-    progress: completedProgress,
-    metrics: {
-      ...state.metrics,
-      nodeExecutions: state.metrics.nodeExecutions + 1,
-      totalTokens: state.metrics.totalTokens + tokenCount
+    return {
+      answer: fullAnswer,
+      progress: completedProgress,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1,
+        totalTokens: state.metrics.totalTokens + tokenCount
+      }
+    }
+  } catch (error) {
+    console.error('[generateNode] Error:', error)
+    config.writer?.({ type: 'error', error: 'LLM 응답 생성 중 오류가 발생했습니다.' })
+
+    return {
+      answer: '',
+      progress: updateProgress(progress, 'generate', 'skipped', 'LLM 오류'),
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
     }
   }
 }
@@ -438,6 +546,7 @@ async function followupNode(
   config: LangGraphRunnableConfig
 ): Promise<Partial<PersonaState>> {
   try {
+    const { getQueryRewriter } = await import('./queryRewriter')
     const queryRewriter = getQueryRewriter()
     const followupQuestions = await queryRewriter.generateFollowupQuestions(
       state.query,
@@ -464,6 +573,7 @@ async function followupNode(
   } catch (error) {
     console.warn('[followupNode] Followup question generation failed:', error)
     return {
+      followupQuestions: [],
       metrics: {
         ...state.metrics,
         nodeExecutions: state.metrics.nodeExecutions + 1
@@ -504,37 +614,11 @@ async function doneNode(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Context Builder (exported for testing)
-// ─────────────────────────────────────────────────────────────
-
-export function buildContext(documents: Document[], query: string): string {
-  if (documents.length === 0) {
-    return '관련된 문서를 찾을 수 없습니다. 일반적인 지식으로 답변하겠습니다.'
-  }
-
-  let context = `사용자 질문: ${query}\n\n관련 문서들:\n`
-  let totalLength = context.length
-
-  for (const doc of documents) {
-    const docContext = `[${doc.metadata.type}] ${doc.metadata.title || '제목 없음'}\n${doc.content}\n\n`
-
-    if (totalLength + docContext.length > env.CONTEXT_WINDOW) {
-      break
-    }
-
-    context += docContext
-    totalLength += docContext.length
-  }
-
-  return context.trim()
-}
-
-// ─────────────────────────────────────────────────────────────
 // Graph Definition
 // ─────────────────────────────────────────────────────────────
 
 function createPersonaGraph() {
-  const graph = new StateGraph(PersonaStateSchema as any)
+  const graph = new StateGraph(PersonaStateAnnotation)
     .addNode('rewrite', rewriteNode)
     .addNode('search', searchNode)
     .addNode('analyze', analyzeNode)
@@ -550,8 +634,7 @@ function createPersonaGraph() {
 
     // 조건부 분기: analyze 후 clarify 또는 generate
     .addConditionalEdges('analyze', (state) => {
-      const s = state as PersonaState
-      return s.needsClarification ? 'clarify' : 'generate'
+      return state.needsClarification ? 'clarify' : 'generate'
     })
 
     // clarify 후에도 generate 실행 (clarification 제공 후 답변)
@@ -559,22 +642,18 @@ function createPersonaGraph() {
 
     // generate 후 followup 생성 (clarification이 없을 때만)
     .addConditionalEdges('generate', (state) => {
-      const s = state as PersonaState
-      return s.needsClarification ? 'done' : 'followup'
+      return state.needsClarification ? 'done' : 'followup'
     })
 
     // followup → done → END
     .addEdge('followup', 'done')
     .addEdge('done', END)
 
-  return graph.compile({
-    // Production: 무한 루프 방지
-    // recursionLimit: 10, // LangGraph v1에서 지원 확인 필요
-  })
+  return graph.compile()
 }
 
 // ─────────────────────────────────────────────────────────────
-// RAGEngine (Class) - 기존 인터페이스 유지
+// PersonaEngine Class - 기존 인터페이스 유지
 // ─────────────────────────────────────────────────────────────
 
 export class PersonaEngine {
@@ -614,7 +693,7 @@ export class PersonaEngine {
 
     const input: PersonaState = {
       query,
-      conversationHistory: conversationHistory as PersonaState['conversationHistory'],
+      conversationHistory,
       progress: initProgress(),
       metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
       sources: [],
@@ -632,7 +711,7 @@ export class PersonaEngine {
 
     return {
       answer: result.answer || '',
-      sources: result.sources as Document[],
+      sources: result.sources,
       usage: {
         promptTokens: 0,
         completionTokens: 0,
@@ -659,7 +738,7 @@ export class PersonaEngine {
 
     const input: PersonaState = {
       query,
-      conversationHistory: conversationHistory as PersonaState['conversationHistory'],
+      conversationHistory,
       progress: initProgress(),
       metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
       sources: [],
@@ -677,7 +756,6 @@ export class PersonaEngine {
 
     try {
       // streamMode: "custom" - config.writer 이벤트 수신
-      // doneNode가 'done' 이벤트를 emit하므로 별도 처리 불필요
       for await (const event of await this.graph.stream(input, {
         streamMode: 'custom'
       })) {
