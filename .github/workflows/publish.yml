@@ -48,7 +48,9 @@ jobs:
         run: |
           rm -rf node_modules
           rm -rf packages/*/node_modules
-          cd packages/dwkim && npm install --ignore-scripts --install-links=false --workspaces=false
+          # Remove workspaces from root package.json to prevent npm workspace resolution
+          jq 'del(.workspaces)' package.json > package.json.tmp && mv package.json.tmp package.json
+          cd packages/dwkim && npm install --ignore-scripts
 
       - name: Release
         working-directory: packages/dwkim
