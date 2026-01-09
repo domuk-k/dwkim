@@ -44,9 +44,11 @@ jobs:
       - name: Build dwkim
         run: bun run build:dwkim
 
-      - name: Prepare npm for release
+      - name: Clean and prepare for npm publish
         working-directory: packages/dwkim
-        run: npm install --package-lock-only
+        run: |
+          rm -rf node_modules
+          npm install
 
       - name: Release
         working-directory: packages/dwkim
