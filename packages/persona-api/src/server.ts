@@ -89,10 +89,15 @@ export async function createServer() {
       message: `Rate limit exceeded, retry in ${context.after}`,
       expiresIn: context.after
     }),
-    // /sync/* 경로는 내부 사용이므로 rate limit 제외
+    // 내부/인프라 경로는 rate limit 제외
     allowList: (request: FastifyRequest) => {
       const url = request.url || ''
-      return url.startsWith('/sync/') || url.startsWith('/api/v1/sync/')
+      return (
+        url === '/health' ||
+        url.startsWith('/health/') ||
+        url.startsWith('/sync/') ||
+        url.startsWith('/api/v1/sync/')
+      )
     }
   }
 
@@ -128,11 +133,15 @@ export async function createServer() {
       const clientIp = request.ip
       const url = request.url || ''
 
-      // /sync/* 경로는 내부 사용이므로 rate limit 건너뛰기
-      const isSyncRoute = url.startsWith('/sync/') || url.startsWith('/api/v1/sync/')
+      // 내부/인프라 경로는 rate limit 건너뛰기
+      const isExemptRoute =
+        url === '/health' ||
+        url.startsWith('/health/') ||
+        url.startsWith('/sync/') ||
+        url.startsWith('/api/v1/sync/')
 
-      // Rate limiting 체크 (sync 경로 제외)
-      if (!isSyncRoute) {
+      // Rate limiting 체크 (제외 경로 외)
+      if (!isExemptRoute) {
         const rateLimitResult = await rateLimiter.checkLimit(clientIp)
         if (!rateLimitResult.allowed) {
           return reply.status(429).send({
@@ -142,7 +151,7 @@ export async function createServer() {
         }
       }
 
-      // Abuse detection 체크 (sync 경로는 abuseDetection 내부에서 예외 처리됨)
+      // Abuse detection 체크 (제외 경로는 abuseDetection 내부에서 예외 처리됨)
       const abuseResult = await abuseDetection.checkAbuse(request, reply)
       if (!abuseResult) {
         return
