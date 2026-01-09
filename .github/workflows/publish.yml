@@ -50,6 +50,8 @@ jobs:
           rm -rf packages/*/node_modules
           # Remove workspaces from root package.json to prevent npm workspace resolution
           jq 'del(.workspaces)' package.json > package.json.tmp && mv package.json.tmp package.json
+          # Create .npmrc with auth token
+          echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > packages/dwkim/.npmrc
           cd packages/dwkim && npm install --ignore-scripts
 
       - name: Release
@@ -58,5 +60,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
