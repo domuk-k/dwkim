@@ -622,21 +622,15 @@ function createPersonaGraph() {
     .addNode('rewrite', rewriteNode)
     .addNode('search', searchNode)
     .addNode('analyze', analyzeNode)
-    .addNode('clarify', clarifyNode)
+    // A2UI 비활성화: clarify/followup 노드 제거
     .addNode('generate', generateNode)
-    .addNode('followup', followupNode)
     .addNode('done', doneNode)
 
-    // 순차 흐름
+    // 순차 흐름: rewrite → search → analyze → generate → done
     .addEdge(START, 'rewrite')
     .addEdge('rewrite', 'search')
     .addEdge('search', 'analyze')
-
-    // A2UI 비활성화: clarify/followup 노드 스킵
-    // 조건부 분기: analyze → generate (clarify 스킵)
     .addEdge('analyze', 'generate')
-
-    // generate → done (followup 스킵)
     .addEdge('generate', 'done')
     .addEdge('done', END)
 
