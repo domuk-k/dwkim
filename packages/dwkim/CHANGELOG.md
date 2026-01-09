@@ -55,6 +55,41 @@
 * **blog:** use bun instead of pnpm in vercel.json ([0cfad84](https://github.com/domuk-k/dwkim/commit/0cfad846392365574c923198ca1bc5230073a3fe))
 * **dwkim:** postprocess markdown for bold/code in list items ([b473080](https://github.com/domuk-k/dwkim/commit/b47308070a1d79d23d05dd3f8bcda3cd3826b83b))
 * **dwkim:** rollback version for npm release retry ([fbd37fb](https://github.com/domuk-k/dwkim/commit/fbd37fbb40afaacd7d832e9ef84716d5deca5d6a))
+* **dwkim:** trigger release with markdown rendering fix ([2bd9827](https://github.com/domuk-k/dwkim/commit/2bd98276296a647e65f839bf3675d286e858e9f8))
+* **persona-api:** handle short device ID and session ID in Discord notifications ([3ad836c](https://github.com/domuk-k/dwkim/commit/3ad836c728a5250c57309da2db37266038aecc4f))
+* **persona-api:** improve Discord notification reliability and device ID display ([e636814](https://github.com/domuk-k/dwkim/commit/e6368140f830d9a1b2203070e99cea40de986bfd))
+* resolve workflow failures and unreachable node error ([da17bc3](https://github.com/domuk-k/dwkim/commit/da17bc327a1293440fbf003f922cb8a9b9f6e90a))
+
+### Refactoring
+
+* apply YAGNI, naming consistency, and security improvements ([e1840b8](https://github.com/domuk-k/dwkim/commit/e1840b887bc652c8a9fe478d9bc00e1f16737464))
+* **persona-api:** consolidate security into guardrails module ([2609374](https://github.com/domuk-k/dwkim/commit/260937457199714f592235407d2afc474d7fc566))
+* **persona-api:** disable A2UI clarification and followup ([0799061](https://github.com/domuk-k/dwkim/commit/0799061cf9df0d7f46bd2de34092ff78cd7a85d9))
+* **persona-api:** LangGraph best practices 적용 ([1d8e534](https://github.com/domuk-k/dwkim/commit/1d8e534bed26226dbd876cc4741cde8a3ddb6202))
+* **persona-api:** migrate to LangGraph StateGraph architecture ([d25270c](https://github.com/domuk-k/dwkim/commit/d25270cdbfce0667a7757f0b6ad7598ea43a7137))
+
+## [2.0.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.10.0...dwkim-v2.0.0) (2026-01-09)
+
+### ⚠ BREAKING CHANGES
+
+* Package manager changed from pnpm to Bun
+
+### chore
+
+* migrate monorepo to Bun + Biome ([2862d39](https://github.com/domuk-k/dwkim/commit/2862d394785a2dc2c92fe81aace95ffb0ef2c954))
+
+### Features
+
+* **dwkim:** add HITL feedback API client methods ([6510d65](https://github.com/domuk-k/dwkim/commit/6510d6577a80caff3db27537bf1ad54ab32ab55c))
+* **persona-api:** add multi-model support with environment profiles ([ab3681f](https://github.com/domuk-k/dwkim/commit/ab3681f66e8555699c1a198f8b0a991bd3ca5a35))
+
+### Bug Fixes
+
+* **blog:** restore imports removed in Biome migration ([645c6b2](https://github.com/domuk-k/dwkim/commit/645c6b24d6e623e161ee1edc7b91f94c771f2aef))
+* **blog:** use attribute selector for Shiki code block themes ([eb30e3d](https://github.com/domuk-k/dwkim/commit/eb30e3d3a0b6ec60a03c0275e2d4f0c7d56cdfee))
+* **blog:** use bun instead of pnpm in vercel.json ([0cfad84](https://github.com/domuk-k/dwkim/commit/0cfad846392365574c923198ca1bc5230073a3fe))
+* **dwkim:** postprocess markdown for bold/code in list items ([b473080](https://github.com/domuk-k/dwkim/commit/b47308070a1d79d23d05dd3f8bcda3cd3826b83b))
+* **dwkim:** rollback version for npm release retry ([fbd37fb](https://github.com/domuk-k/dwkim/commit/fbd37fbb40afaacd7d832e9ef84716d5deca5d6a))
 * **persona-api:** handle short device ID and session ID in Discord notifications ([3ad836c](https://github.com/domuk-k/dwkim/commit/3ad836c728a5250c57309da2db37266038aecc4f))
 * **persona-api:** improve Discord notification reliability and device ID display ([e636814](https://github.com/domuk-k/dwkim/commit/e6368140f830d9a1b2203070e99cea40de986bfd))
 * resolve workflow failures and unreachable node error ([da17bc3](https://github.com/domuk-k/dwkim/commit/da17bc327a1293440fbf003f922cb8a9b9f6e90a))
