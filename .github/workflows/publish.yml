@@ -48,7 +48,7 @@ jobs:
         run: |
           rm -rf node_modules
           rm -rf packages/*/node_modules
-          cd packages/dwkim && npm install --ignore-scripts
+          cd packages/dwkim && npm install --ignore-scripts --install-links=false --workspaces=false
 
       - name: Release
         working-directory: packages/dwkim
