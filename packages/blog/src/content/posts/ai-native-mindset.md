@@ -156,3 +156,10 @@ AI를 "인간+AI 팀"의 창의적 동반자로 여긴다. 단순 자동화가 �
 [^intersog]: Intersog: "구현에서 오케스트레이션으로의 역할 전환" — [The AI-Native Full-Stack Developer](https://intersog.com/blog/strategy/the-ai-native-full-stack-developer-redefining-engineering-impact-in-2025/)
 
 [^x-signulll]: X @signulll: "AI native is the new literacy" (2025-04-07)
+
+---
+
+## Related
+
+- [[게임에서-AI-창작으로-도파민-루프의-진화]] - 프로슈머와 인지 부하의 역설
+- [[컨텍스트-스위칭의-뇌과학]] - AI 사용 중 주의력 전환 비용
