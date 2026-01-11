@@ -1,3 +1,11 @@
+## [2.0.1](https://github.com/domuk-k/dwkim/compare/dwkim-v2.0.0...dwkim-v2.0.1) (2026-01-11)
+
+### Bug Fixes
+
+* **dwkim:** prevent falsy values from rendering in Ink components ([47ccd5e](https://github.com/domuk-k/dwkim/commit/47ccd5e4291f6dd216405b233a311a3f61e3128b))
+* **persona-api:** exclude /health from rate limiting ([a607cc2](https://github.com/domuk-k/dwkim/commit/a607cc270853d4a63d9b6ad5a3e345c620a7c603))
+* **persona-api:** increase rate limit to 100 req/min ([ec75a1d](https://github.com/domuk-k/dwkim/commit/ec75a1d68f2cccd7086c61c032f2336c2a5cf3ae))
+
 ## [2.0.0](https://github.com/domuk-k/dwkim/compare/dwkim-v1.10.0...dwkim-v2.0.0) (2026-01-09)
 
 ### ⚠ BREAKING CHANGES
