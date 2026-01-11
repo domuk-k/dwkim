@@ -667,7 +667,7 @@ ${icons.chat} 예시 질문
       <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
 
       {/* 스트리밍 응답 */}
-      {streamContent && (
+      {streamContent.length > 0 && (
         <Box marginTop={1} marginLeft={2}>
           <MarkdownText color={theme.text}>{streamContent}</MarkdownText>
         </Box>
@@ -681,7 +681,7 @@ ${icons.chat} 예시 질문
               {item.status === 'in_progress' ? (
                 <Text color={theme.lavender}>
                   <Spinner type="dots" /> {item.label}
-                  {item.detail && <Text color={theme.muted}> — {item.detail}</Text>}
+                  {item.detail ? <Text color={theme.muted}> — {item.detail}</Text> : null}
                 </Text>
               ) : (
                 <Text
@@ -689,9 +689,9 @@ ${icons.chat} 예시 질문
                   dimColor={item.status === 'pending'}
                 >
                   {item.status === 'completed' ? '✓' : '○'} {item.label}
-                  {item.status === 'completed' && item.detail && (
+                  {item.status === 'completed' && item.detail ? (
                     <Text color={theme.muted}> — {item.detail}</Text>
-                  )}
+                  ) : null}
                 </Text>
               )}
             </Box>
@@ -725,10 +725,10 @@ ${icons.chat} 예시 질문
                   <Text color={tool.phase === 'completed' ? theme.success : theme.muted}>
                     {tool.phase === 'completed' ? '✓' : tool.phase === 'error' ? '✗' : '○'}{' '}
                     {tool.displayName}
-                    {tool.query && <Text dimColor> "{tool.query}"</Text>}
-                    {tool.resultCount !== undefined && (
+                    {tool.query ? <Text dimColor> "{tool.query}"</Text> : null}
+                    {tool.resultCount !== undefined ? (
                       <Text dimColor> → {tool.resultCount}건</Text>
-                    )}
+                    ) : null}
                   </Text>
                 </Box>
               ))}
@@ -738,7 +738,7 @@ ${icons.chat} 예시 질문
       )}
 
       {/* 에러 */}
-      {errorMessage && (
+      {errorMessage !== null && (
         <Box marginBottom={1}>
           <Text color={theme.error}>
             {icons.error} {errorMessage}
@@ -879,7 +879,7 @@ const MessageBubble = React.memo(function MessageBubble({ message }: { message: 
       )}
 
       {/* 처리 시간 */}
-      {message.processingTime && (
+      {message.processingTime !== undefined && message.processingTime > 0 && (
         <Box marginLeft={4}>
           <Text color={theme.muted} dimColor>
             {icons.clock} {message.processingTime}ms
