@@ -188,13 +188,47 @@ export class PersonaApiClient {
     }
   }
 
-  async checkHealth(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/health`, {
-      headers: this.getHeaders()
-    })
-    if (!response.ok) {
-      throw new Error(`Health check failed: ${response.status}`)
+  /**
+   * Health check with retry for cold start
+   * fly.io auto_start_machines 사용 시 machine 시작에 시간이 걸림
+   */
+  async checkHealth(maxRetries = 3, retryDelayMs = 2000): Promise<void> {
+    let lastError: Error | null = null
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5초 타임아웃
+
+        const response = await fetch(`${this.baseUrl}/health`, {
+          headers: this.getHeaders(),
+          signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          return // 성공
+        }
+
+        lastError = new Error(`Health check failed: ${response.status}`)
+      } catch (error) {
+        if (error instanceof Error) {
+          lastError = error
+        }
+      }
+
+      // 마지막 시도가 아니면 대기 후 재시도
+      if (attempt < maxRetries) {
+        await this.sleep(retryDelayMs)
+      }
     }
+
+    throw lastError || new Error('Health check failed after retries')
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   async chat(message: string): Promise<ChatResponse> {

@@ -100,12 +100,13 @@ export function ChatView({ apiUrl }: Props) {
 
   const nextId = () => ++messageIdRef.current
 
-  // 초기 연결 확인 (with cleanup)
+  // 초기 연결 확인 (with cleanup + cold start retry)
   useEffect(() => {
     let mounted = true
 
+    // cold start 재시도: 3회, 2초 간격 (fly.io auto_start 대기)
     client
-      .checkHealth()
+      .checkHealth(3, 2000)
       .then(() => {
         if (!mounted) return
         setStatus('idle')
@@ -715,7 +716,9 @@ ${icons.chat} 예시 질문
             )}
             <Text color={theme.info}>
               {' '}
-              {status === 'connecting' ? '연결 중...' : loadingState?.message || '처리 중...'}
+              {status === 'connecting'
+                ? '서버에 연결 중... (cold start 시 최대 6초)'
+                : loadingState?.message || '처리 중...'}
             </Text>
           </Box>
           {loadingState?.toolCalls && loadingState.toolCalls.length > 0 && (
