@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/domuk-k/dwkim/compare/dwkim-v2.0.1...dwkim-v2.1.0) (2026-01-11)
+
+### Features
+
+* **dwkim:** add retry logic for cold start health check ([79cc6e6](https://github.com/domuk-k/dwkim/commit/79cc6e6c1ccc1f1a219109f018f3d790bcc065e4))
+
 ## [2.0.1](https://github.com/domuk-k/dwkim/compare/dwkim-v2.0.0...dwkim-v2.0.1) (2026-01-11)
 
 ### Bug Fixes
