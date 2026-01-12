@@ -1,3 +1,9 @@
+## [2.1.2](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.1...dwkim-v2.1.2) (2026-01-12)
+
+### Bug Fixes
+
+* **dwkim:** separate banner from Static component ([89af184](https://github.com/domuk-k/dwkim/commit/89af1847a5b7fcb4427bc4ab36ffc00340ae4029))
+
 ## [2.1.1](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.0...dwkim-v2.1.1) (2026-01-12)
 
 ### Bug Fixes
