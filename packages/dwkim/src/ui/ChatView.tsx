@@ -716,15 +716,13 @@ ${icons.chat} 예시 질문
             )}
             <Text color={theme.info}>
               {' '}
-              {status === 'connecting'
-                ? '서버에 연결 중... (cold start 시 최대 6초)'
-                : loadingState?.message || '처리 중...'}
+              {status === 'connecting' ? '연결 중...' : loadingState?.message || '처리 중...'}
             </Text>
           </Box>
           {loadingState?.toolCalls && loadingState.toolCalls.length > 0 && (
             <Box flexDirection="column" marginLeft={2} marginTop={0}>
-              {loadingState.toolCalls.map((tool) => (
-                <Box key={tool.tool}>
+              {loadingState.toolCalls.map((tool, idx) => (
+                <Box key={`${tool.tool}-${idx}`}>
                   <Text color={tool.phase === 'completed' ? theme.success : theme.muted}>
                     {tool.phase === 'completed' ? '✓' : tool.phase === 'error' ? '✗' : '○'}{' '}
                     {tool.displayName}
@@ -756,7 +754,7 @@ ${icons.chat} 예시 질문
             ? 더 구체적으로 물어보시겠어요?
           </Text>
           {suggestedQuestions.map((q, idx) => (
-            <Box key={idx} marginLeft={2}>
+            <Box key={`suggestion-${idx}`} marginLeft={2}>
               <Text
                 color={idx === selectedSuggestionIdx ? theme.lavender : theme.muted}
                 bold={idx === selectedSuggestionIdx}
