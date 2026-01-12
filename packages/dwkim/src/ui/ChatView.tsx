@@ -53,8 +53,8 @@ export function ChatView({ apiUrl }: Props) {
   const { stdout } = useStdout()
   const termWidth = stdout?.columns || 80
   const [client] = useState(() => new PersonaApiClient(apiUrl))
-  // 배너를 첫 번째 메시지로 포함 (Static에서 한 번만 렌더링됨)
-  const [messages, setMessages] = useState<Message[]>([{ id: 0, role: 'banner', content: '' }])
+  // 메시지 히스토리 (배너는 Static 밖에서 별도 렌더링)
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<Status>('connecting')
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null)
@@ -664,8 +664,29 @@ ${icons.chat} 예시 질문
 
   return (
     <Box flexDirection="column" paddingX={1}>
+      {/* 프로필 배너 (Static 밖에서 한 번만 렌더링) */}
+      <Box flexDirection="column" paddingX={1} paddingY={1}>
+        <Box>
+          <Text bold color={theme.lavender}>
+            {profile.name}
+          </Text>
+          <Text color={theme.muted}> · </Text>
+          <Text color={theme.subtext}>{profile.title}</Text>
+        </Box>
+        <Box>
+          <Text color={theme.muted}>{profile.bio}</Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text italic color={theme.success}>
+            {profile.quote}
+          </Text>
+        </Box>
+      </Box>
+
       {/* 메시지 히스토리 (Static으로 flicker 방지) */}
-      <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
+      {messages.length > 0 && (
+        <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
+      )}
 
       {/* 스트리밍 응답 */}
       {streamContent.length > 0 && (
