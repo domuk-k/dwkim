@@ -20,7 +20,7 @@ type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>
 
 interface Message {
   id: number
-  role: 'user' | 'assistant' | 'system' | 'banner'
+  role: 'user' | 'assistant' | 'system'
   content: string
   sources?: SourcesEvent['sources']
   processingTime?: number
@@ -851,29 +851,6 @@ ${icons.chat} 예시 질문
 }
 
 const MessageBubble = React.memo(function MessageBubble({ message }: { message: Message }) {
-  // 배너 렌더링
-  if (message.role === 'banner') {
-    return (
-      <Box flexDirection="column" paddingX={1} paddingY={1}>
-        <Box>
-          <Text bold color={theme.lavender}>
-            {profile.name}
-          </Text>
-          <Text color={theme.muted}> · </Text>
-          <Text color={theme.subtext}>{profile.title}</Text>
-        </Box>
-        <Box>
-          <Text color={theme.muted}>{profile.bio}</Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text italic color={theme.success}>
-            {profile.quote}
-          </Text>
-        </Box>
-      </Box>
-    )
-  }
-
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
 
