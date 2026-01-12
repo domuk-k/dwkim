@@ -1,3 +1,9 @@
+## [2.1.1](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.0...dwkim-v2.1.1) (2026-01-12)
+
+### Bug Fixes
+
+* **dwkim:** resolve React key duplication warnings ([2280ff3](https://github.com/domuk-k/dwkim/commit/2280ff34960dfb29f05140849796687917536f3d))
+
 ## [2.1.0](https://github.com/domuk-k/dwkim/compare/dwkim-v2.0.1...dwkim-v2.1.0) (2026-01-11)
 
 ### Features
