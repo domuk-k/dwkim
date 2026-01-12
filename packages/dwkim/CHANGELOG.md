@@ -1,3 +1,9 @@
+## [2.1.3](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.2...dwkim-v2.1.3) (2026-01-12)
+
+### Refactoring
+
+* **dwkim:** remove unused banner role from MessageBubble ([5eb2f59](https://github.com/domuk-k/dwkim/commit/5eb2f59106e2c9c7958225984fe10ea107b55a98))
+
 ## [2.1.2](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.1...dwkim-v2.1.2) (2026-01-12)
 
 ### Bug Fixes
