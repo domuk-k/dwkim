@@ -1,3 +1,9 @@
+## [2.2.2](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.1...dwkim-v2.2.2) (2026-01-14)
+
+### Bug Fixes
+
+* **dwkim:** add missing key prop to Static ProfileBanner ([49a9ded](https://github.com/domuk-k/dwkim/commit/49a9ded9233aab351d335b5340a0768d90672f11))
+
 ## [2.2.1](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.0...dwkim-v2.2.1) (2026-01-14)
 
 ### Refactoring
