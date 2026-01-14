@@ -2,7 +2,6 @@ import { Box, Static, Text, useApp, useInput, useStdout } from 'ink'
 import Spinner from 'ink-spinner'
 import TextInput from 'ink-text-input'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { hasBannerBeenShown, markBannerAsShown } from '../utils/firstRun.js'
 import {
   ApiError,
   PersonaApiClient,
@@ -79,14 +78,8 @@ export function ChatView({ apiUrl }: Props) {
   const [showExitFeedback, setShowExitFeedback] = useState(false)
   // HITL: Correction 감지용 마지막 대화 추적
   const [lastExchange, setLastExchange] = useState<{ query: string; response: string } | null>(null)
-  // 프로필 배너 표시 여부 (최초 실행 시에만 표시)
-  const [showBanner] = useState(() => {
-    const shown = hasBannerBeenShown()
-    if (!shown) {
-      markBannerAsShown()
-    }
-    return !shown
-  })
+  // 프로필 배너 (Static으로 한 번만 렌더링, 이후 스크롤)
+  const [bannerItems] = useState([{ id: 'banner' }])
   const messageIdRef = useRef(0)
 
   // HITL: 수정 요청 패턴 감지
@@ -673,31 +666,31 @@ ${icons.chat} 예시 질문
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {/* 프로필 배너 (최초 실행 시에만 표시) */}
-      {showBanner && (
-        <Box flexDirection="column" paddingX={1} paddingY={1}>
-          <Box>
-            <Text bold color={theme.lavender}>
-              {profile.name}
-            </Text>
-            <Text color={theme.muted}> · </Text>
-            <Text color={theme.subtext}>{profile.title}</Text>
+      {/* 프로필 배너 (Static으로 한 번만 렌더링, 이후 스크롤) */}
+      <Static items={bannerItems}>
+        {() => (
+          <Box flexDirection="column" paddingX={1} paddingY={1}>
+            <Box>
+              <Text bold color={theme.lavender}>
+                {profile.name}
+              </Text>
+              <Text color={theme.muted}> · </Text>
+              <Text color={theme.subtext}>{profile.title}</Text>
+            </Box>
+            <Box>
+              <Text color={theme.muted}>{profile.bio}</Text>
+            </Box>
+            <Box marginTop={1}>
+              <Text italic color={theme.success}>
+                {profile.quote}
+              </Text>
+            </Box>
           </Box>
-          <Box>
-            <Text color={theme.muted}>{profile.bio}</Text>
-          </Box>
-          <Box marginTop={1}>
-            <Text italic color={theme.success}>
-              {profile.quote}
-            </Text>
-          </Box>
-        </Box>
-      )}
+        )}
+      </Static>
 
       {/* 메시지 히스토리 (Static으로 flicker 방지) */}
-      {messages.length > 0 && (
-        <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
-      )}
+      <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
 
       {/* 스트리밍 응답 */}
       {streamContent.length > 0 && (
