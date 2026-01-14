@@ -1,6 +1,8 @@
-import { Box, Text } from 'ink'
+import { Box, Text, useStdout } from 'ink'
 import { icons, profile } from './data.js'
 import { theme } from './theme.js'
+
+const CARD_PADDING = 6 // paddingX(2) * 2 + border(1) * 2
 
 // 웰컴 배너
 export function ProfileBanner() {
@@ -28,6 +30,10 @@ export function ProfileBanner() {
 
 // 상세 프로필 카드 (profile 명령어용)
 export function ProfileCard() {
+  const { stdout } = useStdout()
+  const termWidth = stdout?.columns || 60
+  const separatorWidth = Math.min(termWidth - CARD_PADDING, 60)
+
   return (
     <Box
       flexDirection="column"
@@ -48,7 +54,7 @@ export function ProfileCard() {
       </Box>
 
       <Box marginY={1}>
-        <Text color={theme.surface}>{'─'.repeat(52)}</Text>
+        <Text color={theme.surface}>{'─'.repeat(separatorWidth)}</Text>
       </Box>
 
       <Box flexDirection="column" gap={0}>
@@ -59,7 +65,7 @@ export function ProfileCard() {
       </Box>
 
       <Box marginY={1}>
-        <Text color={theme.surface}>{'─'.repeat(52)}</Text>
+        <Text color={theme.surface}>{'─'.repeat(separatorWidth)}</Text>
       </Box>
 
       <Text italic color={theme.muted}>
