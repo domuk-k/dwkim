@@ -1,3 +1,13 @@
+## [2.2.0](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.4...dwkim-v2.2.0) (2026-01-14)
+
+### Features
+
+* **blog:** add Claude Code plugin analysis series (4 articles) ([6c2fd73](https://github.com/domuk-k/dwkim/commit/6c2fd73865029b14a068702e927f783d57b8ec19))
+
+### Bug Fixes
+
+* **dwkim:** use Static for banner to scroll naturally ([90dd0f3](https://github.com/domuk-k/dwkim/commit/90dd0f33d50c4495dbd49ac2d2807b3791a06f43))
+
 ## [2.1.4](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.3...dwkim-v2.1.4) (2026-01-14)
 
 ### Bug Fixes
