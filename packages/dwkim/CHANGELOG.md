@@ -1,3 +1,11 @@
+## [2.1.4](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.3...dwkim-v2.1.4) (2026-01-14)
+
+### Bug Fixes
+
+* **blog:** remove daily note accidentally tagged as blog ([3621552](https://github.com/domuk-k/dwkim/commit/3621552392d905eb9291d4174b763e3147e98f56))
+* **blog:** remove duplicate post with Korean filename ([95c5068](https://github.com/domuk-k/dwkim/commit/95c5068499ef5cc765bce5d0a68cd1d58bc65646))
+* **dwkim:** show profile banner only on first run ([8c602da](https://github.com/domuk-k/dwkim/commit/8c602dad8e653bec4a608d6c6632c6d3772132c5))
+
 ## [2.1.3](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.2...dwkim-v2.1.3) (2026-01-12)
 
 ### Refactoring
