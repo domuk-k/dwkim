@@ -8,9 +8,10 @@ import {
   type ProgressItem,
   type StreamEvent
 } from '../utils/personaApiClient.js'
-import { icons, profile } from './data.js'
+import { icons } from './data.js'
 import { FeedbackPrompt } from './FeedbackPrompt.js'
 import { MarkdownText } from './MarkdownText.js'
+import { ProfileBanner } from './ProfileCard.js'
 import { theme } from './theme.js'
 
 // config.js는 더 이상 사용하지 않음 - 세션 기반으로 변경
@@ -667,27 +668,7 @@ ${icons.chat} 예시 질문
   return (
     <Box flexDirection="column" paddingX={1}>
       {/* 프로필 배너 (Static으로 한 번만 렌더링, 이후 스크롤) */}
-      <Static items={bannerItems}>
-        {() => (
-          <Box flexDirection="column" paddingX={1} paddingY={1}>
-            <Box>
-              <Text bold color={theme.lavender}>
-                {profile.name}
-              </Text>
-              <Text color={theme.muted}> · </Text>
-              <Text color={theme.subtext}>{profile.title}</Text>
-            </Box>
-            <Box>
-              <Text color={theme.muted}>{profile.bio}</Text>
-            </Box>
-            <Box marginTop={1}>
-              <Text italic color={theme.success}>
-                {profile.quote}
-              </Text>
-            </Box>
-          </Box>
-        )}
-      </Static>
+      <Static items={bannerItems}>{() => <ProfileBanner />}</Static>
 
       {/* 메시지 히스토리 (Static으로 flicker 방지) */}
       <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
