@@ -668,7 +668,7 @@ ${icons.chat} 예시 질문
   return (
     <Box flexDirection="column" paddingX={1}>
       {/* 프로필 배너 (Static으로 한 번만 렌더링, 이후 스크롤) */}
-      <Static items={bannerItems}>{() => <ProfileBanner />}</Static>
+      <Static items={bannerItems}>{(item) => <ProfileBanner key={item.id} />}</Static>
 
       {/* 메시지 히스토리 (Static으로 flicker 방지) */}
       <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
