@@ -1,3 +1,9 @@
+## [2.2.1](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.0...dwkim-v2.2.1) (2026-01-14)
+
+### Refactoring
+
+* **dwkim:** improve Ink component reuse and responsiveness ([fa3faae](https://github.com/domuk-k/dwkim/commit/fa3faae5ce74425955d473ce89c572c1500a7029))
+
 ## [2.2.0](https://github.com/domuk-k/dwkim/compare/dwkim-v2.1.4...dwkim-v2.2.0) (2026-01-14)
 
 ### Features
