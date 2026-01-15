@@ -1,8 +1,6 @@
-import { Box, Text, useStdout } from 'ink'
-import { icons, profile } from './data.js'
+import { Box, Text } from 'ink'
+import { profile } from './data.js'
 import { theme } from './theme.js'
-
-const CARD_PADDING = 6 // paddingX(2) * 2 + border(1) * 2
 
 // 웰컴 배너
 export function ProfileBanner() {
@@ -24,64 +22,6 @@ export function ProfileBanner() {
           "{profile.quote}"
         </Text>
       </Box>
-    </Box>
-  )
-}
-
-// 상세 프로필 카드 (profile 명령어용)
-export function ProfileCard() {
-  const { stdout } = useStdout()
-  const termWidth = stdout?.columns || 60
-  const separatorWidth = Math.min(termWidth - CARD_PADDING, 60)
-
-  return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={theme.primary}
-      paddingX={2}
-      paddingY={1}
-    >
-      <Box>
-        <Text bold color={theme.lavender}>
-          {profile.name}
-        </Text>
-        <Text color={theme.subtext}> {profile.title}</Text>
-      </Box>
-
-      <Box marginTop={1}>
-        <Text color={theme.text}>{profile.bio}</Text>
-      </Box>
-
-      <Box marginY={1}>
-        <Text color={theme.surface}>{'─'.repeat(separatorWidth)}</Text>
-      </Box>
-
-      <Box flexDirection="column" gap={0}>
-        <LinkRow icon={icons.email} label="Email" value={profile.email} />
-        <LinkRow icon={icons.github} label="GitHub" value={profile.github} />
-        <LinkRow icon={icons.web} label="Website" value={profile.website} />
-        <LinkRow icon={icons.project} label="Project" value={profile.project} />
-      </Box>
-
-      <Box marginY={1}>
-        <Text color={theme.surface}>{'─'.repeat(separatorWidth)}</Text>
-      </Box>
-
-      <Text italic color={theme.muted}>
-        {profile.quote}
-      </Text>
-    </Box>
-  )
-}
-
-function LinkRow({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <Box>
-      <Text color={theme.primary}>
-        {icon} {label.padEnd(8)}
-      </Text>
-      <Text color={theme.text}>{value}</Text>
     </Box>
   )
 }
