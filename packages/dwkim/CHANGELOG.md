@@ -1,3 +1,10 @@
+## [2.2.3](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.2...dwkim-v2.2.3) (2026-01-15)
+
+### Bug Fixes
+
+* **dwkim:** fix profile banner not rendering in Static component ([5b08a74](https://github.com/domuk-k/dwkim/commit/5b08a74d8dfa4308292d29279b46e4725ea6ce57))
+* **dwkim:** render profile banner via useEffect for Static component ([c8145f0](https://github.com/domuk-k/dwkim/commit/c8145f0f2bae26a2001e43607a2787035b94c878))
+
 ## [2.2.2](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.1...dwkim-v2.2.2) (2026-01-14)
 
 ### Bug Fixes
