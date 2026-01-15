@@ -80,7 +80,8 @@ export function ChatView({ apiUrl }: Props) {
   // HITL: Correction 감지용 마지막 대화 추적
   const [lastExchange, setLastExchange] = useState<{ query: string; response: string } | null>(null)
   // 프로필 배너 (Static으로 한 번만 렌더링, 이후 스크롤)
-  const [bannerItems] = useState([{ id: 'banner' }])
+  // 주의: Static은 items가 "추가"될 때만 렌더링하므로, 마운트 후 설정해야 함
+  const [bannerItems, setBannerItems] = useState<{ id: string }[]>([])
   const messageIdRef = useRef(0)
 
   // HITL: 수정 요청 패턴 감지
@@ -102,6 +103,11 @@ export function ChatView({ apiUrl }: Props) {
   const isCorrection = (msg: string) => CORRECTION_PATTERNS.some((p) => p.test(msg))
 
   const nextId = () => ++messageIdRef.current
+
+  // 프로필 배너 마운트 (Static은 items "추가" 시에만 렌더링)
+  useEffect(() => {
+    setBannerItems([{ id: 'banner' }])
+  }, [])
 
   // 초기 연결 확인 (with cleanup + cold start retry)
   useEffect(() => {
