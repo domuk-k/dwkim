@@ -1,3 +1,9 @@
+## [2.2.4](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.3...dwkim-v2.2.4) (2026-01-16)
+
+### Bug Fixes
+
+* **dwkim:** fix markdown rendering with correct marked-terminal config ([98bd620](https://github.com/domuk-k/dwkim/commit/98bd6206d6eefb239a75f86d152e3415845f5008))
+
 ## [2.2.3](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.2...dwkim-v2.2.3) (2026-01-15)
 
 ### Bug Fixes
