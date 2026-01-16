@@ -1,9 +1,7 @@
 ---
-title: '에이전트와 자연어로 소통하며 만드는 블로그'
-pubDate: '2025-01-30'
-description: 'Claude Code를 활용해 블로그를 만들고 개선해나가는 과정에 대한 기록'
-highlight: '이건 단순한 도구가 아니라 새로운 개발 방식이다'
-keywords: ['Claude', 'AI', '자연어', '블로그']
+title: "에이전트와 자연어로 소통하며 만드는 블로그"
+description: "Claude Code를 활용해 블로그를 만들고 개선해나가는 과정에 대한 기록"
+pubDate: "2025-01-30"
 ---
 
 이 블로그는 AI 에이전트와 함께 만들어지고 있다. 정확히는 Anthropic의 Claude Code를 활용해서다. 단순히 코드 생성 도구로 사용하는 게 아니라, 실제 개발 파트너처럼 함께 작업하고 있다.
@@ -119,8 +117,8 @@ Claude Code를 일반적인 협업 도구로 쓰는 것에서, **Cogni**라는 �
 
 ⸻
 
-**관련 글**
+## Related
 
-- [Cogni: Claude Code로 만든 PKM 에이전트](/cogni-pkm-agent)
-- [AI Native Mindset: 설계자로 일하는 방식](/ai-native-mindset)
-- [Claude Code 플러그인 직접 만들어보기](/claude-code-plugin-hands-on-guide-build-your-own)
+- [[cogni-pkm-agent]] - Cogni PKM 에이전트 소개
+- [[ai-native-mindset]] - AI와 협업하는 마인드셋
+- [[claude-code-plugin-hands-on-guide-build-your-own]] - 플러그인 직접 만들기
