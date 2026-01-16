@@ -220,6 +220,22 @@ plugin-dev/
 [Detailed implementation guide...]
 ```
 
+### 공식 도구: skill-development
+
+```bash
+/plugin-dev:skill-development
+```
+
+스킬 triggers 설정, Progressive Disclosure 패턴, 품질 기준에 대한 상세 가이드를 제공한다.
+
+**스킬 품질 리뷰:**
+
+```bash
+@skill-reviewer my-skill.md
+```
+
+스킬의 트리거 설정, 문서 품질, 패턴 준수 여부를 검토해준다.
+
 ---
 
 ## 5. Hook: 이벤트 기반 자동 실행
@@ -300,6 +316,14 @@ type: prompt
 You are in 'learning' output style mode...
 Include ★ Insight blocks with educational content.
 ```
+
+### 공식 도구: hook-development
+
+```bash
+/plugin-dev:hook-development
+```
+
+Hook 이벤트 종류(`PreToolUse`, `PostToolUse`, `Stop`, `SessionStart` 등), prompt 기반 훅 API, `${CLAUDE_PLUGIN_ROOT}` 사용법에 대한 상세 가이드를 제공한다.
 
 ---
 
@@ -469,7 +493,30 @@ triggers:
 
 ---
 
-## 9. 결론: 컴포넌트 선택 체크리스트
+## 9. 공식 Plugin-Dev 도구 총정리
+
+각 컴포넌트별로 공식 개발 도구가 있다:
+
+| 컴포넌트 | 개발 스킬 | 검증 도구 |
+|----------|----------|----------|
+| Command | `/plugin-dev:command-development` | `@plugin-validator` |
+| Agent | `/plugin-dev:agent-development` | `@agent-creator`, `@plugin-validator` |
+| Skill | `/plugin-dev:skill-development` | `@skill-reviewer` |
+| Hook | `/plugin-dev:hook-development` | `@plugin-validator` |
+| 전체 | `/plugin-dev:create-plugin` | `@plugin-validator` |
+
+**처음부터 끝까지 자동화:**
+
+```bash
+# 8단계 가이드 워크플로우로 플러그인 생성
+/plugin-dev:create-plugin my-plugin
+```
+
+Discovery → Component Planning → Detailed Design → Structure Creation → Implementation → Validation → Testing → Documentation 순서로 진행된다.
+
+---
+
+## 10. 결론: 컴포넌트 선택 체크리스트
 
 복잡해 보이지만, 결국 **질문 하나**로 귀결된다: "누가, 언제, 무엇을 시작하는가?"
 
@@ -488,8 +535,10 @@ triggers:
 
 ## References
 
+- [Claude Code 공식 플러그인 문서](https://code.claude.com/docs/en/plugins)
 - [Claude Code Docs - Commands](https://docs.anthropic.com/en/docs/claude-code/commands)
 - [Claude Code Docs - Agents](https://docs.anthropic.com/en/docs/claude-code/agents)
 - [Claude Code Docs - Skills](https://docs.anthropic.com/en/docs/claude-code/skills)
 - [Claude Code Docs - Hooks](https://docs.anthropic.com/en/docs/claude-code/hooks)
-- [anthropics/claude-code/plugins](https://github.com/anthropics/claude-code/tree/main/plugins)
+- [공식 플러그인 예시 (GitHub)](https://github.com/anthropics/claude-code/tree/main/plugins)
+- [plugin-dev 플러그인 소스](https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev)
