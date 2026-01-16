@@ -74,6 +74,14 @@ commit-commands/
 │   └── clean_gone.md    ← /clean_gone
 ```
 
+### 공식 도구: command-development
+
+```bash
+/plugin-dev:command-development
+```
+
+커맨드 frontmatter 필드, 인자 처리(`$ARGUMENTS`, `$1`, `$2`), Bash 실행 패턴에 대한 상세 가이드를 제공한다.
+
 ---
 
 ## 3. Agent: 자율적 서브태스크 실행
@@ -133,6 +141,22 @@ Launch 2-3 code-explorer agents in PARALLEL:
 
 Wait for all agents to complete before Phase 3.
 ```
+
+### 공식 도구: agent-development
+
+```bash
+/plugin-dev:agent-development
+```
+
+에이전트 구조, 시스템 프롬프트, `when_to_use` 트리거 조건, 색상 코딩에 대한 상세 가이드를 제공한다.
+
+**에이전트 자동 생성:**
+
+```bash
+@agent-creator "코드 리뷰 시 보안 취약점을 찾는 에이전트"
+```
+
+설명만 주면 에이전트 정의 파일을 자동으로 생성해준다.
 
 ---
 

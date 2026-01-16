@@ -416,6 +416,30 @@ Commands are user-invoked prompts with `/command` syntax.
 ...
 ```
 
+### 구현: plugin-dev의 스킬 구조
+
+plugin-dev 플러그인은 이 패턴의 모범 사례다. **7개의 개발 스킬**이 키워드에 따라 점진적으로 활성화된다:
+
+| 스킬 | 트리거 키워드 |
+|------|---------------|
+| `agent-development` | "create agent", "agent frontmatter" |
+| `command-development` | "create command", "slash command" |
+| `skill-development` | "create skill", "skill triggers" |
+| `hook-development` | "create hook", "PreToolUse" |
+| `plugin-structure` | "plugin structure", "plugin.json" |
+| `mcp-integration` | "add MCP", "MCP server" |
+| `plugin-settings` | "plugin settings", "local.md" |
+
+**실전 활용**:
+
+```bash
+# 에이전트 개발 가이드 활성화
+/plugin-dev:agent-development
+
+# 전체 플러그인 생성 워크플로우
+/plugin-dev:create-plugin my-plugin
+```
+
 ### 구현 패턴
 
 ```markdown
@@ -651,9 +675,41 @@ flowchart TD
 
 ---
 
+## Appendix: 공식 Plugin-Dev 도구
+
+8가지 패턴을 직접 적용할 수 있는 공식 도구가 있다. Claude Code는 플러그인 개발을 위한 전용 도구를 제공한다.
+
+### 패턴-도구 매핑
+
+| 도구 | 관련 패턴 |
+|------|----------|
+| `/plugin-dev:create-plugin` | Pattern 8 (Workflow Orchestration) |
+| `@agent-creator` | Pattern 1 (Parallel Agent) |
+| `@plugin-validator` | Pattern 4 (Confidence Scoring) |
+| `/plugin-dev:skill-development` | Pattern 6 (Progressive Disclosure) |
+| `/plugin-dev:hook-development` | Pattern 2 (Hook Injection) |
+
+### 전체 도구 목록
+
+| 스킬/에이전트 | 용도 |
+|---------------|------|
+| `/plugin-dev:create-plugin` | 8단계 가이드 워크플로우 |
+| `/plugin-dev:plugin-structure` | 디렉토리 구조, manifest 참조 |
+| `/plugin-dev:agent-development` | 에이전트 frontmatter, 트리거 패턴 |
+| `/plugin-dev:command-development` | 커맨드 인자, 워크플로우 |
+| `/plugin-dev:hook-development` | 이벤트 핸들링, prompt 기반 훅 |
+| `/plugin-dev:skill-development` | Progressive Disclosure 패턴 |
+| `/plugin-dev:mcp-integration` | 외부 서비스 통합 |
+| `@agent-creator` | 설명 기반 에이전트 정의 생성 |
+| `@plugin-validator` | 종합 플러그인 검증 |
+| `@skill-reviewer` | 스킬 품질 및 패턴 리뷰 |
+
+---
+
 ## References
 
-- [anthropics/claude-code/plugins](https://github.com/anthropics/claude-code/tree/main/plugins)
+- [Claude Code 공식 플러그인 문서](https://code.claude.com/docs/en/plugins)
+- [공식 플러그인 예시 (GitHub)](https://github.com/anthropics/claude-code/tree/main/plugins)
+- [plugin-dev 플러그인 소스](https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev)
 - [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
-- [Claude Code Docs - Plugins](https://docs.anthropic.com/en/docs/claude-code/plugins)
 - [MCP Specification](https://modelcontextprotocol.io/)
