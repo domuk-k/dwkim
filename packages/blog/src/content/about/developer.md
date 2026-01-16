@@ -14,7 +14,7 @@ title: Developer
 
 지금은 [LLM Agent 플랫폼](https://coxwave.com)의 AX팀에서 고객의 문제를 해결하는 Agent 시스템을 개발하고 있어요. Agent 구조 설계, Evaluation 시스템 구축, API 개발을 담당해요.
 
-FE 분야에서는 엔지니어 동료와 AI 에이전트들을 리드하며 5개 이상의 실서비스, 3개의 npm 패키지를 운영하고 있어요.
+FE 분야에서는 엔지니어 동료와 AI 에이전트들을 리드하며 3개의 서비스, 3개의 npm 패키지를 운영하고 있어요.
 
 ## 여정: 왜 Agent Engineer가 되었나
 
