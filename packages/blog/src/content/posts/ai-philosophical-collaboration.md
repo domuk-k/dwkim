@@ -96,11 +96,8 @@ AI Native Mindset의 핵심은 기술을 잘 다루는 게 아니라, **AI와 �
 
 ---
 
-**다음 편**: [Strange Loops와 미래의 자아: 괴델 에셔 바흐에서 찾은 정체성의 역설] - 실제로 탐구한 철학적 내용에 대해
-
----
-
 ## Related
 
+- [[Strange Loops와 미래의 자아: 괴델 에셔 바흐에서 찾은 정체성의 역설](/strange-loops)] - 실제로 탐구한 철학적 내용
 - [[AI Native Mindset: 교육자가 에이전트를 잘 다루는 이유](/ai-native-mindset)] - AI와 협업하는 마인드셋
 - [[에이전트와 자연어로 소통하며 만드는 블로그](/building-with-ai-agent)] - AI와 기술적 협업 경험
