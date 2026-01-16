@@ -18,6 +18,43 @@ pubDate: "2026-01-14"
 
 ---
 
+## 0. 먼저 알아두기: 공식 Plugin-Dev 도구
+
+이 글은 수동으로 파일을 작성하는 방법을 설명하지만, Claude Code는 공식 플러그인 개발 도구를 제공한다.
+
+### 자동화된 워크플로우
+
+```bash
+/plugin-dev:create-plugin code-simplifier-plus
+```
+
+이 명령은 8단계 가이드 워크플로우를 시작한다:
+
+1. **Discovery** - 요구사항 파악
+2. **Component Planning** - 구조 설계
+3. **Detailed Design** - 세부 명세
+4. **Structure Creation** - 디렉토리 생성
+5. **Implementation** - 컴포넌트 구현
+6. **Validation** - 품질 검증
+7. **Testing** - 기능 테스트
+8. **Documentation** - README 완성
+
+### 사용 가능한 개발 스킬
+
+| 스킬 | 용도 |
+|------|------|
+| `/plugin-dev:plugin-structure` | 디렉토리 구조, manifest 참조 |
+| `/plugin-dev:agent-development` | 에이전트 frontmatter, 트리거 패턴 |
+| `/plugin-dev:command-development` | 커맨드 인자, 워크플로우 |
+| `/plugin-dev:hook-development` | 이벤트 핸들링, prompt 기반 훅 |
+| `/plugin-dev:skill-development` | Progressive Disclosure 패턴 |
+
+### 왜 수동으로 배우는가?
+
+자동화 도구가 있어도, **내부 구조를 이해하면** 커스터마이징과 디버깅이 쉬워진다. 이 글에서는 수동 방식으로 하나씩 만들면서 원리를 익힌다.
+
+---
+
 ## 1. 목표: code-simplifier-plus 플러그인
 
 왜 처음부터 만들지 않고 기존 플러그인을 확장하는가? **좋은 코드를 읽는 것**이 좋은 코드를 쓰는 가장 빠른 길이기 때문이다. 공식 플러그인의 구조를 그대로 가져오고, 거기에 우리만의 기능을 추가한다.
@@ -339,7 +376,42 @@ echo "const unused = 'delete me'; export const used = 'keep';" > test-file.ts
 
 ---
 
-## 7. 고급 확장: Hook으로 자동화
+## 7. 공식 도구로 검증하기
+
+수동으로 만들었지만, 검증은 공식 도구를 활용한다. Claude Code는 플러그인 품질 검증을 위한 전문 에이전트를 제공한다.
+
+### plugin-validator로 구조 검증
+
+```bash
+@plugin-validator ~/.claude/plugins/code-simplifier-plus
+```
+
+검증 항목:
+- **Manifest 필수 필드** - name, version, description 확인
+- **컴포넌트 파일 명명 규칙** - kebab-case, .md 확장자
+- **Frontmatter 문법 유효성** - YAML 파싱 오류 탐지
+- **보안 패턴** - 하드코딩된 비밀, API 키 탐지
+- **경로 이식성** - `${CLAUDE_PLUGIN_ROOT}` 사용 여부
+
+### skill-reviewer로 품질 리뷰
+
+Agent나 Skill을 작성했다면 품질 리뷰도 가능하다:
+
+```bash
+@skill-reviewer code-simplifier-plus
+```
+
+Progressive Disclosure 패턴 준수, 트리거 키워드 적절성, 문서화 품질 등을 검토한다.
+
+### 왜 공식 도구로 검증하는가?
+
+- **일관성**: Anthropic의 공식 기준에 맞는지 확인
+- **자동화**: 사람이 놓치기 쉬운 패턴 탐지
+- **배포 전 검증**: 마켓플레이스 등록 전 필수 체크
+
+---
+
+## 8. 고급 확장: Hook으로 자동화
 
 기본 기능이 작동한다면, 한 단계 더 나아가보자. 글 2에서 Hook은 "작업을 감시하고 제어"한다고 했다. 단순화가 끝날 때마다 자동으로 테스트를 제안하면 어떨까?
 
@@ -371,7 +443,7 @@ When the code-simplifier agent completes:
 
 ---
 
-## 8. 배포 및 공유
+## 9. 배포 및 공유
 
 플러그인이 완성됐다. 이제 다른 사람과 공유하거나, 여러 프로젝트에서 사용할 수 있게 배포해보자.
 
@@ -416,7 +488,7 @@ ln -s $(pwd)/plugins/code-simplifier-plus ~/.claude/plugins/
 
 ---
 
-## 9. 전체 파일 구조 최종본
+## 10. 전체 파일 구조 최종본
 
 ```
 ~/.claude/plugins/code-simplifier-plus/
@@ -455,7 +527,7 @@ ln -s $(pwd)/plugins/code-simplifier-plus ~/.claude/plugins/
 
 ---
 
-## 10. 다음 단계
+## 11. 다음 단계
 
 기본 플러그인이 작동한다면, 여기서 멈출 필요가 없다. 글 3에서 본 패턴들을 더 적용해보자.
 
@@ -498,6 +570,7 @@ ln -s $(pwd)/plugins/code-simplifier-plus ~/.claude/plugins/
 
 ## References
 
+- [Claude Code 공식 플러그인 문서](https://code.claude.com/docs/en/plugins)
+- [공식 플러그인 예시 (GitHub)](https://github.com/anthropics/claude-code/tree/main/plugins)
+- [plugin-dev 플러그인 소스](https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev)
 - [anthropics/claude-plugins-official/code-simplifier](https://github.com/anthropics/claude-plugins-official/tree/main/code-simplifier)
-- [Claude Code Docs - Building Plugins](https://docs.anthropic.com/en/docs/claude-code/plugins)
-- [이 시리즈의 GitHub 저장소](https://github.com/yourname/claude-plugin-analysis)
