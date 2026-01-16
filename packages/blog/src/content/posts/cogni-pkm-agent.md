@@ -1,9 +1,7 @@
 ---
-title: 'Cogni: Claude Code로 만든 PKM 에이전트'
-pubDate: '2025-01-17'
-description: '노트 기록부터 블로그 배포까지, Claude Code 플러그인 시스템으로 구현한 개인 지식 관리 에이전트'
-highlight: '생각을 기록하면 자동으로 RAG와 블로그에 반영된다'
-keywords: ['Cogni', 'Claude Code', 'PKM', 'Zettelkasten', '에이전트', '플러그인']
+title: "Cogni: Claude Code로 만든 PKM 에이전트"
+description: "노트 기록부터 블로그 배포까지, Claude Code 플러그인 시스템으로 구현한 개인 지식 관리 에이전트"
+pubDate: "2025-01-17"
 ---
 
 [이전에 AI 에이전트와 함께 블로그를 만든다고 썼다](/building-with-ai-agent). 그때는 Claude Code를 일반적인 협업 도구로 소개했는데, 지금은 한 단계 더 나아갔다. **Cogni**라는 이름의 PKM(Personal Knowledge Management) 에이전트를 만들어서 쓰고 있다.
@@ -150,8 +148,8 @@ Claude Code 플러그인 시스템이 이걸 가능하게 했다. Agent, Skill, 
 
 ⸻
 
-**관련 글**
+## Related
 
-- [AI Native Mindset: 설계자로 일하는 방식](/ai-native-mindset)
-- [Claude Code 플러그인 직접 만들어보기](/claude-code-plugin-hands-on-guide-build-your-own)
-- [Claude Code 플러그인 컴포넌트 가이드](/claude-code-plugin-component-guide-command-agent-skill-hook)
+- [[ai-native-mindset]] - AI와 협업하는 마인드셋
+- [[working-with-agents]] - 에이전트와 일하는 방식
+- [[claude-code-plugin-hands-on-guide-build-your-own]] - 플러그인 직접 만들기
