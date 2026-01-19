@@ -72,20 +72,16 @@ const EXPANSION_KEYWORDS: Record<string, string[]> = {
 // LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 있을 때)
 function getSuggestionPromptWithContext(lang: SupportedLanguage): string {
   const langInstruction = getLanguageInstruction(lang)
-  return `사용자가 김동욱에 대해 모호한 질문을 했습니다. 검색된 문서를 참고하여 2가지 구체적인 질문을 추천하세요.
+  return `사용자가 "${'{query}'}"라고 물었는데, 이 질문이 모호합니다. 사용자가 실제로 알고 싶어할 만한 구체적인 질문 2개를 추천하세요.
 
-## 검색된 문서 (참고)
+## 김동욱 정보 (참고)
 {context}
 
-## 사용자 질문
-{query}
-
 ## 규칙
-- 검색된 문서 내용을 참고하여 구체적인 질문 생성
-- 김동욱에 대한 질문으로 한정
-- 문서에 언급된 구체적인 키워드/주제 활용
-- 각 질문은 한 문장으로 간결하게
-- "자세히", "더 알려주세요" 같은 모호한 표현 금지
+- 사용자 입장에서 자연스럽게 물어볼 수 있는 질문
+- 반말 의문문으로 작성 (예: "어떤 기술을 주로 써?", "어디서 일해?")
+- URL, 파일명, 내부 용어 절대 포함 금지
+- 각 질문은 15자 이내로 짧고 자연스럽게
 - ${langInstruction}
 - JSON 배열로만 응답: ["질문1", "질문2"]
 
@@ -95,15 +91,12 @@ function getSuggestionPromptWithContext(lang: SupportedLanguage): string {
 // LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 없을 때 - 폴백)
 function getSuggestionPromptNoContext(lang: SupportedLanguage): string {
   const langInstruction = getLanguageInstruction(lang)
-  return `사용자가 김동욱에 대해 모호한 질문을 했습니다. 2가지 구체적인 질문을 추천하세요.
-
-## 사용자 질문
-{query}
+  return `사용자가 "${'{query}'}"라고 물었는데, 이 질문이 모호합니다. 사용자가 실제로 알고 싶어할 만한 구체적인 질문 2개를 추천하세요.
 
 ## 규칙
-- 김동욱을 주어로 사용
-- 각 질문은 한 문장으로 간결하게
-- 답변 가능한 질문으로 한정 (경력, 기술, 회사, 프로젝트 등)
+- 사용자 입장에서 자연스럽게 물어볼 수 있는 질문
+- 반말 의문문으로 작성 (예: "어떤 기술을 주로 써?", "어디서 일해?")
+- 각 질문은 15자 이내로 짧고 자연스럽게
 - ${langInstruction}
 - JSON 배열로만 응답: ["질문1", "질문2"]
 
@@ -112,12 +105,9 @@ function getSuggestionPromptNoContext(lang: SupportedLanguage): string {
 
 // 폴백용 기본 추천 질문 (다국어)
 const FALLBACK_SUGGESTIONS: Record<SupportedLanguage, string[]> = {
-  ko: ['김동욱이 현재 어떤 회사에서 일하나요?', '김동욱의 주요 기술 스택은 무엇인가요?'],
-  en: ['What company does Kim Dongwook work at?', "What are Kim Dongwook's main tech skills?"],
-  ja: [
-    'キム・ドンウクは現在どの会社で働いていますか？',
-    'キム・ドンウクの主な技術スタックは何ですか？'
-  ]
+  ko: ['어디서 일해?', '어떤 기술 써?'],
+  en: ['Where do you work?', 'What tech do you use?'],
+  ja: ['どこで働いてる？', '何の技術使ってる？']
 }
 
 /**

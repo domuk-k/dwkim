@@ -620,16 +620,31 @@ function createPersonaGraph() {
     .addNode('rewrite', rewriteNode)
     .addNode('search', searchNode)
     .addNode('analyze', analyzeNode)
-    // A2UI 비활성화: clarify/followup 노드 제거
+    .addNode('clarify', clarifyNode)
     .addNode('generate', generateNode)
+    .addNode('followup', followupNode)
     .addNode('done', doneNode)
 
-    // 순차 흐름: rewrite → search → analyze → generate → done
+    // 순차 흐름
     .addEdge(START, 'rewrite')
     .addEdge('rewrite', 'search')
     .addEdge('search', 'analyze')
-    .addEdge('analyze', 'generate')
-    .addEdge('generate', 'done')
+
+    // 조건부 분기: analyze 후 clarify 또는 generate
+    .addConditionalEdges('analyze', (state) => {
+      return state.needsClarification ? 'clarify' : 'generate'
+    })
+
+    // clarify 후에도 generate 실행 (clarification 제공 후 답변)
+    .addEdge('clarify', 'generate')
+
+    // generate 후 followup 생성 (clarification이 없을 때만)
+    .addConditionalEdges('generate', (state) => {
+      return state.needsClarification ? 'done' : 'followup'
+    })
+
+    // followup → done → END
+    .addEdge('followup', 'done')
     .addEdge('done', END)
 
   return graph.compile()
