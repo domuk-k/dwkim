@@ -1,8 +1,27 @@
+import { createHash } from 'node:crypto'
 import { QdrantVectorStore } from '@langchain/qdrant'
 import { QdrantClient } from '@qdrant/js-client-rest'
+import { LRUCache } from 'lru-cache'
 import { env } from '../config/env'
 import { getBM25Engine, type SparseVector } from './bm25Engine'
 import { OpenAIEmbeddings } from './openaiEmbeddings'
+
+// ─────────────────────────────────────────────────────────────
+// Embedding Cache (TTFT 최적화)
+// ─────────────────────────────────────────────────────────────
+const embeddingCache = new LRUCache<string, number[]>({
+  max: 500, // 최대 500개 쿼리 캐싱
+  ttl: 1000 * 60 * 30 // 30분 TTL
+})
+
+/**
+ * 캐시 키 생성 (쿼리 + 컬렉션 해시)
+ * 다른 컬렉션 검색 시 잘못된 캐시 반환 방지
+ */
+function getCacheKey(query: string, collectionName: string): string {
+  const input = `${collectionName}:${query.trim().toLowerCase()}`
+  return createHash('md5').update(input).digest('hex')
+}
 
 export type DocumentType =
   | 'resume'
@@ -38,7 +57,8 @@ export interface Document {
 
 // 유사도 점수 threshold (이 값 이하는 관련 없는 것으로 간주)
 // Qdrant 코사인 유사도: 0 = 무관, 1 = 동일
-const RELEVANCE_THRESHOLD = 0.3
+// 0.35로 상향: 관련 없는 문서 필터링 강화
+const RELEVANCE_THRESHOLD = 0.35
 
 export class VectorStore {
   private vectorStore: QdrantVectorStore | null = null
@@ -59,6 +79,29 @@ export class VectorStore {
         dimensions: 3072
       })
     }
+  }
+
+  /**
+   * 캐싱된 쿼리 임베딩 (TTFT 최적화)
+   * 동일 쿼리 반복 시 OpenAI API 호출 생략
+   */
+  private async getCachedEmbedding(query: string): Promise<number[]> {
+    if (!this.embeddings) {
+      throw new Error('Embeddings not initialized')
+    }
+
+    const cacheKey = getCacheKey(query, this.collectionName)
+    const cached = embeddingCache.get(cacheKey)
+
+    if (cached) {
+      console.log(`VectorStore: Embedding cache HIT for "${query.slice(0, 30)}..."`)
+      return cached
+    }
+
+    const embedding = await this.embeddings.embedQuery(query)
+    embeddingCache.set(cacheKey, embedding)
+    console.log(`VectorStore: Embedding cache MISS, cached "${query.slice(0, 30)}..."`)
+    return embedding
   }
 
   async initialize(): Promise<void> {
@@ -204,9 +247,9 @@ export class VectorStore {
     }
 
     try {
-      // 1. Dense 벡터 생성 및 검색
+      // 1. Dense 벡터 생성 및 검색 (캐싱 적용)
       const fetchK = Math.max(topK * 5, 30)
-      const denseVector = await this.embeddings.embedQuery(query)
+      const denseVector = await this.getCachedEmbedding(query)
 
       const results = await this.qdrantClient.query(this.collectionName, {
         query: denseVector,
@@ -286,8 +329,8 @@ export class VectorStore {
       const prefetchLimit = options?.prefetchLimit ?? topK * 2
       const denseFallback = options?.denseFallback ?? true
 
-      // 1. Dense vector 생성
-      const denseVector = await this.embeddings.embedQuery(query)
+      // 1. Dense vector 생성 (캐싱 적용)
+      const denseVector = await this.getCachedEmbedding(query)
 
       // 2. Sparse vector 생성 (BM25)
       const bm25Engine = getBM25Engine()
@@ -343,8 +386,23 @@ export class VectorStore {
 
       console.log(`VectorStore: Hybrid returned ${results.points.length} results`)
 
-      // 4. 결과 매핑
-      return this.mapQdrantResults(results.points)
+      // 4. 점수 필터링 (관련성 threshold 적용)
+      const filtered = results.points.filter((p) => (p.score ?? 0) > RELEVANCE_THRESHOLD)
+
+      // 5. 중복 제거 (같은 문서의 다른 청크)
+      const seen = new Set<string>()
+      const deduplicated = filtered.filter((point) => {
+        const payload = point.payload as Record<string, unknown> | null
+        const key = (payload?.title as string) || (payload?.docId as string) || String(point.id)
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+
+      console.log(`VectorStore: After filtering: ${deduplicated.length} unique results`)
+
+      // 6. 결과 매핑
+      return this.mapQdrantResults(deduplicated)
     } catch (error) {
       console.error('Hybrid search failed:', error)
       // 에러 시 기존 searchDiverse로 폴백

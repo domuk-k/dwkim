@@ -14,6 +14,7 @@ import { type ConversationLimiter, THRESHOLDS } from './conversationLimiter'
 import { ConversationStore } from './conversationStore'
 import type { ChatMessage } from './llmService'
 import { PersonaEngine, type RAGResponse, type RAGStreamEvent } from './personaAgent'
+import { getUXLogService, type UXLogEntry } from './uxLogService'
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -77,6 +78,68 @@ export interface ChatContext {
   clientIp: string
   userAgent?: string
   deviceId?: string
+}
+
+// ─────────────────────────────────────────────────────────────
+// UX Log Helper
+// ─────────────────────────────────────────────────────────────
+
+interface UXLogParams {
+  requestId: string
+  context: ChatContext
+  sessionId: string
+  message: string
+  historyLength: number
+  answer: string
+  sourcesCount: number
+  processingTimeMs: number
+  metadata?: Record<string, unknown> | null
+}
+
+/**
+ * UX 로그 엔트리 생성 (fire-and-forget)
+ */
+function saveUXLog(params: UXLogParams): void {
+  const {
+    requestId,
+    context,
+    sessionId,
+    message,
+    historyLength,
+    answer,
+    sourcesCount,
+    processingTimeMs,
+    metadata
+  } = params
+
+  const rewriteMethod = (metadata?.rewriteMethod as 'rule' | 'llm' | 'none') || 'none'
+  const hasRewrite = Boolean(metadata?.originalQuery)
+
+  const uxLogEntry: UXLogEntry = {
+    id: requestId,
+    timestamp: new Date().toISOString(),
+    deviceId: context.deviceId,
+    sessionId,
+    clientIp: context.clientIp,
+    userMessage: message,
+    rewrittenQuery: hasRewrite ? String(metadata?.searchQuery) : undefined,
+    rewriteMethod,
+    historyLength,
+    answerPreview: answer.slice(0, 500),
+    answerLength: answer.length,
+    sourcesCount,
+    sourceIds: [],
+    processingTimeMs,
+    nodeExecutions: metadata?.nodeExecutions as number | undefined,
+    totalTokens: metadata?.totalTokens as number | undefined
+  }
+
+  // Fire-and-forget: 응답 지연 방지
+  getUXLogService()
+    .logInteraction(uxLogEntry)
+    .catch((error) => {
+      console.warn('Failed to save UX log:', error)
+    })
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -177,8 +240,10 @@ export class ChatService {
     const sessionId = this.getSessionId(inputSessionId, context.clientIp)
     const history = await this.getHistory(sessionId, inputSessionId, clientHistory)
 
-    // 사용자 메시지 저장
-    await this.conversationStore.addMessage(sessionId, 'user', message)
+    // 사용자 메시지 저장 (fire-and-forget: 응답 지연 방지)
+    this.conversationStore.addMessage(sessionId, 'user', message).catch((err) => {
+      console.warn('Failed to save user message:', err)
+    })
 
     // 로그 엔트리
     const logEntry: ChatLogEntry = {
@@ -236,6 +301,19 @@ export class ChatService {
     }
     logChatResponse(logEntry)
 
+    // UX 로그 저장 (fire-and-forget)
+    saveUXLog({
+      requestId,
+      context,
+      sessionId,
+      message,
+      historyLength: history.length,
+      answer,
+      sourcesCount: Array.isArray(sources) ? sources.length : 0,
+      processingTimeMs,
+      metadata: metadata as Record<string, unknown>
+    })
+
     return {
       success: true,
       data: {
@@ -261,13 +339,18 @@ export class ChatService {
     context: ChatContext
   ): AsyncGenerator<ChatStreamEvent> {
     const { message, sessionId: inputSessionId, conversationHistory: clientHistory = [] } = request
+    const requestId = generateRequestId()
+    const startTime = Date.now()
 
     const sessionId = this.getSessionId(inputSessionId, context.clientIp)
     const history = await this.getHistory(sessionId, inputSessionId, clientHistory)
 
-    // 사용자 메시지 저장
-    await this.conversationStore.addMessage(sessionId, 'user', message)
+    // 사용자 메시지 저장 (fire-and-forget: 스트리밍 시작 블로킹 제거)
+    this.conversationStore.addMessage(sessionId, 'user', message).catch((err) => {
+      console.warn('Failed to save user message:', err)
+    })
     let fullAnswer = ''
+    let lastMetadata: Record<string, unknown> | null = null
 
     // 세션 시작 이벤트
     yield { type: 'session', sessionId }
@@ -280,6 +363,7 @@ export class ChatService {
         }
         // done 이벤트에 shouldSuggestContact 추가
         if (event.type === 'done' && event.metadata) {
+          lastMetadata = event.metadata
           const messageCount = await this.conversationStore.getMessageCount(sessionId)
           const shouldSuggestContact = messageCount >= THRESHOLDS.SUGGEST_CONTACT
           console.log(
@@ -305,6 +389,19 @@ export class ChatService {
     if (fullAnswer) {
       await this.conversationStore.addMessage(sessionId, 'assistant', fullAnswer)
     }
+
+    // UX 로그 저장 (fire-and-forget)
+    saveUXLog({
+      requestId,
+      context,
+      sessionId,
+      message,
+      historyLength: history.length,
+      answer: fullAnswer,
+      sourcesCount: Number(lastMetadata?.searchResults || 0),
+      processingTimeMs: Date.now() - startTime,
+      metadata: lastMetadata
+    })
   }
 
   /**

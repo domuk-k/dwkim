@@ -24,12 +24,13 @@ export interface SEUResult {
   shouldEscalate: boolean
 }
 
-// Uncertainty threshold (0.5 = 50% similarity 이하면 불확실)
-const UNCERTAINTY_THRESHOLD = 0.4
+// Uncertainty threshold (더 적극적인 clarification 트리거)
+// 0.35 = 35% 불확실성 이상이면 clarification 제안
+const UNCERTAINTY_THRESHOLD = 0.35
 
-// Human Escalation threshold (더 높은 불확실성 → 사람에게 연결)
-// clarification(0.4)보다 높은 값으로, 정말 불확실할 때만 트리거
-export const ESCALATION_THRESHOLD = 0.7
+// Human Escalation threshold (사람에게 연결)
+// 0.65 = 65% 불확실성 이상이면 연락 유도
+export const ESCALATION_THRESHOLD = 0.65
 
 // 빠른 응답을 위한 짧은 프롬프트
 const QUICK_RESPONSE_SYSTEM = `당신은 김동욱에 대한 질문에 **한 문장**으로 핵심만 답변하는 AI입니다.

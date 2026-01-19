@@ -40,6 +40,7 @@ const envSchema = z
 
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    LOGTAIL_TOKEN: z.string().optional(),
 
     // CORS
     ALLOWED_ORIGINS: z.string().optional(),
@@ -60,7 +61,10 @@ const envSchema = z
     API_HOST: z.string().default('localhost:3000'),
 
     // NPM (optional, set by package.json)
-    npm_package_version: z.string().optional()
+    npm_package_version: z.string().optional(),
+
+    // Admin API Key (for logs endpoint)
+    ADMIN_API_KEY: z.string().optional()
   })
   .refine(
     (data) =>

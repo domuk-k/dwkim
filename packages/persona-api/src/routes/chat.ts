@@ -1,445 +1,215 @@
 /**
- * Chat Routes - 슬림화된 라우트 정의
- *
- * 비즈니스 로직은 ChatService로 분리됨
- * 라우트는 입출력 처리와 에러 핸들링만 담당
+ * Chat Routes - Elysia
  */
 
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { z } from 'zod'
+import { Elysia, t } from 'elysia'
 import { type ChatContext, ChatRequestSchema, createChatService } from '../services/chatService'
 import { getContactService } from '../services/contactService'
 import { getConversationLimiter } from '../services/conversationLimiter'
 import { getConversationStore } from '../services/conversationStore'
 import { getDeviceService } from '../services/deviceService'
 
-// Feature flag removed - now using LangGraph RAGEngine
+// ─────────────────────────────────────────────────────────────
+// Validation Schemas (Elysia/TypeBox)
+// ─────────────────────────────────────────────────────────────
+const chatBodySchema = t.Object({
+  message: t.String({ minLength: 1, maxLength: 1000 }),
+  sessionId: t.Optional(t.String()),
+  conversationHistory: t.Optional(
+    t.Array(
+      t.Object({
+        role: t.Union([t.Literal('user'), t.Literal('assistant')]),
+        content: t.String()
+      })
+    )
+  ),
+  options: t.Optional(
+    t.Object({
+      maxSearchResults: t.Optional(t.Number({ minimum: 1, maximum: 10 })),
+      includeSources: t.Optional(t.Boolean())
+    })
+  )
+})
+
+const contactBodySchema = t.Object({
+  email: t.String({ format: 'email' }),
+  name: t.Optional(t.String()),
+  message: t.Optional(t.String()),
+  sessionId: t.Optional(t.String())
+})
+
+const searchQuerySchema = t.Object({
+  q: t.String({ minLength: 1 }),
+  limit: t.Optional(t.Number({ minimum: 1, maximum: 20, default: 5 }))
+})
 
 // ─────────────────────────────────────────────────────────────
-// OpenAPI Schemas
+// Helper
 // ─────────────────────────────────────────────────────────────
-
-const chatBodySchema = {
-  type: 'object',
-  required: ['message'],
-  properties: {
-    message: {
-      type: 'string',
-      description: '사용자 메시지',
-      minLength: 1,
-      maxLength: 1000
-    },
-    sessionId: {
-      type: 'string',
-      description: '세션 ID (서버사이드 히스토리용)'
-    },
-    conversationHistory: {
-      type: 'array',
-      description: '대화 히스토리 (레거시)',
-      items: {
-        type: 'object',
-        properties: {
-          role: { type: 'string', enum: ['user', 'assistant'] },
-          content: { type: 'string' }
-        }
-      }
-    },
-    options: {
-      type: 'object',
-      properties: {
-        maxSearchResults: {
-          type: 'number',
-          minimum: 1,
-          maximum: 10,
-          default: 5
-        },
-        includeSources: {
-          type: 'boolean',
-          default: true
-        }
-      }
-    }
-  }
-}
-
-const chatResponseSchema = {
-  type: 'object',
-  properties: {
-    success: { type: 'boolean' },
-    data: {
-      type: 'object',
-      properties: {
-        answer: { type: 'string' },
-        sessionId: { type: 'string' },
-        shouldSuggestContact: { type: 'boolean' },
-        sources: { type: 'array' },
-        usage: {
-          type: 'object',
-          properties: {
-            promptTokens: { type: 'number' },
-            completionTokens: { type: 'number' },
-            totalTokens: { type: 'number' }
-          }
-        },
-        metadata: {
-          type: 'object',
-          properties: {
-            searchQuery: { type: 'string' },
-            searchResults: { type: 'number' },
-            processingTime: { type: 'number' }
-          }
-        }
-      }
-    },
-    error: { type: 'string' }
+function getContext(request: Request): ChatContext {
+  return {
+    clientIp:
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown',
+    userAgent: request.headers.get('user-agent') || undefined,
+    deviceId: request.headers.get('x-device-id') || undefined
   }
 }
 
 // ─────────────────────────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────────────────────────
-
-export default async function chatRoutes(fastify: FastifyInstance) {
-  // ChatService 생성 (DI 패턴 - 싱글턴 없이 직접 인스턴스 관리)
-  const conversationStore = getConversationStore()
-  const conversationLimiter = getConversationLimiter()
-  const contactService = getContactService()
-  const deviceService = getDeviceService()
-
-  const chatService = await createChatService(
-    conversationStore,
-    conversationLimiter,
-    contactService
-  )
-
-  // Helper: context 추출 (Device ID 포함)
-  const getContext = (request: FastifyRequest): ChatContext => ({
-    clientIp: request.ip,
-    userAgent: request.headers['user-agent'],
-    deviceId: request.headers['x-device-id'] as string | undefined
+export const chatRoutes = new Elysia({ prefix: '/api/v1' })
+  // Lazy init ChatService
+  .derive(async () => {
+    const conversationStore = getConversationStore()
+    const conversationLimiter = getConversationLimiter()
+    const contactService = getContactService()
+    const chatService = await createChatService(
+      conversationStore,
+      conversationLimiter,
+      contactService
+    )
+    return { chatService, deviceService: getDeviceService() }
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // POST /chat - 일반 채팅
-  // ─────────────────────────────────────────────────────────────
-  fastify.post(
+  // POST /api/v1/chat
+  .post(
     '/chat',
-    {
-      schema: {
-        description: '개인화된 RAG 기반 채팅 API',
-        tags: ['Chat'],
-        body: chatBodySchema,
-        response: { 200: chatResponseSchema }
-      }
-    },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async ({ body, request, chatService, deviceService, set }) => {
       const context = getContext(request)
 
       try {
         // IP 차단 확인
         const blocked = await chatService.checkBlocked(context.clientIp)
         if (blocked) {
-          return reply.status(429).send(blocked)
+          set.status = 429
+          return blocked
         }
 
-        // 입력 검증
-        const validatedData = ChatRequestSchema.parse(request.body)
+        // Zod 검증 (추가 검증)
+        const validatedData = ChatRequestSchema.parse(body)
 
-        // Device 활동 추적 (비동기, 실패해도 요청은 계속)
+        // Device 활동 추적
         if (context.deviceId && deviceService) {
           deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
-            console.warn('Device tracking failed:', {
-              deviceId: context.deviceId?.slice(0, 8),
-              error: error instanceof Error ? error.message : String(error)
-            })
+            console.warn('Device tracking failed:', error)
           })
         }
 
-        // 채팅 처리
-        const response = await chatService.handleChat(validatedData, context)
-        return reply.send(response)
+        return await chatService.handleChat(validatedData, context)
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          console.warn('Chat validation failed:', {
-            clientIp: context.clientIp,
-            errors: error.errors.map((e) => e.message)
-          })
-
-          return reply.status(400).send({
-            success: false,
-            error: '입력 데이터 검증 실패',
-            details: error.errors
-          })
-        }
-
         console.error('Chat API error:', error)
-        return reply.status(500).send({
-          success: false,
-          error: '서버 내부 오류가 발생했습니다.'
-        })
-      }
-    }
-  )
-
-  // ─────────────────────────────────────────────────────────────
-  // POST /chat/stream - 스트리밍 채팅 (SSE)
-  // ─────────────────────────────────────────────────────────────
-  fastify.post(
-    '/chat/stream',
-    {
-      schema: {
-        description: '스트리밍 RAG 채팅 API (Server-Sent Events)',
-        tags: ['Chat'],
-        body: chatBodySchema
+        set.status = 500
+        return { success: false, error: '서버 내부 오류가 발생했습니다.' }
       }
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    { body: chatBodySchema }
+  )
+
+  // POST /api/v1/chat/stream (SSE)
+  .post(
+    '/chat/stream',
+    async function* ({ body, request, chatService, deviceService, set }) {
       const context = getContext(request)
 
       try {
-        // IP 차단 확인 (스트리밍에서도 동일하게 적용)
+        // IP 차단 확인
         const blocked = await chatService.checkBlocked(context.clientIp)
         if (blocked) {
-          return reply.status(429).send(blocked)
+          set.status = 429
+          yield `data: ${JSON.stringify({ type: 'error', error: 'Rate limit exceeded' })}\n\n`
+          return
         }
 
-        const validatedData = ChatRequestSchema.parse(request.body)
+        const validatedData = ChatRequestSchema.parse(body)
 
-        // Device 활동 추적 (비동기, 실패해도 스트리밍은 계속)
+        // Device 활동 추적
         if (context.deviceId && deviceService) {
           deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
-            console.warn('Device tracking failed:', {
-              deviceId: context.deviceId?.slice(0, 8),
-              error: error instanceof Error ? error.message : String(error)
-            })
+            console.warn('Device tracking failed:', error)
           })
         }
 
         // SSE 헤더 설정
-        reply.raw.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-          'Access-Control-Allow-Origin': '*'
-        })
+        set.headers['Content-Type'] = 'text/event-stream'
+        set.headers['Cache-Control'] = 'no-cache'
+        set.headers['Connection'] = 'keep-alive'
 
-        // 스트리밍 처리 (개별 이벤트 에러 핸들링)
-        try {
-          for await (const event of chatService.handleStreamChat(validatedData, context)) {
-            if (!reply.raw.writableEnded) {
-              reply.raw.write(`data: ${JSON.stringify(event)}\n\n`)
-            }
-          }
-        } catch (streamError) {
-          console.error('Stream iteration error:', streamError)
-          // 스트림 중 에러 발생 시 에러 이벤트 전송
-          if (!reply.raw.writableEnded) {
-            reply.raw.write(
-              `data: ${JSON.stringify({
-                type: 'error',
-                error: '스트리밍 중 오류가 발생했습니다.'
-              })}\n\n`
-            )
-          }
-        }
-
-        if (!reply.raw.writableEnded) {
-          reply.raw.end()
+        for await (const event of chatService.handleStreamChat(validatedData, context)) {
+          yield `data: ${JSON.stringify(event)}\n\n`
         }
       } catch (error) {
         console.error('Stream chat error:', error)
-
-        if (error instanceof z.ZodError) {
-          console.warn('Stream validation failed:', {
-            clientIp: context.clientIp,
-            errors: error.errors.map((e) => e.message)
-          })
-
-          return reply.status(400).send({
-            success: false,
-            error: '입력 데이터 검증 실패'
-          })
-        }
-
-        // 헤더가 아직 전송되지 않은 경우
-        if (!reply.raw.headersSent) {
-          return reply.status(500).send({
-            success: false,
-            error: '서버 오류가 발생했습니다.'
-          })
-        }
-
-        // 헤더가 이미 전송된 경우 SSE 에러 이벤트
-        if (!reply.raw.writableEnded) {
-          reply.raw.write(`data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`)
-          reply.raw.end()
-        }
-      }
-    }
-  )
-
-  // ─────────────────────────────────────────────────────────────
-  // GET /search - 문서 검색
-  // ─────────────────────────────────────────────────────────────
-  fastify.get(
-    '/search',
-    {
-      schema: {
-        description: '문서 검색 API',
-        tags: ['Search'],
-        querystring: {
-          type: 'object',
-          required: ['q'],
-          properties: {
-            q: {
-              type: 'string',
-              description: '검색 쿼리',
-              minLength: 1
-            },
-            limit: {
-              type: 'number',
-              description: '검색 결과 수',
-              minimum: 1,
-              maximum: 20,
-              default: 5
-            }
-          }
-        }
+        yield `data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`
       }
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    { body: chatBodySchema }
+  )
+
+  // GET /api/v1/search
+  .get(
+    '/search',
+    async ({ query, chatService, set }) => {
       try {
-        const { q, limit = 5 } = request.query as { q: string; limit?: number }
+        const q = query.q
+        const limit = query.limit || 5
         const results = await chatService.searchDocuments(q, limit)
 
-        return reply.send({
+        return {
           success: true,
-          data: {
-            query: q,
-            results,
-            count: results.length
-          }
-        })
+          data: { query: q, results, count: results.length }
+        }
       } catch (error) {
         console.error('Search API error:', error)
-        return reply.status(500).send({
-          success: false,
-          error: '검색 중 오류가 발생했습니다.'
-        })
-      }
-    }
-  )
-
-  // ─────────────────────────────────────────────────────────────
-  // GET /status - 엔진 상태
-  // ─────────────────────────────────────────────────────────────
-  fastify.get(
-    '/status',
-    {
-      schema: {
-        description: 'RAG 엔진 상태 확인',
-        tags: ['System']
+        set.status = 500
+        return { success: false, error: '검색 중 오류가 발생했습니다.' }
       }
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const status = await chatService.getEngineStatus()
-
-        return reply.send({
-          success: status.status === 'ready',
-          data: {
-            ...status,
-            timestamp: new Date().toISOString()
-          }
-        })
-      } catch (error) {
-        console.error('Status check error:', error)
-        return reply.status(500).send({
-          success: false,
-          error: '상태 확인 중 오류가 발생했습니다.'
-        })
-      }
-    }
+    { query: searchQuerySchema }
   )
 
-  // ─────────────────────────────────────────────────────────────
-  // POST /contact - 연락처 수집
-  // ─────────────────────────────────────────────────────────────
-  fastify.post(
+  // GET /api/v1/status
+  .get('/status', async ({ chatService }) => {
+    try {
+      const status = await chatService.getEngineStatus()
+      return {
+        success: status.status === 'ready',
+        data: { ...status, timestamp: new Date().toISOString() }
+      }
+    } catch (error) {
+      console.error('Status check error:', error)
+      return { success: false, error: '상태 확인 중 오류가 발생했습니다.' }
+    }
+  })
+
+  // POST /api/v1/contact
+  .post(
     '/contact',
-    {
-      schema: {
-        description: '연락처 수집 API (리드 캡처)',
-        tags: ['Chat'],
-        body: {
-          type: 'object',
-          required: ['email'],
-          properties: {
-            email: {
-              type: 'string',
-              format: 'email',
-              description: '이메일 주소'
-            },
-            name: {
-              type: 'string',
-              description: '이름 (선택)'
-            },
-            message: {
-              type: 'string',
-              description: '전달할 메시지 (선택)'
-            },
-            sessionId: {
-              type: 'string',
-              description: '세션 ID'
-            }
-          }
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' }
-            }
-          }
-        }
-      }
-    },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async ({ body, request, chatService, deviceService, set }) => {
       const context = getContext(request)
 
       try {
-        const body = request.body as {
-          email: string
-          name?: string
-          message?: string
-          sessionId?: string
-        }
-
         const result = await chatService.collectContact(body.email, context, {
           name: body.name,
           message: body.message,
           sessionId: body.sessionId
         })
 
-        // Device-Email 연결 (비동기, 실패해도 응답은 계속)
+        // Device-Email 연결
         if (context.deviceId && deviceService) {
           deviceService.linkEmail(context.deviceId, body.email).catch((error) => {
-            console.warn('Device-email linking failed:', {
-              deviceId: context.deviceId?.slice(0, 8),
-              error: error instanceof Error ? error.message : String(error)
-            })
+            console.warn('Device-email linking failed:', error)
           })
         }
 
-        return reply.send(result)
+        return result
       } catch (error) {
         console.error('Contact collection error:', error)
-        return reply.status(500).send({
-          success: false,
-          error: '연락처 저장 중 오류가 발생했습니다.'
-        })
+        set.status = 500
+        return { success: false, error: '연락처 저장 중 오류가 발생했습니다.' }
       }
-    }
+    },
+    { body: contactBodySchema }
   )
-}

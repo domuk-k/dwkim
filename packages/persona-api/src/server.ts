@@ -1,335 +1,184 @@
-import cors from '@fastify/cors'
-import rateLimit, { type RateLimitOptions } from '@fastify/rate-limit'
-import fastifyRedis from '@fastify/redis'
-import swagger from '@fastify/swagger'
-import swaggerUi from '@fastify/swagger-ui'
-import Fastify, { type FastifyRequest } from 'fastify'
-import Redis from 'ioredis'
+import { bearer } from '@elysiajs/bearer'
+import { cors } from '@elysiajs/cors'
+import { swagger } from '@elysiajs/swagger'
+import { Elysia } from 'elysia'
 import { env } from './config/env'
 import { createRedisClient, type IRedisClient } from './infra/redis'
-import { AbuseDetection } from './middleware/abuseDetection'
-import { RateLimiter } from './middleware/rateLimit'
-import chatRoutes from './routes/chat'
-import correctionRoutes from './routes/correction'
-import feedbackRoutes from './routes/feedback'
-import healthRoutes from './routes/health'
-import syncRoutes from './routes/sync'
+import { chatRoutes } from './routes/chat'
+import { correctionRoutes } from './routes/correction'
+import { feedbackRoutes } from './routes/feedback'
+import { healthRoutes } from './routes/health'
+import { logsRoutes } from './routes/logs'
+import { syncRoutes } from './routes/sync'
 import { initContactService } from './services/contactService'
 import { initConversationLimiter } from './services/conversationLimiter'
 import { initConversationStore } from './services/conversationStore'
 import { initCorrectionService } from './services/correctionService'
 import { initDeviceService } from './services/deviceService'
 import { initFeedbackService } from './services/feedbackService'
+import { initUXLogService } from './services/uxLogService'
 
+// ─────────────────────────────────────────────────────────────
+// Rate Limiting (In-Memory)
+// ─────────────────────────────────────────────────────────────
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
+
+function rateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now()
+  const windowMs = env.RATE_LIMIT_WINDOW_MS
+  const max = env.RATE_LIMIT_MAX
+
+  const entry = rateLimitStore.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(ip, { count: 1, resetAt: now + windowMs })
+    return { allowed: true }
+  }
+
+  if (entry.count >= max) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
+  }
+
+  entry.count++
+  return { allowed: true }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Server Factory
+// ─────────────────────────────────────────────────────────────
 export async function createServer() {
-  const fastify = Fastify({
-    logger: {
-      level: env.LOG_LEVEL
-    }
-  })
-
-  // CORS 설정
-  await fastify.register(cors, {
-    origin: env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
-    credentials: true
-  })
-
-  // Redis 설정 (선택적)
-  // - ioredis client: Fastify 플러그인용 (rate-limit, redis 플러그인)
-  // - IRedisClient: 서비스용 (추상화 + MemoryClient 폴백)
-  let ioredisClient: Redis | null = null
-  let serviceRedisClient: IRedisClient | null = null
+  // Redis 초기화
+  let serviceRedisClient: IRedisClient
 
   if (env.REDIS_URL) {
     try {
-      const redisOptions = {
-        connectTimeout: 5000,
-        commandTimeout: 5000,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-        retryDelayOnFailover: 100
-      }
-
-      ioredisClient = new Redis(env.REDIS_URL, redisOptions)
-
-      // 연결 테스트
-      await ioredisClient.ping()
-      console.log('✅ Redis connected successfully')
-
-      // Redis 플러그인 등록 (ioredis 필요)
-      await fastify.register(fastifyRedis, { client: ioredisClient })
-
-      // 서비스용 RedisClient 생성
       serviceRedisClient = createRedisClient(env.REDIS_URL)
+      console.log('✅ Redis connected successfully')
     } catch (error) {
       console.warn('⚠️  Redis connection failed, using memory fallback:', error)
-      ioredisClient = null
-      serviceRedisClient = createRedisClient() // MemoryClient 폴백
+      serviceRedisClient = createRedisClient()
     }
   } else {
     console.log('ℹ️  No REDIS_URL provided, using memory fallback')
-    serviceRedisClient = createRedisClient() // MemoryClient 폴백
+    serviceRedisClient = createRedisClient()
   }
 
-  // 서비스 초기화 (IRedisClient 사용)
+  // 서비스 초기화
   initConversationStore(serviceRedisClient)
   initContactService(serviceRedisClient)
   initConversationLimiter(serviceRedisClient)
   initDeviceService(serviceRedisClient)
   initFeedbackService(serviceRedisClient)
   initCorrectionService(serviceRedisClient)
+  initUXLogService(serviceRedisClient)
 
-  // Rate Limiting (Redis 선택적)
-  const rateLimitConfig: RateLimitOptions & { redis?: Redis } = {
-    max: env.RATE_LIMIT_MAX,
-    timeWindow: env.RATE_LIMIT_WINDOW_MS,
-    errorResponseBuilder: (_request: FastifyRequest, context: { after: string }) => ({
-      code: 429,
-      error: 'Too Many Requests',
-      message: `Rate limit exceeded, retry in ${context.after}`,
-      expiresIn: context.after
-    }),
-    // 내부/인프라 경로는 rate limit 제외
-    allowList: (request: FastifyRequest) => {
-      const url = request.url || ''
-      return (
-        url === '/health' ||
-        url.startsWith('/health/') ||
-        url.startsWith('/sync/') ||
-        url.startsWith('/api/v1/sync/')
-      )
-    }
-  }
-
-  // Redis가 있으면 Redis 기반, 없으면 메모리 기반 Rate Limiting
-  if (ioredisClient) {
-    rateLimitConfig.redis = ioredisClient
-    console.log('🚦 Rate limiting with Redis')
-  } else {
-    console.log('🚦 Rate limiting with memory store')
-  }
-
-  await fastify.register(rateLimit, rateLimitConfig)
-
-  // 커스텀 미들웨어 등록 (Redis 선택적)
-  const rateLimiter = ioredisClient
-    ? new RateLimiter(ioredisClient, {
-        windowMs: 15 * 60 * 1000, // 15분
-        max: 200 // 최대 200개 요청
+  const app = new Elysia()
+    // CORS
+    .use(
+      cors({
+        origin: env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+        credentials: true
       })
-    : null
-
-  const abuseDetection = ioredisClient
-    ? new AbuseDetection(ioredisClient, {
-        suspiciousPatterns: [/<script/i, /javascript:/i, /on\w+\s*=/i, /eval\(/i],
-        maxConsecutiveErrors: 10,
-        blockDuration: 10 * 60 * 1000 // 10분
+    )
+    // Bearer token 지원
+    .use(bearer())
+    // Swagger
+    .use(
+      swagger({
+        documentation: {
+          info: {
+            title: 'Persona API',
+            description: '개인화된 RAG+LLM 기반 챗봇 API',
+            version: env.npm_package_version || '1.0.0'
+          },
+          tags: [
+            { name: 'Health', description: '헬스체크 관련 엔드포인트' },
+            { name: 'Chat', description: '채팅 관련 엔드포인트' },
+            { name: 'Search', description: '문서 검색 엔드포인트' },
+            { name: 'Sync', description: 'Cogni 노트 동기화 엔드포인트' },
+            { name: 'Feedback', description: 'HITL 피드백 수집 엔드포인트' },
+            { name: 'Logs', description: 'UX 로그 엔드포인트' }
+          ]
+        },
+        path: '/docs'
       })
-    : null
+    )
+    // Rate Limiting (제외 경로: health, sync)
+    .onBeforeHandle(({ request, set }) => {
+      const url = new URL(request.url)
+      const path = url.pathname
 
-  // 미들웨어 적용 (Redis가 있을 때만)
-  if (rateLimiter && abuseDetection) {
-    fastify.addHook('preHandler', async (request, reply) => {
-      const clientIp = request.ip
-      const url = request.url || ''
-
-      // 내부/인프라 경로는 rate limit 건너뛰기
-      const isExemptRoute =
-        url === '/health' ||
-        url.startsWith('/health/') ||
-        url.startsWith('/sync/') ||
-        url.startsWith('/api/v1/sync/')
-
-      // Rate limiting 체크 (제외 경로 외)
-      if (!isExemptRoute) {
-        const rateLimitResult = await rateLimiter.checkLimit(clientIp)
-        if (!rateLimitResult.allowed) {
-          return reply.status(429).send({
-            error: 'Rate limit exceeded',
-            retryAfter: rateLimitResult.retryAfter
-          })
-        }
-      }
-
-      // Abuse detection 체크 (제외 경로는 abuseDetection 내부에서 예외 처리됨)
-      const abuseResult = await abuseDetection.checkAbuse(request, reply)
-      if (!abuseResult) {
+      // 제외 경로
+      if (
+        path === '/health' ||
+        path.startsWith('/health/') ||
+        path.startsWith('/sync/') ||
+        path.startsWith('/api/v1/sync/')
+      ) {
         return
       }
+
+      // Rate limit 체크
+      const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+        request.headers.get('x-real-ip') ||
+        'unknown'
+
+      const result = rateLimit(ip)
+      if (!result.allowed) {
+        set.status = 429
+        return {
+          error: 'Too Many Requests',
+          message: `Rate limit exceeded, retry in ${result.retryAfter}s`,
+          retryAfter: result.retryAfter
+        }
+      }
+      return undefined
     })
-    console.log('🛡️  Custom middleware enabled')
-  } else {
-    console.log('ℹ️  Custom middleware disabled (no Redis)')
-  }
+    // Error Handler
+    .onError(({ code, error, set }) => {
+      console.error('Error:', error)
 
-  // Swagger 설정
-  await fastify.register(swagger, {
-    swagger: {
-      info: {
-        title: 'Persona API',
-        description: '개인화된 RAG+LLM 기반 챗봇 API',
-        version: '1.0.0',
-        contact: {
-          name: 'dwkim',
-          email: 'dwkim@example.com'
-        }
-      },
-      host: env.API_HOST,
-      schemes: ['http', 'https'],
-      consumes: ['application/json'],
-      produces: ['application/json'],
-      tags: [
-        { name: 'Health', description: '헬스체크 관련 엔드포인트' },
-        { name: 'Chat', description: '채팅 관련 엔드포인트' },
-        { name: 'Search', description: '문서 검색 엔드포인트' },
-        { name: 'Sync', description: 'Cogni 노트 동기화 엔드포인트' },
-        { name: 'Feedback', description: 'HITL 피드백 수집 엔드포인트' },
-        { name: 'System', description: '시스템 관리 엔드포인트' }
-      ],
-      securityDefinitions: {
-        apiKey: {
-          type: 'apiKey',
-          name: 'X-API-Key',
-          in: 'header'
+      if (code === 'VALIDATION') {
+        set.status = 400
+        return {
+          error: 'Validation Error',
+          message: '입력 데이터 검증에 실패했습니다.',
+          details: error.message
         }
       }
-    }
-  })
 
-  await fastify.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true
-    },
-    uiHooks: {
-      onRequest: (_request, _reply, next) => {
-        next()
-      },
-      preHandler: (_request, _reply, next) => {
-        next()
-      }
-    },
-    staticCSP: true,
-    transformStaticCSP: (header) => header
-  })
-
-  // 라우트 등록
-  await fastify.register(healthRoutes, { prefix: '/health' })
-  await fastify.register(chatRoutes, { prefix: '/api/v1' })
-  await fastify.register(syncRoutes, { prefix: '/api/v1' })
-  await fastify.register(feedbackRoutes, { prefix: '/api/v1/feedback' })
-  await fastify.register(correctionRoutes, { prefix: '/api/v1/correction' })
-
-  // Root endpoint
-  fastify.get(
-    '/',
-    {
-      schema: {
-        tags: ['Health'],
-        summary: 'Root endpoint',
-        description: 'Returns basic API information',
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              name: { type: 'string', example: 'Persona API' },
-              version: { type: 'string', example: '1.0.0' },
-              description: { type: 'string' },
-              docs: { type: 'string' }
-            }
-          }
+      if (code === 'NOT_FOUND') {
+        set.status = 404
+        return {
+          error: 'Not Found',
+          message: '요청한 리소스를 찾을 수 없습니다.'
         }
       }
-    },
-    async () => ({
+
+      set.status = 500
+      return {
+        error: 'Internal Server Error',
+        message: '서버 내부 오류가 발생했습니다.'
+      }
+    })
+    // Root
+    .get('/', () => ({
       name: 'Persona API',
-      version: '1.0.0',
+      version: env.npm_package_version || '1.0.0',
       description: 'Personalized RAG+LLM Chatbot API for dwkim persona',
       docs: '/docs'
-    })
-  )
+    }))
+    // Routes
+    .use(healthRoutes)
+    .use(chatRoutes)
+    .use(syncRoutes)
+    .use(feedbackRoutes)
+    .use(correctionRoutes)
+    .use(logsRoutes)
 
-  // 전역 에러 핸들러
-  fastify.setErrorHandler((error, _request, reply) => {
-    fastify.log.error(error)
-
-    if (error.validation) {
-      return reply.status(400).send({
-        error: 'Validation Error',
-        message: '입력 데이터 검증에 실패했습니다.',
-        details: error.validation
-      })
-    }
-
-    if (error.statusCode) {
-      return reply.status(error.statusCode).send({
-        error: error.name,
-        message: error.message
-      })
-    }
-
-    return reply.status(500).send({
-      error: 'Internal Server Error',
-      message: '서버 내부 오류가 발생했습니다.'
-    })
-  })
-
-  // 404 핸들러
-  fastify.setNotFoundHandler((request, reply) => {
-    reply.status(404).send({
-      error: 'Not Found',
-      message: '요청한 리소스를 찾을 수 없습니다.',
-      path: request.url
-    })
-  })
-
-  // Graceful shutdown 함수 생성
-  const gracefulShutdown = async (): Promise<void> => {
-    console.log('🔄 Graceful shutdown 시작...')
-
-    // 1. In-memory 데이터를 Redis로 동기화
-    if (rateLimiter) {
-      try {
-        await rateLimiter.syncToRedis()
-        console.log('✅ RateLimiter 데이터 동기화 완료')
-      } catch (error) {
-        console.error('❌ RateLimiter 동기화 실패:', error)
-      }
-    }
-
-    if (abuseDetection) {
-      try {
-        await abuseDetection.syncToRedis()
-        console.log('✅ AbuseDetection 데이터 동기화 완료')
-      } catch (error) {
-        console.error('❌ AbuseDetection 동기화 실패:', error)
-      }
-    }
-
-    // 2. Fastify 서버 종료
-    try {
-      await fastify.close()
-      console.log('✅ Fastify 서버 종료 완료')
-    } catch (error) {
-      console.error('❌ Fastify 종료 실패:', error)
-    }
-
-    // 3. Redis 연결 종료
-    if (ioredisClient) {
-      try {
-        await ioredisClient.quit()
-        console.log('✅ Redis 연결 종료 완료')
-      } catch (error) {
-        console.error('❌ Redis 종료 실패:', error)
-      }
-    }
-
-    console.log('🛑 Graceful shutdown 완료')
-  }
-
-  return { server: fastify, gracefulShutdown }
+  return { server: app }
 }
 
-// Export build function for testing
+// Export for testing
 export { createServer as build }

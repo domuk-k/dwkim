@@ -48,11 +48,16 @@ const PRONOUN_EXCEPTIONS = ['러나', '래서', '리고', '런데', '렇게', '�
 
 // 짧은 쿼리 확장 키워드
 const EXPANSION_KEYWORDS: Record<string, string[]> = {
-  경력: ['김동욱', '직장', '회사', '경험'],
+  경력: ['김동욱', '직장', '회사', '경험', '이력'],
+  이력: ['김동욱', '경력', '커리어', '직장'],
+  커리어: ['김동욱', '경력', '이력', '성장'],
   학력: ['김동욱', '대학', '전공', '교육'],
   기술: ['김동욱', '스택', '언어', '프레임워크'],
+  스택: ['김동욱', '기술', '언어', '도구'],
   프로젝트: ['김동욱', '개발', '작업', '성과'],
-  연락처: ['김동욱', '이메일', 'GitHub', 'LinkedIn']
+  연락처: ['김동욱', '이메일', 'GitHub', 'LinkedIn'],
+  회사: ['김동욱', '직장', '근무', '경력'],
+  직장: ['김동욱', '회사', '근무', '경력']
 }
 
 // 모호함 감지: SEU (Semantic Embedding Uncertainty) 기반으로 전환
@@ -67,46 +72,42 @@ const EXPANSION_KEYWORDS: Record<string, string[]> = {
 // LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 있을 때)
 function getSuggestionPromptWithContext(lang: SupportedLanguage): string {
   const langInstruction = getLanguageInstruction(lang)
-  return `You are a helpful assistant that suggests questions about Kim Dongwook.
+  return `사용자가 김동욱에 대해 모호한 질문을 했습니다. 검색된 문서를 참고하여 2가지 구체적인 질문을 추천하세요.
 
-Based on the user's ambiguous question and related documents, suggest 2 more specific questions.
-
-## Related Documents
+## 검색된 문서 (참고)
 {context}
 
-## User Question
+## 사용자 질문
 {query}
 
-## Rules
-- Generate questions based on actual document content
-- Avoid generic phrases like "tell me more", "in detail"
-- Use specific keywords/topics mentioned in documents
-- Each question should be concise (one sentence)
-- No redundant questions about already known info
+## 규칙
+- 검색된 문서 내용을 참고하여 구체적인 질문 생성
+- 김동욱에 대한 질문으로 한정
+- 문서에 언급된 구체적인 키워드/주제 활용
+- 각 질문은 한 문장으로 간결하게
+- "자세히", "더 알려주세요" 같은 모호한 표현 금지
 - ${langInstruction}
-- Respond ONLY with a JSON array (e.g., ["question1", "question2"])
+- JSON 배열로만 응답: ["질문1", "질문2"]
 
-Suggested questions:`
+추천 질문:`
 }
 
 // LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 없을 때 - 폴백)
 function getSuggestionPromptNoContext(lang: SupportedLanguage): string {
   const langInstruction = getLanguageInstruction(lang)
-  return `You are a helpful assistant that suggests questions about Kim Dongwook.
+  return `사용자가 김동욱에 대해 모호한 질문을 했습니다. 2가지 구체적인 질문을 추천하세요.
 
-Based on the user's ambiguous question, suggest 2 more specific questions about Kim Dongwook.
+## 사용자 질문
+{query}
 
-User Question: {query}
-
-## Rules
-- Each question should be concise (one sentence)
-- Use "Kim Dongwook" as the subject
-- Questions should be answerable
-- No redundant questions about already known info
+## 규칙
+- 김동욱을 주어로 사용
+- 각 질문은 한 문장으로 간결하게
+- 답변 가능한 질문으로 한정 (경력, 기술, 회사, 프로젝트 등)
 - ${langInstruction}
-- Respond ONLY with a JSON array (e.g., ["question1", "question2"])
+- JSON 배열로만 응답: ["질문1", "질문2"]
 
-Suggested questions:`
+추천 질문:`
 }
 
 // 폴백용 기본 추천 질문 (다국어)
@@ -183,12 +184,26 @@ export class QueryRewriter {
   isAmbiguous(query: string): boolean {
     const trimmed = query.trim()
 
-    // 한글 포함 여부에 따라 threshold 조정
+    // 1. 길이 기반 체크
     const hasKorean = /[\uAC00-\uD7AF]/.test(trimmed)
     const threshold = hasKorean ? 3 : 5
+    if (trimmed.length < threshold) {
+      return true
+    }
 
-    // 길이 threshold만 적용 (패턴 매칭 제거)
-    return trimmed.length < threshold
+    // 2. 모호한 패턴 체크
+    const ambiguousPatterns = [
+      // 단일 의문사 (한국어)
+      /^(뭐|어떻게|왜|언제|어디|누구)[?？]?$/,
+      // 단일 의문사 (영어)
+      /^(tell me|what|how|why|when|where|who)[?]?$/i,
+      // 짧은 주어만 (한국어) - 예: "그는?", "기술?"
+      /^.{1,4}(은|는|이|가|을|를)[?？]?$/,
+      // 단일 명사 (김동욱 관련 키워드만)
+      /^(경력|이력|기술|스택|회사|직장|프로젝트|학력)[?？]?$/
+    ]
+
+    return ambiguousPatterns.some((p) => p.test(trimmed))
   }
 
   /**
