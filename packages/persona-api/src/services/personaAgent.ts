@@ -20,6 +20,8 @@ import { env } from '../config/env'
 import { initBM25Engine } from './bm25Engine'
 import { generationLLM, utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
+import { getQueryRewriter } from './queryRewriter'
+import { getSEUService } from './seuService'
 import { type Document, getVectorStore, initVectorStore } from './vectorStore'
 
 // ─────────────────────────────────────────────────────────────
@@ -264,8 +266,7 @@ async function rewriteNode(
   config.writer?.({ type: 'progress', items: progress })
 
   try {
-    // Dynamic import to avoid circular dependency
-    const { getQueryRewriter } = await import('./queryRewriter')
+    // 정적 import 사용 (TTFT 최적화)
     const queryRewriter = getQueryRewriter()
     const result = queryRewriter.rewrite(state.query, state.conversationHistory)
 
@@ -401,7 +402,6 @@ async function analyzeNode(
       config.writer?.({ type: 'progress', items: progress })
 
       console.log('[analyzeNode] Running SEU uncertainty measurement...')
-      const { getSEUService } = await import('./seuService')
       const seuService = getSEUService()
       seuResult = await seuService.measureUncertainty(state.query, state.context)
     }
@@ -436,7 +436,6 @@ async function clarifyNode(
     const progress = updateProgress(state.progress, 'context', 'in_progress', '추천 질문 생성 중')
     config.writer?.({ type: 'progress', items: progress })
 
-    const { getQueryRewriter } = await import('./queryRewriter')
     const queryRewriter = getQueryRewriter()
     const suggestions = await queryRewriter.generateSuggestedQuestions(state.query, state.context)
 
@@ -546,7 +545,6 @@ async function followupNode(
   config: LangGraphRunnableConfig
 ): Promise<Partial<PersonaState>> {
   try {
-    const { getQueryRewriter } = await import('./queryRewriter')
     const queryRewriter = getQueryRewriter()
     const followupQuestions = await queryRewriter.generateFollowupQuestions(
       state.query,

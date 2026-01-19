@@ -21,7 +21,7 @@ export interface FeedbackData {
   timestamp: string
 }
 
-interface FeedbackStats {
+export interface FeedbackStats {
   total: number
   ratings: { good: number; okay: number; poor: number; dismissed: number }
   /**

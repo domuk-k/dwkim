@@ -156,10 +156,17 @@ describe('QueryRewriter', () => {
       expect(rewriter.isAmbiguous('뭐?')).toBe(true) // 2자
     })
 
-    it('should NOT mark Korean queries >= 3 chars as ambiguous', () => {
-      // 길이 기반으로만 체크, 패턴 매칭 제거됨
-      expect(rewriter.isAmbiguous('뭐 했어')).toBe(false) // 4자 (공백 포함)
-      expect(rewriter.isAmbiguous('경력은?')).toBe(false) // 4자
+    it('should NOT mark Korean queries >= 3 chars as ambiguous (if no pattern match)', () => {
+      // 길이 >= 3 이고, 모호한 패턴에도 매칭되지 않으면 NOT ambiguous
+      expect(rewriter.isAmbiguous('뭐 했어')).toBe(false) // 4자, 패턴 미매칭
+      expect(rewriter.isAmbiguous('지금 뭐해요')).toBe(false) // 구체적 질문
+    })
+
+    it('should mark pattern-matched queries as ambiguous (even if >= 3 chars)', () => {
+      // 패턴 매칭: 짧은 주어 + 조사, 단일 명사
+      expect(rewriter.isAmbiguous('경력은?')).toBe(true) // 짧은 주어 + 조사 패턴
+      expect(rewriter.isAmbiguous('경력')).toBe(true) // 단일 명사 패턴
+      expect(rewriter.isAmbiguous('기술?')).toBe(true) // 단일 명사 패턴
     })
 
     it('should detect very short English queries as ambiguous (< 5 chars)', () => {

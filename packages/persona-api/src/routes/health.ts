@@ -1,146 +1,68 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { Elysia } from 'elysia'
 import { env } from '../config/env'
 import { PersonaEngine } from '../services/personaAgent'
 
-export default async function healthRoutes(fastify: FastifyInstance) {
-  // GET / (when registered with /health prefix, becomes /health)
-  fastify.get(
-    '/',
-    {
-      schema: {
-        tags: ['Health'],
-        summary: 'Health check endpoint',
-        description: 'Returns the health status of the API',
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string', example: 'ok' },
-              timestamp: { type: 'string', format: 'date-time' },
-              uptime: {
-                type: 'number',
-                description: 'Server uptime in seconds'
-              }
-            }
-          }
-        }
+export const healthRoutes = new Elysia({ prefix: '/health' })
+  // GET /health
+  .get('/', () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  }))
+  // GET /health/detailed
+  .get('/detailed', async () => {
+    try {
+      // 메모리 사용량
+      const memUsage = process.memoryUsage()
+      const memoryInfo = {
+        used: Math.round(memUsage.heapUsed / 1024 / 1024),
+        total: Math.round(memUsage.heapTotal / 1024 / 1024),
+        percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)
       }
-    },
-    async () => {
-      return {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-      }
-    }
-  )
 
-  // GET /detailed (when registered with /health prefix, becomes /health/detailed)
-  fastify.get(
-    '/detailed',
-    {
-      schema: {
-        tags: ['Health'],
-        summary: 'Detailed health check',
-        description: 'Returns detailed health status including RAG engine',
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string' },
-              timestamp: { type: 'string', format: 'date-time' },
-              uptime: { type: 'number' },
-              version: { type: 'string' },
-              environment: { type: 'string' },
-              components: {
-                type: 'object',
-                properties: {
-                  server: { type: 'boolean' },
-                  redis: { type: 'boolean' },
-                  ragEngine: { type: 'object' }
-                }
-              },
-              memory: {
-                type: 'object',
-                properties: {
-                  used: { type: 'number' },
-                  total: { type: 'number' },
-                  percentage: { type: 'number' }
-                }
-              }
-            }
-          }
-        }
+      // RAG 엔진 상태
+      let ragEngineStatus: Record<string, unknown> = {
+        status: 'not_initialized',
+        components: {}
       }
-    },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
-        // 메모리 사용량 확인
-        const memUsage = process.memoryUsage()
-        const memoryInfo = {
-          used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
-          total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
-          percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)
+        const personaEngine = new PersonaEngine()
+        const engineStatus = await personaEngine.getEngineStatus()
+        ragEngineStatus = {
+          status: 'ready',
+          components: engineStatus
         }
-
-        // Redis 연결 확인
-        let redisStatus = false
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (fastify as any).redis.ping()
-          redisStatus = true
-        } catch (error) {
-          fastify.log.error({ err: error }, 'Redis health check failed')
-        }
-
-        // RAG 엔진 상태 확인
-        let ragEngineStatus: Record<string, unknown> = {
-          status: 'not_initialized',
-          components: {}
-        }
-        try {
-          const personaEngine = new PersonaEngine()
-          const engineStatus = await personaEngine.getEngineStatus()
-          ragEngineStatus = {
-            status: 'ready',
-            components: engineStatus
-          }
-        } catch (error) {
-          fastify.log.error({ err: error }, 'RAG Engine health check failed')
-          ragEngineStatus = {
-            status: 'error',
-            components: {
-              vectorStore: false,
-              llmService: false,
-              error: error instanceof Error ? error.message : 'Unknown error'
-            }
-          }
-        }
-
-        const health = {
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          uptime: process.uptime(),
-          version: env.npm_package_version || '1.0.0',
-          environment: env.NODE_ENV,
-          components: {
-            server: true,
-            redis: redisStatus,
-            ragEngine: ragEngineStatus
-          },
-          memory: memoryInfo
-        }
-
-        return reply.send(health)
       } catch (error) {
-        fastify.log.error({ err: error }, 'Detailed health check failed')
-        return reply.status(503).send({
-          status: 'unhealthy',
-          timestamp: new Date().toISOString(),
-          error: 'Detailed health check failed',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        })
+        console.error('RAG Engine health check failed:', error)
+        ragEngineStatus = {
+          status: 'error',
+          components: {
+            vectorStore: false,
+            llmService: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        }
+      }
+
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: env.npm_package_version || '1.0.0',
+        environment: env.NODE_ENV,
+        components: {
+          server: true,
+          ragEngine: ragEngineStatus
+        },
+        memory: memoryInfo
+      }
+    } catch (error) {
+      console.error('Detailed health check failed:', error)
+      return {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: 'Detailed health check failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
       }
     }
-  )
-}
+  })

@@ -19,16 +19,43 @@ export interface ChatLogEntry {
   engine: 'deepagent' | 'rag' | 'mock'
 }
 
-// 콘솔 로깅만 (Fly.io가 자동 수집)
-export const chatLogger = pino({
-  name: 'chat',
-  level: env.LOG_LEVEL,
-  // production에서는 JSON, dev에서는 pretty
-  transport:
-    env.NODE_ENV !== 'production'
-      ? { target: 'pino-pretty', options: { colorize: true } }
-      : undefined
-})
+// 로거 생성
+function createChatLogger() {
+  const baseOptions: pino.LoggerOptions = {
+    name: 'chat',
+    level: env.LOG_LEVEL
+  }
+
+  // Production + Logtail: Better Stack으로 전송
+  if (env.NODE_ENV === 'production' && env.LOGTAIL_TOKEN) {
+    console.log('📊 Chat logger: Better Stack enabled')
+    const transport = pino.transport({
+      targets: [
+        // stdout (Fly.io 기본 로깅용)
+        { target: 'pino/file', options: { destination: 1 } },
+        // Better Stack
+        {
+          target: '@logtail/pino',
+          options: { sourceToken: env.LOGTAIL_TOKEN }
+        }
+      ]
+    })
+    return pino(baseOptions, transport)
+  }
+
+  // Development: pretty print
+  if (env.NODE_ENV !== 'production') {
+    return pino({
+      ...baseOptions,
+      transport: { target: 'pino-pretty', options: { colorize: true } }
+    })
+  }
+
+  // Production without Logtail: JSON to stdout
+  return pino(baseOptions)
+}
+
+export const chatLogger = createChatLogger()
 
 // 간편 로깅 함수들
 export function logChatRequest(entry: Omit<ChatLogEntry, 'timestamp' | 'response'>) {
