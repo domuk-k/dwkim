@@ -1,3 +1,33 @@
+## [3.0.0](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.4...dwkim-v3.0.0) (2026-01-21)
+
+### ⚠ BREAKING CHANGES
+
+* **persona-api:** Complete framework migration
+
+- Replace Fastify with Elysia (Bun-native)
+- Remove custom middleware (abuseDetection, rateLimit)
+- Add inline rate limiting with in-memory store
+- Convert all routes to Elysia style with TypeBox schemas
+
+Features:
+- Add UX log service with Redis circular buffer
+- Add /api/v1/logs endpoints with ADMIN_API_KEY auth
+- Add embedding cache (LRU) for TTFT optimization
+- Improve query rewriter with expanded keywords
+- Simplify system prompt (50% token reduction)
+- Replace dynamic imports with static imports
+
+Code reduction: -1,273 lines (38% smaller)
+
+### Features
+
+* **persona-api,dwkim:** improve SEU threshold and feedback UX ([4b10354](https://github.com/domuk-k/dwkim/commit/4b103549bbeff7e1f36ad4c9280affad55b9bf26))
+* **persona-api:** restore A2UI clarification and improve suggestions ([a1e6109](https://github.com/domuk-k/dwkim/commit/a1e6109a25eb5d52ef47ba77cb97c0ddfc37459e))
+
+### Refactoring
+
+* **persona-api:** migrate from Fastify to Elysia ([c653338](https://github.com/domuk-k/dwkim/commit/c6533380a84956047f11f65cdf7b497084f8755d))
+
 ## [2.2.4](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.3...dwkim-v2.2.4) (2026-01-16)
 
 ### Bug Fixes
