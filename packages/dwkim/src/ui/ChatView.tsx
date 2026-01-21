@@ -75,6 +75,8 @@ export function ChatView({ apiUrl }: Props) {
   // HITL: Response Feedback 상태 (Claude Code 스타일)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackResponseCount, setFeedbackResponseCount] = useState(0)
+  const [feedbackConfirmed, setFeedbackConfirmed] = useState(false) // 피드백 확인 메시지
+  const [hideFeedbackForSession, setHideFeedbackForSession] = useState(false) // 세션 중 피드백 비활성화
   // HITL: Exit Feedback 상태 (종료 시 세션 피드백)
   const [showExitFeedback, setShowExitFeedback] = useState(false)
   // HITL: Correction 감지용 마지막 대화 추적
@@ -138,8 +140,16 @@ export function ChatView({ apiUrl }: Props) {
 
   // HITL: 피드백 제출 핸들러 (Claude Code 스타일)
   const handleFeedback = useCallback(
-    async (rating: 1 | 2 | 3 | null) => {
+    async (rating: 1 | 2 | 3 | null, disableForSession = false) => {
       setShowFeedback(false)
+      if (rating !== null) {
+        // 간단한 확인 표시 (1초 후 사라짐)
+        setFeedbackConfirmed(true)
+        setTimeout(() => setFeedbackConfirmed(false), 1000)
+      }
+      if (disableForSession) {
+        setHideFeedbackForSession(true)
+      }
       // 피드백 제출 (실패해도 UX에 영향 없음)
       await client.submitFeedback(rating, sessionId)
     },
@@ -215,7 +225,7 @@ export function ChatView({ apiUrl }: Props) {
       }
     }
 
-    // HITL: 피드백 키 처리 (1, 2, 3, d)
+    // HITL: 피드백 키 처리 (1, 2, 3, d, D/Shift+D)
     if (showFeedback && status === 'idle' && !showEmailInput) {
       if (input === '1') {
         handleFeedback(1)
@@ -229,7 +239,13 @@ export function ChatView({ apiUrl }: Props) {
         handleFeedback(3)
         return
       }
-      if (input === 'd' || input === 'D') {
+      // Shift+D: 세션 동안 피드백 비활성화
+      if (input === 'D' && key.shift) {
+        handleFeedback(null, true)
+        return
+      }
+      // d: 단순 스킵
+      if (input === 'd') {
         handleFeedback(null)
         return
       }
@@ -518,7 +534,12 @@ ${icons.chat} 예시 질문
         // Claude Code 스타일: 간헐적으로, 비침습적으로
         const newResponseCount = feedbackResponseCount + 1
         setFeedbackResponseCount(newResponseCount)
-        if (newResponseCount % 3 === 0 && !shouldSuggestContact && !escalationReason) {
+        if (
+          newResponseCount % 3 === 0 &&
+          !shouldSuggestContact &&
+          !escalationReason &&
+          !hideFeedbackForSession
+        ) {
           setShowFeedback(true)
         }
 
@@ -555,6 +576,7 @@ ${icons.chat} 예시 질문
       feedbackResponseCount,
       escalationReason,
       hideEmailForSession,
+      hideFeedbackForSession,
       isCorrection,
       lastExchange,
       nextId
@@ -773,6 +795,13 @@ ${icons.chat} 예시 질문
       {/* HITL: Response Feedback (Claude Code 스타일) */}
       {showFeedback && status === 'idle' && !showEmailInput && <FeedbackPrompt />}
 
+      {/* 피드백 확인 메시지 */}
+      {feedbackConfirmed && (
+        <Box marginLeft={2}>
+          <Text color={theme.success}>✓ 감사합니다!</Text>
+        </Box>
+      )}
+
       {/* 이메일 입력 UI (HITL 패턴 - 일반 또는 Escalation) */}
       {showEmailInput && status === 'idle' && (
         <Box flexDirection="column" marginTop={1} paddingX={1}>
@@ -811,21 +840,25 @@ ${icons.chat} 예시 질문
       )}
 
       {/* 입력 영역 (위아래 선) */}
-      {status !== 'connecting' && status !== 'error' && !showEmailInput && (
-        <Box flexDirection="column" marginTop={1}>
-          <Text color={theme.surface}>{'─'.repeat(termWidth - 2)}</Text>
-          <Box paddingX={1}>
-            <Text color={theme.primary}>{icons.arrow} </Text>
-            <TextInput
-              value={input}
-              onChange={setInput}
-              onSubmit={handleSubmit}
-              placeholder="질문을 입력하세요..."
-            />
+      {status !== 'connecting' &&
+        status !== 'error' &&
+        !showEmailInput &&
+        !showFeedback &&
+        !showExitFeedback && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text color={theme.surface}>{'─'.repeat(termWidth - 2)}</Text>
+            <Box paddingX={1}>
+              <Text color={theme.primary}>{icons.arrow} </Text>
+              <TextInput
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSubmit}
+                placeholder="질문을 입력하세요..."
+              />
+            </Box>
+            <Text color={theme.surface}>{'─'.repeat(termWidth - 2)}</Text>
           </Box>
-          <Text color={theme.surface}>{'─'.repeat(termWidth - 2)}</Text>
-        </Box>
-      )}
+        )}
     </Box>
   )
 }

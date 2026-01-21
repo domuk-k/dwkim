@@ -69,16 +69,31 @@ const EXPANSION_KEYWORDS: Record<string, string[]> = {
  * 사용자 쿼리 언어에 맞춰 동적 생성
  */
 
-// LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 있을 때)
-function getSuggestionPromptWithContext(lang: SupportedLanguage): string {
-  const langInstruction = getLanguageInstruction(lang)
-  return `사용자가 "${'{query}'}"라고 물었는데, 이 질문이 모호합니다. 사용자가 실제로 알고 싶어할 만한 구체적인 질문 2개를 추천하세요.
+/** SEU 분석 결과 (순환 의존성 방지를 위한 인라인 타입) */
+interface SEUResultForSuggestion {
+  uncertainty: number
+  responses: string[]
+}
 
+// LLM 기반 추천 질문 생성 프롬프트 (SEU 분석 결과 포함)
+function getSuggestionPromptWithSEU(
+  lang: SupportedLanguage,
+  seuResult?: SEUResultForSuggestion
+): string {
+  const langInstruction = getLanguageInstruction(lang)
+  const seuSection = seuResult
+    ? `
+## 모호성 분석
+- 불확실도: ${(seuResult.uncertainty * 100).toFixed(0)}%
+- AI 해석들: ${seuResult.responses.join(' / ')}
+`
+    : ''
+  return `사용자가 "${'{query}'}"라고 물었는데, 이 질문이 모호합니다.${seuSection}
 ## 김동욱 정보 (참고)
 {context}
 
 ## 규칙
-- 사용자 입장에서 자연스럽게 물어볼 수 있는 질문
+- ${seuResult?.responses?.length ? 'AI 해석들을 참고하여 ' : ''}구체적인 질문 2개 추천
 - 반말 의문문으로 작성 (예: "어떤 기술을 주로 써?", "어디서 일해?")
 - URL, 파일명, 내부 용어 절대 포함 금지
 - 각 질문은 15자 이내로 짧고 자연스럽게
@@ -200,13 +215,18 @@ export class QueryRewriter {
    * LLM 기반 추천 질문 생성
    * @param query 사용자 쿼리
    * @param context 검색된 문서 컨텍스트 (있으면 더 의미있는 질문 생성)
+   * @param seuResult SEU 분석 결과 (있으면 AI 해석을 참고하여 더 구체적인 질문 생성)
    */
-  async generateSuggestedQuestions(query: string, context?: string): Promise<string[]> {
+  async generateSuggestedQuestions(
+    query: string,
+    context?: string,
+    seuResult?: SEUResultForSuggestion
+  ): Promise<string[]> {
     const lang = detectLanguage(query)
 
     try {
       const prompt = context
-        ? getSuggestionPromptWithContext(lang)
+        ? getSuggestionPromptWithSEU(lang, seuResult)
             .replace('{context}', context.slice(0, 1500))
             .replace('{query}', query)
         : getSuggestionPromptNoContext(lang).replace('{query}', query)
