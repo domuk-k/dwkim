@@ -437,7 +437,14 @@ async function clarifyNode(
     config.writer?.({ type: 'progress', items: progress })
 
     const queryRewriter = getQueryRewriter()
-    const suggestions = await queryRewriter.generateSuggestedQuestions(state.query, state.context)
+    // SEU 결과가 있으면 전달하여 AI 해석 기반 구체적 질문 생성
+    const suggestions = await queryRewriter.generateSuggestedQuestions(
+      state.query,
+      state.context,
+      state.seuResult
+        ? { uncertainty: state.seuResult.uncertainty, responses: state.seuResult.responses }
+        : undefined
+    )
 
     console.log(`[clarifyNode] Generated suggestions: ${JSON.stringify(suggestions)}`)
     config.writer?.({
@@ -638,13 +645,13 @@ function createPersonaGraph() {
     // clarify 후에도 generate 실행 (clarification 제공 후 답변)
     .addEdge('clarify', 'generate')
 
-    // generate 후 followup 생성 (clarification이 없을 때만)
-    .addConditionalEdges('generate', (state) => {
-      return state.needsClarification ? 'done' : 'followup'
-    })
+    // generate → done (followup 비활성화: clarification만 추천 질문 제공)
+    .addEdge('generate', 'done')
 
-    // followup → done → END
-    .addEdge('followup', 'done')
+    // NOTE: followupNode는 유지 (나중에 재활성화 가능)
+    // 기존: .addConditionalEdges('generate', (state) => state.needsClarification ? 'done' : 'followup')
+    // 기존: .addEdge('followup', 'done')
+
     .addEdge('done', END)
 
   return graph.compile()
