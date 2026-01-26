@@ -357,7 +357,11 @@ export class ChatService {
 
     // LangGraph RAG 엔진 사용
     if (this.personaEngine) {
-      for await (const event of this.personaEngine.processQueryStream(message, history)) {
+      for await (const event of this.personaEngine.processQueryStream(
+        message,
+        history,
+        context.deviceId
+      )) {
         if (event.type === 'content') {
           fullAnswer += event.content
         }
