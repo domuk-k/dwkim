@@ -1,3 +1,9 @@
+## [3.1.2](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.1...dwkim-v3.1.2) (2026-01-26)
+
+### Bug Fixes
+
+* **dwkim:** stabilize nextId with useCallback to prevent useEffect re-runs ([9219972](https://github.com/domuk-k/dwkim/commit/921997283ba661c236209dcb478237efbdac4d74))
+
 ## [3.1.1](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.0...dwkim-v3.1.1) (2026-01-26)
 
 ### Bug Fixes
