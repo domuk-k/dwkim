@@ -224,16 +224,48 @@ function initProgress(): ProgressItem[] {
 // Context Builder
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * 문서 타입별 신뢰도 우선순위
+ * - resume: 공식 이력서 (가장 신뢰)
+ * - 100-questions: 직접 작성한 100문 100답
+ * - blog/knowledge: 블로그 글, 지식 문서
+ */
+const SOURCE_PRIORITY: Record<string, number> = {
+  resume: 1,
+  '100-questions': 2,
+  knowledge: 3,
+  blog: 4
+}
+
+function getSourcePriority(type: string): number {
+  return SOURCE_PRIORITY[type] ?? 5
+}
+
 export function buildContext(documents: Document[], query: string): string {
   if (documents.length === 0) {
     return '관련된 문서를 찾을 수 없습니다. 일반적인 지식으로 답변하겠습니다.'
   }
 
-  let context = `사용자 질문: ${query}\n\n관련 문서들:\n`
-  let totalLength = context.length
+  // 우선순위별 정렬 (resume > 100-questions > knowledge > blog)
+  const sortedDocs = [...documents].sort(
+    (a, b) => getSourcePriority(a.metadata.type) - getSourcePriority(b.metadata.type)
+  )
 
-  for (const doc of documents) {
-    const docContext = `[${doc.metadata.type}] ${doc.metadata.title || '제목 없음'}\n${doc.content}\n\n`
+  let context = `사용자 질문: ${query}\n\n## 관련 컨텍스트 (신뢰도 순)\n\n`
+  let totalLength = context.length
+  let currentType = ''
+
+  for (const doc of sortedDocs) {
+    // 타입이 바뀌면 섹션 구분
+    if (doc.metadata.type !== currentType) {
+      currentType = doc.metadata.type
+      const sectionHeader = `### [${currentType}]\n`
+      if (totalLength + sectionHeader.length > env.CONTEXT_WINDOW) break
+      context += sectionHeader
+      totalLength += sectionHeader.length
+    }
+
+    const docContext = `**${doc.metadata.title || '제목 없음'}**\n${doc.content}\n\n`
 
     if (totalLength + docContext.length > env.CONTEXT_WINDOW) {
       break
@@ -645,12 +677,11 @@ function createPersonaGraph() {
     // clarify 후에도 generate 실행 (clarification 제공 후 답변)
     .addEdge('clarify', 'generate')
 
-    // generate → done (followup 비활성화: clarification만 추천 질문 제공)
-    .addEdge('generate', 'done')
-
-    // NOTE: followupNode는 유지 (나중에 재활성화 가능)
-    // 기존: .addConditionalEdges('generate', (state) => state.needsClarification ? 'done' : 'followup')
-    // 기존: .addEdge('followup', 'done')
+    // generate → followup (clarification 아닌 경우) 또는 done (clarification인 경우)
+    .addConditionalEdges('generate', (state) => {
+      return state.needsClarification ? 'done' : 'followup'
+    })
+    .addEdge('followup', 'done')
 
     .addEdge('done', END)
 
