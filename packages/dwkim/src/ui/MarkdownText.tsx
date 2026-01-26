@@ -15,6 +15,9 @@ interface Props {
 // hex 색상을 chalk 함수로 변환
 const hex = (color: string) => chalk.hex(color)
 
+// TUI에서 하이퍼링크는 클릭 불가 → [text](url) 에서 URL 제거, 텍스트만 유지
+const HYPERLINK_PATTERN = /\[([^\]]+)\]\([^)]+\)/g
+
 // 인라인 인용 패턴: [이력서], [100문100답], [블로그: 제목], [지식: 제목] 등
 const CITATION_PATTERN = /\[(이력서|100문100답|블로그:\s*[^\]]+|[^\]]{2,30})\]/g
 const citationStyle = chalk.hex(theme.muted).dim
@@ -36,9 +39,7 @@ marked.use(
     em: chalk.italic,
     codespan: hex(theme.lavender),
     del: hex(theme.muted).strikethrough,
-    link: hex(theme.info),
-    href: hex(theme.info).underline,
-    // 옵션
+    // 옵션 (link/href 불필요: HYPERLINK_PATTERN으로 사전 제거)
     showSectionPrefix: false,
     reflowText: true,
     width: 80,
@@ -64,8 +65,10 @@ export function MarkdownText({ children, color }: Props) {
     if (!children) return ''
 
     try {
+      // TUI: 하이퍼링크 URL 제거 (클릭 불가이므로 텍스트만 유지)
+      const stripped = children.replace(HYPERLINK_PATTERN, '$1')
       // marked-terminal은 ANSI escape code가 포함된 문자열을 반환
-      let result = marked.parse(children, { async: false }) as string
+      let result = marked.parse(stripped, { async: false }) as string
       // 끝의 불필요한 줄바꿈 제거
       result = result.replace(/\n+$/, '')
       // 인라인 인용 스타일링: [이력서] → dim muted 색상
