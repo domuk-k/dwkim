@@ -210,13 +210,13 @@ export function ChatView({ apiUrl }: Props) {
       }
       if (key.return) {
         setShowWelcome(false)
-        setInput(STARTER_QUESTIONS[selectedStarterIdx])
+        handleSubmit(STARTER_QUESTIONS[selectedStarterIdx])
         return
       }
       const numKey = Number(input)
       if (numKey >= 1 && numKey <= STARTER_QUESTIONS.length) {
         setShowWelcome(false)
-        setInput(STARTER_QUESTIONS[numKey - 1])
+        handleSubmit(STARTER_QUESTIONS[numKey - 1])
         return
       }
       // 다른 키 입력 시 환영 화면 닫기 (타이핑 시작)
@@ -430,6 +430,7 @@ ${icons.chat} 예시 질문
       setStatus('loading')
       setLoadingState({ icon: '\u23F3', message: '처리 중...', toolCalls: [] })
       setStreamContent('')
+      setSuggestedQuestions([])
 
       try {
         let sources: SourcesEvent['sources'] = []
