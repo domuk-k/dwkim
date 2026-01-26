@@ -18,6 +18,7 @@ import {
 } from '@langchain/langgraph'
 import { env } from '../config/env'
 import { initBM25Engine } from './bm25Engine'
+import { getDeviceService } from './deviceService'
 import { generationLLM, utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
 import { getQueryRewriter } from './queryRewriter'
@@ -123,6 +124,10 @@ const PersonaStateAnnotation = Annotation.Root({
   conversationHistory: Annotation<ChatMessage[]>({
     reducer: (_, b) => b, // 덮어쓰기
     default: () => []
+  }),
+  deviceId: Annotation<string | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined
   }),
 
   // Query Classification
@@ -666,10 +671,33 @@ async function generateNode(
       { role: 'user', content: state.query }
     ]
 
+    // 크로스 세션 개인화: DeviceService에서 힌트 주입
+    let contextWithPersonalization = state.context
+    if (state.deviceId) {
+      try {
+        const deviceService = getDeviceService()
+        const hints = await deviceService?.getPersonalizationHints(state.deviceId)
+        if (hints && (hints.isReturning || hints.interests.length > 0)) {
+          const personalizationNote = [
+            hints.isReturning ? `이 사용자는 ${hints.visitCount}번째 방문입니다.` : '',
+            hints.interests.length > 0 ? `관심 분야: ${hints.interests.join(', ')}` : ''
+          ]
+            .filter(Boolean)
+            .join(' ')
+
+          if (personalizationNote) {
+            contextWithPersonalization = `[사용자 정보] ${personalizationNote}\n\n${state.context}`
+          }
+        }
+      } catch (error) {
+        console.warn('[generateNode] Personalization hints failed:', error)
+      }
+    }
+
     let fullAnswer = ''
     let tokenCount = 0
 
-    for await (const chunk of generationLLM.chatStream(messages, state.context)) {
+    for await (const chunk of generationLLM.chatStream(messages, contextWithPersonalization)) {
       if (chunk.type === 'content' && chunk.content) {
         fullAnswer += chunk.content
         tokenCount += 1
@@ -867,7 +895,11 @@ export class PersonaEngine {
     }
   }
 
-  async processQuery(query: string, conversationHistory: ChatMessage[] = []): Promise<RAGResponse> {
+  async processQuery(
+    query: string,
+    conversationHistory: ChatMessage[] = [],
+    deviceId?: string
+  ): Promise<RAGResponse> {
     if (!this.graph) throw new Error('RAGEngine not initialized')
 
     const startTime = Date.now()
@@ -875,6 +907,7 @@ export class PersonaEngine {
     const input: PersonaState = {
       query,
       conversationHistory,
+      deviceId,
       queryComplexity: 'complex',
       progress: initProgress(),
       metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
@@ -909,7 +942,8 @@ export class PersonaEngine {
 
   async *processQueryStream(
     query: string,
-    conversationHistory: ChatMessage[] = []
+    conversationHistory: ChatMessage[] = [],
+    deviceId?: string
   ): AsyncGenerator<RAGStreamEvent> {
     if (!this.graph) {
       yield { type: 'error', error: 'RAGEngine not initialized' }
@@ -921,6 +955,7 @@ export class PersonaEngine {
     const input: PersonaState = {
       query,
       conversationHistory,
+      deviceId,
       queryComplexity: 'complex',
       progress: initProgress(),
       metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
