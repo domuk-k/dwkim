@@ -281,6 +281,32 @@ export function buildContext(documents: Document[], query: string): string {
     totalLength += docContext.length
   }
 
+  // 인용 가능한 소스 레이블 목록 (LLM이 인용에 사용)
+  const TYPE_LABELS: Record<string, string> = {
+    resume: '이력서',
+    faq: '100문100답',
+    experience: '경험',
+    thoughts: '생각',
+    about: '소개',
+    knowledge: '지식'
+  }
+
+  const citationLabels = sortedDocs
+    .map((doc) => {
+      const type = doc.metadata.type
+      const title = doc.metadata.title
+      const typeLabel = TYPE_LABELS[type]
+      if (typeLabel && !title) return `[${typeLabel}]`
+      if ((type === 'blog' || type === 'post') && title) return `[블로그: ${title}]`
+      if (title) return `[${typeLabel || type}: ${title}]`
+      return `[${typeLabel || type}]`
+    })
+    .filter((v, i, a) => a.indexOf(v) === i) // dedupe
+
+  if (citationLabels.length > 0) {
+    context += `\n---\n인용 가능한 출처: ${citationLabels.join(', ')}\n`
+  }
+
   return context.trim()
 }
 

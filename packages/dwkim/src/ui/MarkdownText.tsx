@@ -15,6 +15,10 @@ interface Props {
 // hex 색상을 chalk 함수로 변환
 const hex = (color: string) => chalk.hex(color)
 
+// 인라인 인용 패턴: [이력서], [100문100답], [블로그: 제목], [지식: 제목] 등
+const CITATION_PATTERN = /\[(이력서|100문100답|블로그:\s*[^\]]+|[^\]]{2,30})\]/g
+const citationStyle = chalk.hex(theme.muted).dim
+
 // marked-terminal 설정 (marked v12 새 API)
 marked.use(
   markedTerminal({
@@ -61,9 +65,12 @@ export function MarkdownText({ children, color }: Props) {
 
     try {
       // marked-terminal은 ANSI escape code가 포함된 문자열을 반환
-      const result = marked.parse(children, { async: false }) as string
+      let result = marked.parse(children, { async: false }) as string
       // 끝의 불필요한 줄바꿈 제거
-      return result.replace(/\n+$/, '')
+      result = result.replace(/\n+$/, '')
+      // 인라인 인용 스타일링: [이력서] → dim muted 색상
+      result = result.replace(CITATION_PATTERN, (match) => citationStyle(match))
+      return result
     } catch {
       // 파싱 실패 시 원본 반환
       return children
