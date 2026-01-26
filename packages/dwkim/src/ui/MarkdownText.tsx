@@ -15,10 +15,11 @@ interface Props {
 // hex 색상을 chalk 함수로 변환
 const hex = (color: string) => chalk.hex(color)
 
-// 인라인 인용 제거: [이력서], [100문100답] 등 (SourcesPanel에서 이미 표시)
+// 인라인 인용 제거: [이력서], [100-questions: Q36...] 등 (SourcesPanel에서 이미 표시)
 // 앞 공백도 함께 제거하여 "있어요 [이력서]." → "있어요." 로 정리
+// 한글/영문 소스 키워드 모두 커버
 const CITATION_PATTERN =
-  /\s*\[(이력서|100문100답|블로그:\s*[^\]]+|지식:\s*[^\]]+|경험:\s*[^\]]+|소개:\s*[^\]]+)\]/g
+  /\s*\[(이력서|100문100답|resume|100-questions|blog|블로그|knowledge|지식|경험|소개)(:\s*[^\]]+)?\]/gi
 
 // marked-terminal 설정 (marked v12 새 API)
 marked.use(
