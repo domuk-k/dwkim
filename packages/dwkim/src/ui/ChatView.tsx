@@ -186,7 +186,7 @@ export function ChatView({ apiUrl }: Props) {
     }
 
     // 소스 상세 토글: s 키로 마지막 assistant 메시지 소스 확장/접기
-    if (input === 's' && status === 'idle' && !showEmailInput && !showWelcome) {
+    if (input === 's' && status === 'idle' && !showEmailInput && !showWelcome && !showFeedback) {
       const lastAssistantWithSources = [...messages]
         .reverse()
         .find((m) => m.role === 'assistant' && m.sources && m.sources.length > 0)
@@ -222,6 +222,7 @@ export function ChatView({ apiUrl }: Props) {
       // 다른 키 입력 시 환영 화면 닫기 (타이핑 시작)
       if (input && !key.ctrl && !key.meta && !key.escape) {
         setShowWelcome(false)
+        return
       }
     }
 
@@ -363,6 +364,7 @@ ${icons.chat} 예시 질문
         case 'clear':
           setSessionId(undefined)
           setMessages([{ id: nextId(), role: 'system', content: `${icons.check} 초기화 완료` }])
+          setExpandedSourcesMsgId(null)
           break
 
         case 'exit':

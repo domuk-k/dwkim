@@ -265,7 +265,11 @@ export class ChatService {
 
     // LangGraph RAG 엔진 사용
     if (this.personaEngine) {
-      const response: RAGResponse = await this.personaEngine.processQuery(message, history)
+      const response: RAGResponse = await this.personaEngine.processQuery(
+        message,
+        history,
+        context.deviceId
+      )
       answer = response.answer
       sources = response.sources
       usage = response.usage

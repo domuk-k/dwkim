@@ -265,6 +265,16 @@ export function buildContext(documents: Document[], query: string): string {
     (a, b) => getSourcePriority(a.metadata.type) - getSourcePriority(b.metadata.type)
   )
 
+  // 소스 타입 → 한국어 레이블 매핑 (섹션 헤더 + 인용에 공용)
+  const TYPE_LABELS: Record<string, string> = {
+    resume: '이력서',
+    faq: '100문100답',
+    experience: '경험',
+    thoughts: '생각',
+    about: '소개',
+    knowledge: '지식'
+  }
+
   let context = `사용자 질문: ${query}\n\n## 관련 컨텍스트 (신뢰도 순)\n\n`
   let totalLength = context.length
   let currentType = ''
@@ -273,7 +283,8 @@ export function buildContext(documents: Document[], query: string): string {
     // 타입이 바뀌면 섹션 구분
     if (doc.metadata.type !== currentType) {
       currentType = doc.metadata.type
-      const sectionHeader = `### [${currentType}]\n`
+      const sectionLabel = TYPE_LABELS[currentType] || currentType
+      const sectionHeader = `### [${sectionLabel}]\n`
       if (totalLength + sectionHeader.length > env.CONTEXT_WINDOW) break
       context += sectionHeader
       totalLength += sectionHeader.length
@@ -287,16 +298,6 @@ export function buildContext(documents: Document[], query: string): string {
 
     context += docContext
     totalLength += docContext.length
-  }
-
-  // 인용 가능한 소스 레이블 목록 (LLM이 인용에 사용)
-  const TYPE_LABELS: Record<string, string> = {
-    resume: '이력서',
-    faq: '100문100답',
-    experience: '경험',
-    thoughts: '생각',
-    about: '소개',
-    knowledge: '지식'
   }
 
   const citationLabels = sortedDocs
@@ -412,6 +413,9 @@ async function directResponseNode(
   config: LangGraphRunnableConfig
 ): Promise<Partial<PersonaState>> {
   const category = classifySimpleQuery(state.query)
+  if (!category) {
+    console.warn(`[directResponseNode] No category matched for simple query: "${state.query}"`)
+  }
   const answer = getSimpleResponse(category || 'greeting')
 
   config.writer?.({ type: 'content', content: answer })
@@ -796,9 +800,9 @@ function computeConfidence(state: PersonaState): ConfidenceLevel {
   const sourceCount = state.sources?.length || 0
   const isUncertain = state.seuResult?.isUncertain ?? false
 
+  if (sourceCount === 0) return 'low'
   if (sourceCount >= 3 && !isUncertain) return 'high'
-  if (sourceCount >= 1) return isUncertain ? 'medium' : 'high'
-  return 'low'
+  return 'medium'
 }
 
 /**
