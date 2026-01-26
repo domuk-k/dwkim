@@ -1,3 +1,9 @@
+## [3.1.1](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.0...dwkim-v3.1.1) (2026-01-26)
+
+### Bug Fixes
+
+* **dwkim:** auto-submit starter questions on WelcomeView selection ([9b53c1c](https://github.com/domuk-k/dwkim/commit/9b53c1cbd7da6ca0ac85d44648a0ff6ccb27a1d5))
+
 ## [3.1.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.0.0...dwkim-v3.1.0) (2026-01-26)
 
 ### Features
