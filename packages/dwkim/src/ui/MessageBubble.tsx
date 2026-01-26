@@ -8,6 +8,8 @@ import { theme } from './theme.js'
 
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>
 
+export type ConfidenceLevel = 'high' | 'medium' | 'low'
+
 export interface Message {
   id: number
   role: 'user' | 'assistant' | 'system' | 'banner'
@@ -15,6 +17,7 @@ export interface Message {
   sources?: SourcesEvent['sources']
   processingTime?: number
   shouldSuggestContact?: boolean
+  confidence?: ConfidenceLevel
 }
 
 export const MessageBubble = React.memo(function MessageBubble({ message }: { message: Message }) {
@@ -50,6 +53,17 @@ export const MessageBubble = React.memo(function MessageBubble({ message }: { me
         <Box marginLeft={4}>
           <Text color={theme.muted} dimColor>
             {icons.clock} {message.processingTime}ms
+          </Text>
+        </Box>
+      )}
+
+      {message.confidence && message.confidence !== 'high' && (
+        <Box marginLeft={4}>
+          <Text
+            color={message.confidence === 'low' ? theme.peach : theme.muted}
+            dimColor={message.confidence === 'medium'}
+          >
+            {message.confidence === 'low' ? '⚠ 확인 필요' : '⚡ 참고 정보 기반'}
           </Text>
         </Box>
       )}
