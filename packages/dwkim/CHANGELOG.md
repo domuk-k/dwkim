@@ -1,3 +1,9 @@
+## [3.1.4](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.3...dwkim-v3.1.4) (2026-01-26)
+
+### Bug Fixes
+
+* **dwkim:** clean up TUI markdown rendering for citations and links ([17f8f7c](https://github.com/domuk-k/dwkim/commit/17f8f7c54aeb9423385cf5d863ba37fdccdd4e26))
+
 ## [3.1.3](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.2...dwkim-v3.1.3) (2026-01-26)
 
 ### Bug Fixes
