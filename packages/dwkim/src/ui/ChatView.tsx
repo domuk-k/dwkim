@@ -17,6 +17,7 @@ import { ProgressPipeline } from './ProgressPipeline.js'
 import { type LoadingState, StatusIndicator } from './StatusIndicator.js'
 import { SuggestedQuestions } from './SuggestedQuestions.js'
 import { theme } from './theme.js'
+import { STARTER_QUESTIONS, WelcomeView } from './WelcomeView.js'
 
 // config.js는 더 이상 사용하지 않음 - 세션 기반으로 변경
 
@@ -49,6 +50,9 @@ export function ChatView({ apiUrl }: Props) {
   const [hideEmailForSession, setHideEmailForSession] = useState(false) // ESC로 세션 중 숨김
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([])
   const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(0)
+  // Onboarding: 환영 화면 + 스타터 질문
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [selectedStarterIdx, setSelectedStarterIdx] = useState(0)
   // HITL: Human Escalation 상태
   const [showEscalation, setShowEscalation] = useState(false)
   const [escalationReason, setEscalationReason] = useState<string>('')
@@ -93,6 +97,7 @@ export function ChatView({ apiUrl }: Props) {
       .then(() => {
         if (!mounted) return
         setStatus('idle')
+        setShowWelcome(true)
         setMessages([
           {
             id: nextId(),
@@ -176,6 +181,33 @@ export function ChatView({ apiUrl }: Props) {
         return
       }
       exit()
+    }
+
+    // Onboarding: 스타터 질문 키보드 네비게이션
+    if (showWelcome && status === 'idle') {
+      if (key.upArrow) {
+        setSelectedStarterIdx((prev) => Math.max(0, prev - 1))
+        return
+      }
+      if (key.downArrow) {
+        setSelectedStarterIdx((prev) => Math.min(STARTER_QUESTIONS.length - 1, prev + 1))
+        return
+      }
+      if (key.return) {
+        setShowWelcome(false)
+        setInput(STARTER_QUESTIONS[selectedStarterIdx])
+        return
+      }
+      const numKey = Number(input)
+      if (numKey >= 1 && numKey <= STARTER_QUESTIONS.length) {
+        setShowWelcome(false)
+        setInput(STARTER_QUESTIONS[numKey - 1])
+        return
+      }
+      // 다른 키 입력 시 환영 화면 닫기 (타이핑 시작)
+      if (input && !key.ctrl && !key.meta && !key.escape) {
+        setShowWelcome(false)
+      }
     }
 
     // 추천 질문 UI 키보드 네비게이션
@@ -345,6 +377,7 @@ ${icons.chat} 예시 질문
       if (!trimmed || status !== 'idle') return
 
       setInput('')
+      setShowWelcome(false)
 
       if (trimmed.startsWith('/')) {
         await handleCommand(trimmed)
@@ -592,6 +625,11 @@ ${icons.chat} 예시 질문
     <Box flexDirection="column" paddingX={1}>
       {/* 메시지 히스토리 */}
       <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
+
+      {/* 온보딩: 환영 화면 + 스타터 질문 */}
+      {showWelcome && status === 'idle' && (
+        <WelcomeView questions={STARTER_QUESTIONS} selectedIndex={selectedStarterIdx} />
+      )}
 
       {/* 스트리밍 응답 */}
       {streamContent.length > 0 && (
