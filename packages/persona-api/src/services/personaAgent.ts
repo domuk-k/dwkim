@@ -52,6 +52,8 @@ export interface SEUResult {
   shouldEscalate: boolean
 }
 
+export type ConfidenceLevel = 'high' | 'medium' | 'low'
+
 type RAGStreamMetadata = RAGResponse['metadata'] & {
   shouldSuggestContact?: boolean
   messageCount?: number
@@ -60,6 +62,7 @@ type RAGStreamMetadata = RAGResponse['metadata'] & {
   seuResult?: SEUResult
   nodeExecutions?: number
   totalTokens?: number
+  confidence?: ConfidenceLevel
 }
 
 export interface ProgressItem {
@@ -783,6 +786,22 @@ async function followupNode(
 }
 
 /**
+ * computeConfidence - 소스 수 + SEU 결과로 신뢰도 산출
+ *
+ * - 소스 3개 이상 + SEU 불확실하지 않음 → high
+ * - 소스 1개 이상 또는 SEU 불확실 → medium
+ * - 소스 0개 → low
+ */
+function computeConfidence(state: PersonaState): ConfidenceLevel {
+  const sourceCount = state.sources?.length || 0
+  const isUncertain = state.seuResult?.isUncertain ?? false
+
+  if (sourceCount >= 3 && !isUncertain) return 'high'
+  if (sourceCount >= 1) return isUncertain ? 'medium' : 'high'
+  return 'low'
+}
+
+/**
  * doneNode - 최종 메타데이터 emit (그래프 종료 직전)
  */
 async function doneNode(
@@ -790,6 +809,9 @@ async function doneNode(
   config: LangGraphRunnableConfig
 ): Promise<Partial<PersonaState>> {
   const processingTime = Date.now() - state.metrics.startTime
+
+  // Confidence 산출: 소스 수 + SEU 결과 조합
+  const confidence = computeConfidence(state)
 
   config.writer?.({
     type: 'done',
@@ -801,7 +823,8 @@ async function doneNode(
       rewriteMethod: state.rewriteMethod !== 'none' ? state.rewriteMethod : undefined,
       seuResult: state.seuResult,
       nodeExecutions: state.metrics.nodeExecutions + 1,
-      totalTokens: state.metrics.totalTokens
+      totalTokens: state.metrics.totalTokens,
+      confidence
     }
   })
 

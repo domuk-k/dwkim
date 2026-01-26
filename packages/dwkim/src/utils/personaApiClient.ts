@@ -155,6 +155,7 @@ export type StreamEvent =
         rewriteMethod?: string
         nodeExecutions?: number
         totalTokens?: number
+        confidence?: 'high' | 'medium' | 'low'
       }
     }
   | { type: 'error'; error: string }

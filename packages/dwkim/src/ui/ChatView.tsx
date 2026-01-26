@@ -419,6 +419,7 @@ ${icons.chat} 예시 질문
         let fullContent = ''
         let processingTime = 0
         let shouldSuggestContact = false
+        let confidence: 'high' | 'medium' | 'low' | undefined
 
         for await (const event of client.chatStream(trimmed, sessionId)) {
           switch (event.type) {
@@ -481,6 +482,7 @@ ${icons.chat} 예시 질문
             case 'done':
               processingTime = event.metadata.processingTime
               shouldSuggestContact = event.metadata.shouldSuggestContact ?? false
+              confidence = event.metadata.confidence
               setProgressItems([])
               break
             case 'error':
@@ -496,7 +498,8 @@ ${icons.chat} 예시 질문
             content: fullContent,
             sources,
             processingTime,
-            shouldSuggestContact
+            shouldSuggestContact,
+            confidence
           }
         ])
         setStreamContent('')
