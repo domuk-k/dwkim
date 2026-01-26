@@ -1,7 +1,6 @@
 import { Box, Static, Text, useApp, useInput, useStdout } from 'ink'
-import Spinner from 'ink-spinner'
 import TextInput from 'ink-text-input'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ApiError,
   PersonaApiClient,
@@ -9,9 +8,14 @@ import {
   type StreamEvent
 } from '../utils/personaApiClient.js'
 import { icons } from './data.js'
+import { EmailCollector } from './EmailCollector.js'
+import { ExitFeedback } from './ExitFeedback.js'
 import { FeedbackPrompt } from './FeedbackPrompt.js'
 import { MarkdownText } from './MarkdownText.js'
-import { ProfileBanner } from './ProfileCard.js'
+import { type Message, MessageBubble } from './MessageBubble.js'
+import { ProgressPipeline } from './ProgressPipeline.js'
+import { type LoadingState, StatusIndicator } from './StatusIndicator.js'
+import { SuggestedQuestions } from './SuggestedQuestions.js'
 import { theme } from './theme.js'
 
 // config.js는 더 이상 사용하지 않음 - 세션 기반으로 변경
@@ -19,31 +23,7 @@ import { theme } from './theme.js'
 // Extract sources type from discriminated union
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>
 
-interface Message {
-  id: number
-  role: 'user' | 'assistant' | 'system' | 'banner'
-  content: string
-  sources?: SourcesEvent['sources']
-  processingTime?: number
-  shouldSuggestContact?: boolean
-}
-
 type Status = 'idle' | 'connecting' | 'loading' | 'error'
-
-interface ToolCallState {
-  tool: string
-  displayName: string
-  icon: string
-  phase: 'started' | 'executing' | 'completed' | 'error'
-  query?: string
-  resultCount?: number
-}
-
-interface LoadingState {
-  icon: string
-  message: string
-  toolCalls: ToolCallState[]
-}
 
 interface Props {
   apiUrl: string
@@ -187,12 +167,10 @@ export function ChatView({ apiUrl }: Props) {
         handleExitFeedback(null)
         return
       }
-      // 다른 키는 무시 (종료 대기 중)
       return
     }
 
     if (key.ctrl && input === 'c') {
-      // 대화가 있었으면 피드백 요청, 없으면 바로 종료
       if (feedbackResponseCount > 0) {
         setShowExitFeedback(true)
         return
@@ -214,7 +192,6 @@ export function ChatView({ apiUrl }: Props) {
         handleSuggestionSelect(suggestedQuestions[selectedSuggestionIdx])
         return
       }
-      // 숫자 키로 직접 선택 (1, 2)
       if (input === '1' && suggestedQuestions.length >= 1) {
         handleSuggestionSelect(suggestedQuestions[0])
         return
@@ -225,7 +202,7 @@ export function ChatView({ apiUrl }: Props) {
       }
     }
 
-    // HITL: 피드백 키 처리 (1, 2, 3, d, D/Shift+D)
+    // HITL: 피드백 키 처리
     if (showFeedback && status === 'idle' && !showEmailInput) {
       if (input === '1') {
         handleFeedback(1)
@@ -239,45 +216,37 @@ export function ChatView({ apiUrl }: Props) {
         handleFeedback(3)
         return
       }
-      // Shift+D: 세션 동안 피드백 비활성화
       if (input === 'D' && key.shift) {
         handleFeedback(null, true)
         return
       }
-      // d: 단순 스킵
       if (input === 'd') {
         handleFeedback(null)
         return
       }
-      // 다른 키를 누르면 피드백 dismiss하고 타이핑 시작 (Claude Code 스타일)
       if (input && !key.ctrl && !key.meta && !key.escape) {
         setShowFeedback(false)
-        // 입력은 TextInput으로 전달됨
       }
     }
 
     // ESC 처리
     if (key.escape) {
-      // 피드백 닫기 (dismiss)
       if (showFeedback) {
         handleFeedback(null)
         return
       }
-      // 추천 질문 닫기
       if (suggestedQuestions.length > 0) {
         setSuggestedQuestions([])
         return
       }
-      // 스트리밍 중이면 취소
       if (status === 'loading') {
         client.abort()
         setStatus('idle')
         setLoadingState(null)
         setStreamContent('')
-        setMessages((prev) => [...prev, { id: nextId(), role: 'system', content: '⏹ 취소됨' }])
+        setMessages((prev) => [...prev, { id: nextId(), role: 'system', content: '\u23F9 취소됨' }])
         return
       }
-      // 이메일 입력 중이면 이번 세션에서만 숨기기
       if (showEmailInput) {
         setHideEmailForSession(true)
         setShowEmailInput(false)
@@ -339,30 +308,19 @@ ${icons.chat} 예시 질문
           } catch {
             setMessages((prev) => [
               ...prev,
-              {
-                id: nextId(),
-                role: 'system',
-                content: `${icons.error} 상태 조회 실패`
-              }
+              { id: nextId(), role: 'system', content: `${icons.error} 상태 조회 실패` }
             ])
           }
           break
 
         case 'clear':
-          setSessionId(undefined) // 세션 ID 초기화 (새 대화 시작)
-          setMessages([
-            {
-              id: nextId(),
-              role: 'system',
-              content: `${icons.check} 초기화 완료`
-            }
-          ])
+          setSessionId(undefined)
+          setMessages([{ id: nextId(), role: 'system', content: `${icons.check} 초기화 완료` }])
           break
 
         case 'exit':
         case 'quit':
         case 'bye':
-          // HITL: 대화가 있었으면 피드백 요청, 없으면 바로 종료
           if (feedbackResponseCount > 0) {
             setShowExitFeedback(true)
           } else {
@@ -373,11 +331,7 @@ ${icons.chat} 예시 질문
         default:
           setMessages((prev) => [
             ...prev,
-            {
-              id: nextId(),
-              role: 'system',
-              content: `${icons.error} /${cmd} — /help 참고`
-            }
+            { id: nextId(), role: 'system', content: `${icons.error} /${cmd} — /help 참고` }
           ])
       }
     },
@@ -397,12 +351,10 @@ ${icons.chat} 예시 질문
         return
       }
 
-      // HITL: Correction 감지 - "틀렸어", "아니야" 등
-      // 수정 피드백을 저장하고 감사 메시지 표시 (일반 대화는 계속하지 않음)
+      // HITL: Correction 감지
       if (lastExchange && isCorrection(trimmed)) {
         setMessages((prev) => [...prev, { id: nextId(), role: 'user', content: trimmed }])
 
-        // 수정 피드백 제출
         const result = await client.submitCorrection(
           lastExchange.query,
           lastExchange.response,
@@ -420,15 +372,13 @@ ${icons.chat} 예시 질문
               : `${icons.error} ${result.message}`
           }
         ])
-
-        // 수정 피드백 후 종료 (일반 대화로 넘어가지 않음)
         return
       }
 
       // 사용자 메시지
       setMessages((prev) => [...prev, { id: nextId(), role: 'user', content: trimmed }])
       setStatus('loading')
-      setLoadingState({ icon: '⏳', message: '처리 중...', toolCalls: [] })
+      setLoadingState({ icon: '\u23F3', message: '처리 중...', toolCalls: [] })
       setStreamContent('')
 
       try {
@@ -440,7 +390,6 @@ ${icons.chat} 예시 질문
         for await (const event of client.chatStream(trimmed, sessionId)) {
           switch (event.type) {
             case 'session':
-              // 첫 요청 시 서버에서 받은 sessionId 저장 (이후 요청에 사용)
               setSessionId(event.sessionId)
               break
             case 'status':
@@ -454,7 +403,7 @@ ${icons.chat} 예시 질문
               setLoadingState((prev) => {
                 const toolCalls = [...(prev?.toolCalls || [])]
                 const existingIdx = toolCalls.findIndex((t) => t.tool === event.tool)
-                const toolState: ToolCallState = {
+                const toolState = {
                   tool: event.tool,
                   displayName: event.displayName,
                   icon: event.icon,
@@ -468,7 +417,7 @@ ${icons.chat} 예시 질문
                   toolCalls.push(toolState)
                 }
                 return {
-                  icon: prev?.icon || '🔧',
+                  icon: prev?.icon || '\u{1F527}',
                   message: prev?.message || event.displayName,
                   toolCalls
                 }
@@ -481,30 +430,24 @@ ${icons.chat} 예시 질문
               setProgressItems(event.items)
               break
             case 'clarification':
-              // A2UI: 모호한 쿼리에 대한 추천 질문 표시
               setSuggestedQuestions(event.suggestedQuestions)
               setSelectedSuggestionIdx(0)
               break
             case 'escalation':
-              // HITL: Human Escalation - 높은 불확실성으로 사람 연결 제안
               setEscalationReason(event.reason)
-              // done 이벤트 후에 표시하기 위해 플래그만 설정
               break
             case 'followup':
-              // HITL: 응답 완료 후 팔로업 질문 제안 (clarification과 동일 UI 재사용)
               setSuggestedQuestions(event.suggestedQuestions)
               setSelectedSuggestionIdx(0)
               break
             case 'content':
               fullContent += event.content
               setStreamContent(fullContent)
-              // 컨텐츠 스트리밍 시작하면 progress 숨기기
               setProgressItems([])
               break
             case 'done':
               processingTime = event.metadata.processingTime
               shouldSuggestContact = event.metadata.shouldSuggestContact ?? false
-              // 완료 시 progress 초기화 (suggestedQuestions는 유지)
               setProgressItems([])
               break
             case 'error':
@@ -530,8 +473,7 @@ ${icons.chat} 예시 질문
         // HITL: Correction 감지를 위한 마지막 대화 저장
         setLastExchange({ query: trimmed, response: fullContent })
 
-        // HITL: 피드백 요청 (3번째 응답마다, 다른 UI가 없을 때)
-        // Claude Code 스타일: 간헐적으로, 비침습적으로
+        // HITL: 피드백 요청 (3번째 응답마다)
         const newResponseCount = feedbackResponseCount + 1
         setFeedbackResponseCount(newResponseCount)
         if (
@@ -543,12 +485,10 @@ ${icons.chat} 예시 질문
           setShowFeedback(true)
         }
 
-        // 5회 이상 대화 시 이메일 입력 UI 표시 (세션 중 숨기지 않은 경우)
         if (shouldSuggestContact && !hideEmailForSession) {
           setShowEmailInput(true)
         }
 
-        // HITL: Escalation이 있으면 이메일 입력 UI 표시 (shouldSuggestContact보다 우선)
         if (escalationReason && !hideEmailForSession) {
           setShowEscalation(true)
           setShowEmailInput(true)
@@ -557,11 +497,7 @@ ${icons.chat} 예시 질문
         const message = error instanceof ApiError ? error.message : '오류가 발생했습니다.'
         setMessages((prev) => [
           ...prev,
-          {
-            id: nextId(),
-            role: 'system',
-            content: `${icons.error} ${message}`
-          }
+          { id: nextId(), role: 'system', content: `${icons.error} ${message}` }
         ])
         setStreamContent('')
         setLoadingState(null)
@@ -588,7 +524,6 @@ ${icons.chat} 예시 질문
     async (email: string) => {
       const trimmedEmail = email.trim()
 
-      // 빈 입력 시 건너뛰기
       if (!trimmedEmail) {
         setShowEmailInput(false)
         setEmailInput('')
@@ -597,7 +532,6 @@ ${icons.chat} 예시 질문
 
       if (emailSubmitting) return
 
-      // 간단한 이메일 형식 검증
       if (!trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
         setMessages((prev) => [
           ...prev,
@@ -624,11 +558,7 @@ ${icons.chat} 예시 질문
         if (result.success) {
           setMessages((prev) => [
             ...prev,
-            {
-              id: nextId(),
-              role: 'system',
-              content: `${icons.check} ${result.message}`
-            }
+            { id: nextId(), role: 'system', content: `${icons.check} ${result.message}` }
           ])
           setShowEmailInput(false)
           setShowEscalation(false)
@@ -653,41 +583,14 @@ ${icons.chat} 예시 질문
     [apiUrl, emailSubmitting, sessionId, nextId]
   )
 
-  // Exit Feedback 모드일 때는 다른 UI 숨김
+  // Exit Feedback 모드
   if (showExitFeedback) {
-    return (
-      <Box flexDirection="column" paddingX={1} paddingY={1}>
-        <Box
-          borderStyle="round"
-          borderColor={theme.lavender}
-          paddingX={2}
-          paddingY={1}
-          flexDirection="column"
-        >
-          <Text color={theme.lavender} bold>
-            {icons.chat} 떠나시기 전에...
-          </Text>
-          <Box marginTop={1}>
-            <Text color={theme.subtext}>오늘 대화가 도움이 됐나요?</Text>
-          </Box>
-          <Box marginTop={1}>
-            <Text color={theme.success}>[1]</Text>
-            <Text color={theme.subtext}> 매우 도움됨 </Text>
-            <Text color={theme.warning}>[2]</Text>
-            <Text color={theme.subtext}> 조금 도움됨 </Text>
-            <Text color={theme.error}>[3]</Text>
-            <Text color={theme.subtext}> 별로... </Text>
-            <Text color={theme.muted}>[d]</Text>
-            <Text color={theme.subtext}> 스킵</Text>
-          </Box>
-        </Box>
-      </Box>
-    )
+    return <ExitFeedback />
   }
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {/* 메시지 히스토리 (배너 포함, Static으로 자연스러운 스크롤) */}
+      {/* 메시지 히스토리 */}
       <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
 
       {/* 스트리밍 응답 */}
@@ -697,69 +600,15 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* Progress 표시 (RAG 파이프라인 진행 상태 with animated spinner + detail) */}
-      {progressItems.length > 0 && !streamContent && (
-        <Box flexDirection="column" marginY={1} marginLeft={2}>
-          {progressItems.map((item) => (
-            <Box key={item.id}>
-              {item.status === 'in_progress' ? (
-                <Text color={theme.lavender}>
-                  <Spinner type="dots" /> {item.label}
-                  {item.detail ? <Text color={theme.muted}> — {item.detail}</Text> : null}
-                </Text>
-              ) : (
-                <Text
-                  color={item.status === 'completed' ? theme.success : theme.muted}
-                  dimColor={item.status === 'pending'}
-                >
-                  {item.status === 'completed' ? '✓' : '○'} {item.label}
-                  {item.status === 'completed' && item.detail ? (
-                    <Text color={theme.muted}> — {item.detail}</Text>
-                  ) : null}
-                </Text>
-              )}
-            </Box>
-          ))}
-        </Box>
-      )}
+      {/* Progress 표시 (RAG 파이프라인) */}
+      <ProgressPipeline items={progressItems} hidden={!!streamContent} />
 
-      {/* 상태 표시 (progress 없을 때만) */}
-      {status !== 'idle' && status !== 'error' && !progressItems.length && (
-        <Box flexDirection="column" marginY={1}>
-          <Box>
-            {status === 'loading' && (
-              <Text color={theme.lavender}>
-                <Spinner type="dots" />
-              </Text>
-            )}
-            {status === 'connecting' && (
-              <Text color={theme.info}>
-                <Spinner type="dots" />
-              </Text>
-            )}
-            <Text color={theme.info}>
-              {' '}
-              {status === 'connecting' ? '연결 중...' : loadingState?.message || '처리 중...'}
-            </Text>
-          </Box>
-          {loadingState?.toolCalls && loadingState.toolCalls.length > 0 && (
-            <Box flexDirection="column" marginLeft={2} marginTop={0}>
-              {loadingState.toolCalls.map((tool, idx) => (
-                <Box key={`${tool.tool}-${idx}`}>
-                  <Text color={tool.phase === 'completed' ? theme.success : theme.muted}>
-                    {tool.phase === 'completed' ? '✓' : tool.phase === 'error' ? '✗' : '○'}{' '}
-                    {tool.displayName}
-                    {tool.query ? <Text dimColor> "{tool.query}"</Text> : null}
-                    {tool.resultCount !== undefined ? (
-                      <Text dimColor> → {tool.resultCount}건</Text>
-                    ) : null}
-                  </Text>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-      )}
+      {/* 상태 표시 */}
+      <StatusIndicator
+        status={status}
+        loadingState={loadingState}
+        hasProgress={progressItems.length > 0}
+      />
 
       {/* 에러 */}
       {errorMessage !== null && (
@@ -770,29 +619,12 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 추천 질문 UI (A2UI/HITL - 모호한 쿼리 또는 팔로업) - inline style */}
+      {/* 추천 질문 UI (A2UI/HITL) */}
       {suggestedQuestions.length > 0 && status === 'idle' && !showEmailInput && !showFeedback && (
-        <Box flexDirection="column" marginTop={1} marginLeft={2}>
-          <Text color={theme.muted} dimColor>
-            ? 더 구체적으로 물어보시겠어요?
-          </Text>
-          {suggestedQuestions.map((q, idx) => (
-            <Box key={`suggestion-${idx}`} marginLeft={2}>
-              <Text
-                color={idx === selectedSuggestionIdx ? theme.lavender : theme.muted}
-                bold={idx === selectedSuggestionIdx}
-              >
-                {idx === selectedSuggestionIdx ? '› ' : '  '}[{idx + 1}] {q}
-              </Text>
-            </Box>
-          ))}
-          <Text color={theme.muted} dimColor>
-            {'  '}↑↓ 선택 · Enter 질문 · ESC 닫기
-          </Text>
-        </Box>
+        <SuggestedQuestions questions={suggestedQuestions} selectedIndex={selectedSuggestionIdx} />
       )}
 
-      {/* HITL: Response Feedback (Claude Code 스타일) */}
+      {/* HITL: Response Feedback */}
       {showFeedback && status === 'idle' && !showEmailInput && <FeedbackPrompt />}
 
       {/* 피드백 확인 메시지 */}
@@ -802,44 +634,18 @@ ${icons.chat} 예시 질문
         </Box>
       )}
 
-      {/* 이메일 입력 UI (HITL 패턴 - 일반 또는 Escalation) */}
+      {/* 이메일 입력 UI */}
       {showEmailInput && status === 'idle' && (
-        <Box flexDirection="column" marginTop={1} paddingX={1}>
-          <Box
-            borderStyle="round"
-            borderColor={showEscalation ? theme.peach : theme.lavender}
-            paddingX={2}
-            paddingY={1}
-            flexDirection="column"
-          >
-            <Text color={showEscalation ? theme.peach : theme.lavender}>
-              {showEscalation ? '🤔 ' : '📧 '}
-              {showEscalation
-                ? escalationReason || '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.'
-                : '더 깊은 이야기가 필요하신 것 같아요!'}
-            </Text>
-            <Text color={theme.muted} dimColor>
-              이메일 남겨주시면 동욱이 직접 연락드릴게요.
-            </Text>
-            <Box marginTop={1}>
-              <Text color={theme.primary}>이메일: </Text>
-              <TextInput
-                value={emailInput}
-                onChange={setEmailInput}
-                onSubmit={handleEmailSubmit}
-                placeholder="your@email.com"
-              />
-            </Box>
-            <Box marginTop={1}>
-              <Text color={theme.muted} dimColor>
-                Enter: 전송 • 빈값 Enter: 넘어가기 • ESC: 다시보지않기
-              </Text>
-            </Box>
-          </Box>
-        </Box>
+        <EmailCollector
+          value={emailInput}
+          onChange={setEmailInput}
+          onSubmit={handleEmailSubmit}
+          showEscalation={showEscalation}
+          escalationReason={escalationReason}
+        />
       )}
 
-      {/* 입력 영역 (위아래 선) */}
+      {/* 입력 영역 */}
       {status !== 'connecting' &&
         status !== 'error' &&
         !showEmailInput &&
@@ -862,47 +668,3 @@ ${icons.chat} 예시 질문
     </Box>
   )
 }
-
-const MessageBubble = React.memo(function MessageBubble({ message }: { message: Message }) {
-  // 배너는 ProfileBanner 컴포넌트로 렌더링
-  if (message.role === 'banner') {
-    return <ProfileBanner />
-  }
-
-  const isUser = message.role === 'user'
-  const isSystem = message.role === 'system'
-
-  return (
-    <Box flexDirection="column" marginTop={1}>
-      {/* 메시지 본문 */}
-      <Box marginLeft={isUser ? 0 : 2}>
-        {isUser && <Text color={theme.lavender}>{icons.arrow} </Text>}
-        {message.role === 'assistant' ? (
-          <MarkdownText color={theme.text}>{message.content}</MarkdownText>
-        ) : (
-          <Text color={isUser ? theme.lavender : theme.muted} dimColor={isSystem}>
-            {message.content}
-          </Text>
-        )}
-      </Box>
-
-      {/* 소스 (간략화) */}
-      {message.sources && message.sources.length > 0 && (
-        <Box marginLeft={4} marginTop={0}>
-          <Text color={theme.muted} dimColor>
-            {icons.book} {message.sources.length}개 문서 참조
-          </Text>
-        </Box>
-      )}
-
-      {/* 처리 시간 */}
-      {message.processingTime !== undefined && message.processingTime > 0 && (
-        <Box marginLeft={4}>
-          <Text color={theme.muted} dimColor>
-            {icons.clock} {message.processingTime}ms
-          </Text>
-        </Box>
-      )}
-    </Box>
-  )
-})
