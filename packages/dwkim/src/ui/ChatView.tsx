@@ -29,13 +29,14 @@ type Status = 'idle' | 'connecting' | 'loading' | 'error'
 
 interface Props {
   apiUrl: string
+  client?: PersonaApiClient // 테스트용 DI
 }
 
-export function ChatView({ apiUrl }: Props) {
+export function ChatView({ apiUrl, client: injectedClient }: Props) {
   const { exit } = useApp()
   const { stdout } = useStdout()
   const termWidth = stdout?.columns || 80
-  const [client] = useState(() => new PersonaApiClient(apiUrl))
+  const [client] = useState(() => injectedClient ?? new PersonaApiClient(apiUrl))
   // 메시지 히스토리 (배너를 첫 번째 아이템으로 포함)
   const [messages, setMessages] = useState<Message[]>([{ id: 0, role: 'banner', content: '' }])
   const [input, setInput] = useState('')
@@ -68,6 +69,7 @@ export function ChatView({ apiUrl }: Props) {
   const [lastExchange, setLastExchange] = useState<{ query: string; response: string } | null>(null)
   const [expandedSourcesMsgId, setExpandedSourcesMsgId] = useState<number | null>(null)
   const messageIdRef = useRef(0)
+  const nextId = useCallback(() => ++messageIdRef.current, [])
 
   // HITL: 수정 요청 패턴 감지
   const CORRECTION_PATTERNS = [
@@ -86,8 +88,6 @@ export function ChatView({ apiUrl }: Props) {
     /correct/i
   ]
   const isCorrection = (msg: string) => CORRECTION_PATTERNS.some((p) => p.test(msg))
-
-  const nextId = () => ++messageIdRef.current
 
   // 초기 연결 확인 (with cleanup + cold start retry)
   useEffect(() => {
