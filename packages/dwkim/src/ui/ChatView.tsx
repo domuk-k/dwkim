@@ -14,6 +14,7 @@ import { FeedbackPrompt } from './FeedbackPrompt.js'
 import { MarkdownText } from './MarkdownText.js'
 import { type Message, MessageBubble } from './MessageBubble.js'
 import { ProgressPipeline } from './ProgressPipeline.js'
+import { SourcesPanel } from './SourcesPanel.js'
 import { type LoadingState, StatusIndicator } from './StatusIndicator.js'
 import { SuggestedQuestions } from './SuggestedQuestions.js'
 import { theme } from './theme.js'
@@ -65,6 +66,7 @@ export function ChatView({ apiUrl }: Props) {
   const [showExitFeedback, setShowExitFeedback] = useState(false)
   // HITL: Correction 감지용 마지막 대화 추적
   const [lastExchange, setLastExchange] = useState<{ query: string; response: string } | null>(null)
+  const [expandedSourcesMsgId, setExpandedSourcesMsgId] = useState<number | null>(null)
   const messageIdRef = useRef(0)
 
   // HITL: 수정 요청 패턴 감지
@@ -181,6 +183,19 @@ export function ChatView({ apiUrl }: Props) {
         return
       }
       exit()
+    }
+
+    // 소스 상세 토글: s 키로 마지막 assistant 메시지 소스 확장/접기
+    if (input === 's' && status === 'idle' && !showEmailInput && !showWelcome) {
+      const lastAssistantWithSources = [...messages]
+        .reverse()
+        .find((m) => m.role === 'assistant' && m.sources && m.sources.length > 0)
+      if (lastAssistantWithSources) {
+        setExpandedSourcesMsgId((prev) =>
+          prev === lastAssistantWithSources.id ? null : lastAssistantWithSources.id
+        )
+        return
+      }
     }
 
     // Onboarding: 스타터 질문 키보드 네비게이션
@@ -628,6 +643,13 @@ ${icons.chat} 예시 질문
     <Box flexDirection="column" paddingX={1}>
       {/* 메시지 히스토리 */}
       <Static items={messages}>{(msg) => <MessageBubble key={msg.id} message={msg} />}</Static>
+
+      {/* 소스 상세 패널 (s 키 토글) */}
+      {expandedSourcesMsgId !== null &&
+        (() => {
+          const msg = messages.find((m) => m.id === expandedSourcesMsgId)
+          return msg?.sources ? <SourcesPanel sources={msg.sources} /> : null
+        })()}
 
       {/* 온보딩: 환영 화면 + 스타터 질문 */}
       {showWelcome && status === 'idle' && (
