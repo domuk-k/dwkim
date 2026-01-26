@@ -1,3 +1,13 @@
+## [3.1.5](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.4...dwkim-v3.1.5) (2026-01-26)
+
+### Bug Fixes
+
+* **dwkim:** expand citation pattern to cover English source keys ([d07d899](https://github.com/domuk-k/dwkim/commit/d07d8994b5777399ca446caac007414600855aa3))
+
+### Refactoring
+
+* remove inline citation in favor of SourcesPanel ([70c8e0a](https://github.com/domuk-k/dwkim/commit/70c8e0a600cab0b5b10c5283247e47a2f7d8e818))
+
 ## [3.1.4](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.3...dwkim-v3.1.4) (2026-01-26)
 
 ### Bug Fixes
