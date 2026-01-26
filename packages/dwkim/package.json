@@ -21,7 +21,6 @@
   ],
   "scripts": {
     "build": "bun script/build.js",
-    "build:binary": "bunx pkg dist/index.js --targets node20-linux-x64,node20-macos-x64,node20-macos-arm64,node20-win-x64 --output dist/bin/dwkim",
     "dev": "bun --watch src/index.tsx",
     "type-check": "tsc --noEmit"
   },
@@ -36,22 +35,17 @@
     "react": "^19.2.3"
   },
   "devDependencies": {
-    "@semantic-release/npm": "^12.0.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^12.0.1",
     "@types/bun": "latest",
     "@types/marked-terminal": "^6.1.1",
     "@types/node": "^20.10.0",
     "@types/react": "^19.2.7",
-    "@yao-pkg/pkg": "^6.0.0",
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "esbuild": "^0.20.0",
+    "ink-testing-library": "^4.0.0",
     "semantic-release": "^25.0.2",
     "typescript": "^5.8.3"
-  },
-  "pkg": {
-    "scripts": "dist/**/*.js",
-    "assets": [],
-    "outputPath": "dist/bin"
   }
 }
