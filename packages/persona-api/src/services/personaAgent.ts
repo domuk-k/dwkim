@@ -125,6 +125,12 @@ const PersonaStateAnnotation = Annotation.Root({
     default: () => []
   }),
 
+  // Query Classification
+  queryComplexity: Annotation<'simple' | 'complex'>({
+    reducer: (_, b) => b,
+    default: () => 'complex' as const
+  }),
+
   // Query Processing
   rewrittenQuery: Annotation<string | undefined>({
     reducer: (_, b) => b,
@@ -279,8 +285,111 @@ export function buildContext(documents: Document[], query: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Query Classification (Fast-Path Routing)
+// ─────────────────────────────────────────────────────────────
+
+const GREETING_PATTERNS = [
+  /^(안녕|하이|헬로|ㅎㅇ|반가워|반갑습니다)/i,
+  /^(hi|hello|hey|howdy|sup|yo)\b/i
+]
+const THANKS_PATTERNS = [
+  /^(고마워|감사|ㄱㅅ|고맙습니다|감사합니다|땡큐|쌩큐)/i,
+  /^(thanks?|thank you|thx|ty)\b/i
+]
+const FAREWELL_PATTERNS = [
+  /^(잘\s*가|바이|안녕히|다음에|수고)/i,
+  /^(bye|goodbye|see you|later|cya)\b/i
+]
+
+type SimpleCategory = 'greeting' | 'thanks' | 'farewell'
+
+function classifySimpleQuery(query: string): SimpleCategory | null {
+  const trimmed = query.trim()
+  // 긴 메시지는 단순 쿼리가 아님 (한국어 10자, 영문 30자 기준)
+  if (trimmed.length > 30) return null
+
+  if (GREETING_PATTERNS.some((p) => p.test(trimmed))) return 'greeting'
+  if (THANKS_PATTERNS.some((p) => p.test(trimmed))) return 'thanks'
+  if (FAREWELL_PATTERNS.some((p) => p.test(trimmed))) return 'farewell'
+  return null
+}
+
+const SIMPLE_RESPONSES: Record<SimpleCategory, string[]> = {
+  greeting: [
+    '안녕하세요! 저는 김동욱의 AI 프로필 에이전트예요. 커리어, 기술 스택, 프로젝트 등 궁금한 게 있으시면 편하게 물어보세요!',
+    '반갑습니다! 동욱의 경력, 스킬, 블로그 글 등에 대해 답변해 드릴 수 있어요. 뭐가 궁금하세요?'
+  ],
+  thanks: [
+    '도움이 됐다니 기쁩니다! 더 궁금한 것이 있으시면 언제든 물어보세요.',
+    '천만에요! 동욱에 대해 더 알고 싶은 게 있으시면 편하게 질문해 주세요.'
+  ],
+  farewell: [
+    '감사합니다! 좋은 하루 되세요. 언제든 다시 찾아와 주세요!',
+    '방문해 주셔서 감사해요! 다음에 또 궁금한 게 생기면 편하게 오세요.'
+  ]
+}
+
+function getSimpleResponse(category: SimpleCategory): string {
+  const responses = SIMPLE_RESPONSES[category]
+  return responses[Math.floor(Math.random() * responses.length)]
+}
+
+// ─────────────────────────────────────────────────────────────
 // Nodes (Pure Functions + Error Resilience)
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * classifyNode - 쿼리 복잡도 분류 (fast-path 라우팅)
+ * 인사/감사/작별 → directResponse (LLM 호출 없이 즉시 응답)
+ * 나머지 → 전체 RAG 파이프라인
+ */
+async function classifyNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const category = classifySimpleQuery(state.query)
+
+  if (category) {
+    console.log(`[classifyNode] Simple query detected: "${state.query}" → ${category}`)
+    return {
+      queryComplexity: 'simple' as const,
+      metrics: {
+        ...state.metrics,
+        nodeExecutions: state.metrics.nodeExecutions + 1
+      }
+    }
+  }
+
+  return {
+    queryComplexity: 'complex' as const,
+    progress: initProgress(),
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1
+    }
+  }
+}
+
+/**
+ * directResponseNode - 단순 쿼리에 대한 즉시 응답 (LLM 호출 없음)
+ */
+async function directResponseNode(
+  state: PersonaState,
+  config: LangGraphRunnableConfig
+): Promise<Partial<PersonaState>> {
+  const category = classifySimpleQuery(state.query)
+  const answer = getSimpleResponse(category || 'greeting')
+
+  config.writer?.({ type: 'content', content: answer })
+
+  return {
+    answer,
+    metrics: {
+      ...state.metrics,
+      nodeExecutions: state.metrics.nodeExecutions + 1
+    }
+  }
+}
 
 /**
  * rewriteNode - 쿼리 재작성 (대명사 치환, 확장)
@@ -656,6 +765,8 @@ async function doneNode(
 
 function createPersonaGraph() {
   const graph = new StateGraph(PersonaStateAnnotation)
+    .addNode('classify', classifyNode)
+    .addNode('directResponse', directResponseNode)
     .addNode('rewrite', rewriteNode)
     .addNode('search', searchNode)
     .addNode('analyze', analyzeNode)
@@ -664,8 +775,16 @@ function createPersonaGraph() {
     .addNode('followup', followupNode)
     .addNode('done', doneNode)
 
-    // 순차 흐름
-    .addEdge(START, 'rewrite')
+    // 엔트리: 쿼리 분류
+    .addEdge(START, 'classify')
+
+    // 복잡도 기반 분기: simple → directResponse, complex → RAG 파이프라인
+    .addConditionalEdges('classify', (state) => {
+      return state.queryComplexity === 'simple' ? 'directResponse' : 'rewrite'
+    })
+    .addEdge('directResponse', 'done')
+
+    // 복잡 쿼리: 기존 RAG 순차 흐름
     .addEdge('rewrite', 'search')
     .addEdge('search', 'analyze')
 
@@ -730,6 +849,7 @@ export class PersonaEngine {
     const input: PersonaState = {
       query,
       conversationHistory,
+      queryComplexity: 'complex',
       progress: initProgress(),
       metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
       sources: [],
@@ -775,6 +895,7 @@ export class PersonaEngine {
     const input: PersonaState = {
       query,
       conversationHistory,
+      queryComplexity: 'complex',
       progress: initProgress(),
       metrics: { nodeExecutions: 0, totalTokens: 0, startTime },
       sources: [],
