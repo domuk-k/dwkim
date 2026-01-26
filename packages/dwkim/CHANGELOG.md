@@ -1,3 +1,23 @@
+## [3.1.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.0.0...dwkim-v3.1.0) (2026-01-26)
+
+### Features
+
+* **dwkim:** add interactive onboarding with welcome screen and capability disclosure ([5f33b83](https://github.com/domuk-k/dwkim/commit/5f33b83095aadfadddd072f995272f1b6d48ed27))
+* **dwkim:** add source detail expansion toggle with s key ([d9aca09](https://github.com/domuk-k/dwkim/commit/d9aca09aa693bcfcbb0fa097bfc4a82f9849db48))
+* **persona-api,dwkim:** add confidence score with CLI visualization ([ad68578](https://github.com/domuk-k/dwkim/commit/ad68578717d929d64b4e525ffc5005b510556186))
+* **persona-api,dwkim:** add inline source citations in responses ([4782d73](https://github.com/domuk-k/dwkim/commit/4782d739deae348631701575bddab83837502bb8))
+* **persona-api:** add cross-session memory via DeviceService personalization ([a37749c](https://github.com/domuk-k/dwkim/commit/a37749c6613173229a2664ac506233a16063b839))
+* **persona-api:** add query complexity router for fast-path responses ([f6b861e](https://github.com/domuk-k/dwkim/commit/f6b861e471ffc896abd7a0e9f0f15c1a759e2e68))
+* **persona-api:** reactivate follow-up question generation after responses ([643a3dc](https://github.com/domuk-k/dwkim/commit/643a3dc9e88b1a4dfc87696f3e3df684a0eed892))
+
+### Bug Fixes
+
+* **persona-api,dwkim:** address verification issues across S3-S5 ([047a098](https://github.com/domuk-k/dwkim/commit/047a0987836c758a1703fe006b19effa06047045))
+
+### Refactoring
+
+* **dwkim:** decompose ChatView into focused sub-components ([303d8b9](https://github.com/domuk-k/dwkim/commit/303d8b91b21a8a097b9c4bc90e66aac33d5f0838))
+
 ## [3.0.0](https://github.com/domuk-k/dwkim/compare/dwkim-v2.2.4...dwkim-v3.0.0) (2026-01-21)
 
 ### ⚠ BREAKING CHANGES
