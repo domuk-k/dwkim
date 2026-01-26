@@ -1,3 +1,9 @@
+## [3.1.3](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.2...dwkim-v3.1.3) (2026-01-26)
+
+### Bug Fixes
+
+* **dwkim:** strip hyperlink URLs from markdown in TUI ([9072e10](https://github.com/domuk-k/dwkim/commit/9072e10c5b50eecedf12a73a785f7228fa28e4ac))
+
 ## [3.1.2](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.1...dwkim-v3.1.2) (2026-01-26)
 
 ### Bug Fixes
