@@ -44,7 +44,7 @@ export const MessageBubble = React.memo(function MessageBubble({ message }: { me
       {message.sources && message.sources.length > 0 && (
         <Box marginLeft={4} marginTop={0}>
           <Text color={theme.muted} dimColor>
-            {icons.book} {message.sources.length}개 문서 참조
+            {icons.book} {message.sources.length}개 문서 참조 · s 상세
           </Text>
         </Box>
       )}
