@@ -108,45 +108,8 @@ export const chatRoutes = new Elysia({ prefix: '/api/v1' })
     { body: chatBodySchema }
   )
 
-  // POST /api/v1/chat/stream (SSE)
-  .post(
-    '/chat/stream',
-    async function* ({ body, request, chatService, deviceService, set }) {
-      const context = getContext(request)
-
-      try {
-        // IP 차단 확인
-        const blocked = await chatService.checkBlocked(context.clientIp)
-        if (blocked) {
-          set.status = 429
-          yield `data: ${JSON.stringify({ type: 'error', error: 'Rate limit exceeded' })}\n\n`
-          return
-        }
-
-        const validatedData = ChatRequestSchema.parse(body)
-
-        // Device 활동 추적
-        if (context.deviceId && deviceService) {
-          deviceService.trackActivity(context.deviceId, validatedData.message).catch((error) => {
-            console.warn('Device tracking failed:', error)
-          })
-        }
-
-        // SSE 헤더 설정
-        set.headers['Content-Type'] = 'text/event-stream'
-        set.headers['Cache-Control'] = 'no-cache'
-        set.headers['Connection'] = 'keep-alive'
-
-        for await (const event of chatService.handleStreamChat(validatedData, context)) {
-          yield `data: ${JSON.stringify(event)}\n\n`
-        }
-      } catch (error) {
-        console.error('Stream chat error:', error)
-        yield `data: ${JSON.stringify({ type: 'error', error: '서버 오류' })}\n\n`
-      }
-    },
-    { body: chatBodySchema }
-  )
+  // NOTE: /api/v1/chat/stream 제거됨 - v2 엔드포인트 사용 (/api/v2/chat/stream)
+  // CLI와 Blog UI 모두 AI SDK Data Stream Protocol 사용
 
   // GET /api/v1/search
   .get(
