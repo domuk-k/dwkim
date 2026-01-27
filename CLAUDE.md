@@ -175,7 +175,19 @@ feat(persona-api): add new RAG endpoint
 - One logical change per commit
 
 ### Deployment
-- **persona-api**: Deploy with `fly deploy` from packages/persona-api/
-- **blog**: Deploy with `bun run deploy` from packages/blog/
-- **Rate Limiting**: 8 req/min in production
-- **Health Check**: `/health` endpoint for monitoring
+
+**자동 배포 (push to main):**
+- **dwkim CLI**: semantic-release → npm publish (packages/dwkim/** 변경 시)
+- **blog**: Vercel 자동 빌드
+
+**수동 배포:**
+- **persona-api**: `fly deploy` from packages/persona-api/
+
+**Deployment Order (API 변경 시):**
+1. persona-api 먼저 배포 (`fly deploy`)
+2. git push → dwkim, blog 자동 배포
+
+**Production Info:**
+- **Rate Limiting**: 8 req/min
+- **Health Check**: `/health` endpoint
+- **Streaming**: `/api/v2/chat/stream` (AI SDK Data Stream Protocol)
