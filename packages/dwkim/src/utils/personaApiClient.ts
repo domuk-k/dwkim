@@ -1,5 +1,122 @@
 import { getDeviceId } from './deviceId.js'
 
+// ─────────────────────────────────────────────────────────────
+// AI SDK Data Stream Protocol Parser
+// @see https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * AI SDK Data Stream Protocol 타입 ID
+ * 포맷: `{type_id}:{json}\n`
+ */
+const DATA_STREAM_TYPES = {
+  TEXT: '0', // 텍스트 청크
+  DATA: '2', // 커스텀 데이터 파트
+  ERROR: 'e', // 에러
+  FINISH: 'd' // 완료
+} as const
+
+/**
+ * Data Stream 라인을 파싱하여 이벤트로 변환
+ */
+function parseDataStreamLine(line: string): StreamEvent | null {
+  if (!line || line.length < 2) return null
+
+  const typeId = line[0]
+  if (line[1] !== ':') return null
+
+  const jsonStr = line.slice(2)
+
+  try {
+    switch (typeId) {
+      case DATA_STREAM_TYPES.TEXT: {
+        const text = JSON.parse(jsonStr) as string
+        return { type: 'content', content: text }
+      }
+
+      case DATA_STREAM_TYPES.DATA: {
+        // Data parts는 배열로 옴: [{ type: 'data-xxx', ... }]
+        const parts = JSON.parse(jsonStr) as Array<{ type: string; [key: string]: unknown }>
+        for (const part of parts) {
+          return convertDataPart(part)
+        }
+        return null
+      }
+
+      case DATA_STREAM_TYPES.ERROR: {
+        const error = JSON.parse(jsonStr) as string
+        return { type: 'error', error }
+      }
+
+      case DATA_STREAM_TYPES.FINISH: {
+        // finish 이벤트는 무시 (done 이벤트가 별도로 옴)
+        return null
+      }
+
+      default:
+        return null
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * AI SDK 커스텀 데이터 파트를 CLI StreamEvent로 변환
+ */
+function convertDataPart(part: { type: string; [key: string]: unknown }): StreamEvent | null {
+  switch (part.type) {
+    case 'data-session':
+      return { type: 'session', sessionId: part.sessionId as string }
+
+    case 'data-sources':
+      return { type: 'sources', sources: part.sources as Source[] }
+
+    case 'data-progress':
+      return { type: 'progress', items: part.items as ProgressItem[] }
+
+    case 'data-clarification':
+      return { type: 'clarification', suggestedQuestions: part.suggestedQuestions as string[] }
+
+    case 'data-followup':
+      return { type: 'followup', suggestedQuestions: part.suggestedQuestions as string[] }
+
+    case 'data-escalation':
+      return {
+        type: 'escalation',
+        reason: part.reason as string,
+        uncertainty: part.uncertainty as number
+      }
+
+    case 'data-done':
+      return {
+        type: 'done',
+        metadata: part.metadata as {
+          searchQuery: string
+          searchResults: number
+          processingTime: number
+          shouldSuggestContact?: boolean
+          messageCount?: number
+          originalQuery?: string
+          rewriteMethod?: string
+          nodeExecutions?: number
+          totalTokens?: number
+          confidence?: 'high' | 'medium' | 'low'
+        }
+      }
+
+    case 'data-error':
+      return { type: 'error', error: part.error as string }
+
+    default:
+      return null
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Error Handling
+// ─────────────────────────────────────────────────────────────
+
 // 사용자 친화적 에러 클래스
 export class ApiError extends Error {
   constructor(
@@ -268,6 +385,10 @@ export class PersonaApiClient {
     }
   }
 
+  /**
+   * AI SDK v2 Data Stream Protocol을 사용하는 스트리밍 채팅
+   * v1 SSE 대신 AI SDK 포맷 사용으로 Blog UI와 동일한 엔드포인트 공유
+   */
   async *chatStream(message: string, sessionId?: string): AsyncGenerator<StreamEvent> {
     // 이전 요청 취소
     this.abort()
@@ -276,7 +397,8 @@ export class PersonaApiClient {
     let response: Response
 
     try {
-      response = await fetch(`${this.baseUrl}/api/v1/chat/stream`, {
+      // v2 엔드포인트 사용 (AI SDK Data Stream Protocol)
+      response = await fetch(`${this.baseUrl}/api/v2/chat/stream`, {
         method: 'POST',
         headers: this.getHeaders('application/json'),
         body: JSON.stringify({ message, sessionId }),
@@ -312,13 +434,11 @@ export class PersonaApiClient {
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event: StreamEvent = JSON.parse(line.slice(6))
-              yield event
-            } catch {
-              // JSON 파싱 실패 시 무시
-            }
+          // AI SDK Data Stream Protocol 파싱
+          // 포맷: `{type_id}:{json}\n` (예: `0:"hello"`, `2:[{...}]`)
+          const event = parseDataStreamLine(line)
+          if (event) {
+            yield event
           }
         }
       }
