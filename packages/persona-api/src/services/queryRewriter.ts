@@ -75,47 +75,81 @@ interface SEUResultForSuggestion {
   responses: string[]
 }
 
-// LLM 기반 추천 질문 생성 프롬프트 (SEU 분석 결과 포함)
+/**
+ * Disambiguation Menu 프롬프트 (SEU 분석 결과 포함)
+ *
+ * 핵심 패러다임: AI가 되묻는 게 아니라, 사용자가 선택할 대안 질문 제시
+ * @see https://www.eedi.com/news/improved-human-ai-alignment-by-asking-smarter-clarifying-questions
+ * @see https://www.smashingmagazine.com/2024/07/how-design-effective-conversational-ai-experiences-guide/
+ */
 function getSuggestionPromptWithSEU(
   lang: SupportedLanguage,
   seuResult?: SEUResultForSuggestion
 ): string {
   const langInstruction = getLanguageInstruction(lang)
-  const seuSection = seuResult
+
+  // SEU responses를 "가능한 의도/해석"으로 프레이밍
+  const interpretationsSection = seuResult?.responses?.length
     ? `
-## 모호성 분석
-- 불확실도: ${(seuResult.uncertainty * 100).toFixed(0)}%
-- AI 해석들: ${seuResult.responses.join(' / ')}
+## AI가 추론한 가능한 의도들
+${seuResult.responses.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+위 해석들을 구분할 수 있는 질문을 생성하세요.
 `
     : ''
-  return `사용자가 "${'{query}'}"라고 물었는데, 이 질문이 모호합니다.${seuSection}
-## 김동욱 정보 (참고)
+
+  return `## 질문 재작성
+
+사용자가 "${'{query}'}"라고 물었습니다. 모호해서 **사용자가 김동욱에게 물어볼 구체적인 질문 2개**로 바꿔주세요.
+${interpretationsSection}
+## 김동욱 정보
 {context}
 
-## 규칙
-- ${seuResult?.responses?.length ? 'AI 해석들을 참고하여 ' : ''}구체적인 질문 2개 추천
-- 반말 의문문으로 작성 (예: "어떤 기술을 주로 써?", "어디서 일해?")
-- URL, 파일명, 내부 용어 절대 포함 금지
-- 각 질문은 15자 이내로 짧고 자연스럽게
-- ${langInstruction}
-- JSON 배열로만 응답: ["질문1", "질문2"]
+## 핵심 규칙
+질문의 화자는 **사용자**입니다. 사용자가 김동욱에게 묻는 질문을 생성하세요.
 
-추천 질문:`
+## ❌ 잘못된 예시 (AI가 되묻는 형태 - 절대 금지)
+- "모토에 대해 궁금해?" ← AI가 사용자에게 되묻는 것
+- "어떤 거 알고 싶어?" ← AI가 사용자에게 되묻는 것
+- "뭐가 궁금한 거야?" ← AI가 사용자에게 되묻는 것
+
+## ✅ 올바른 예시 (사용자가 김동욱에게 묻는 형태)
+- "잘뛰나" → ["러닝 얼마나 해?", "마라톤 기록 있어?"]
+- "기술?" → ["주로 어떤 언어 써?", "좋아하는 프레임워크 뭐야?"]
+
+## 형식
+- 반말 의문문, 15자 이내
+- ${langInstruction}
+- JSON 배열로만: ["질문1", "질문2"]
+
+질문:`
 }
 
-// LLM 기반 추천 질문 생성 프롬프트 (컨텍스트 없을 때 - 폴백)
+/**
+ * 질문 재작성 프롬프트 (컨텍스트 없을 때 - 폴백)
+ */
 function getSuggestionPromptNoContext(lang: SupportedLanguage): string {
   const langInstruction = getLanguageInstruction(lang)
-  return `사용자가 "${'{query}'}"라고 물었는데, 이 질문이 모호합니다. 사용자가 실제로 알고 싶어할 만한 구체적인 질문 2개를 추천하세요.
+  return `## 질문 재작성
 
-## 규칙
-- 사용자 입장에서 자연스럽게 물어볼 수 있는 질문
-- 반말 의문문으로 작성 (예: "어떤 기술을 주로 써?", "어디서 일해?")
-- 각 질문은 15자 이내로 짧고 자연스럽게
+사용자가 "${'{query}'}"라고 물었습니다. 모호해서 **사용자가 김동욱에게 물어볼 구체적인 질문 2개**로 바꿔주세요.
+
+## 핵심 규칙
+질문의 화자는 **사용자**입니다. 사용자가 김동욱에게 묻는 질문을 생성하세요.
+
+## ❌ 잘못된 예시 (AI가 되묻는 형태 - 절대 금지)
+- "모토에 대해 궁금해?" ← AI가 사용자에게 되묻는 것
+- "어떤 거 알고 싶어?" ← AI가 사용자에게 되묻는 것
+
+## ✅ 올바른 예시 (사용자가 김동욱에게 묻는 형태)
+- "기술?" → ["주로 어떤 언어 써?", "좋아하는 프레임워크 뭐야?"]
+
+## 형식
+- 반말 의문문, 15자 이내
 - ${langInstruction}
-- JSON 배열로만 응답: ["질문1", "질문2"]
+- JSON 배열로만: ["질문1", "질문2"]
 
-추천 질문:`
+질문:`
 }
 
 // 폴백용 기본 추천 질문 (다국어)
