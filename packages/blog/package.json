@@ -8,7 +8,7 @@
     "sync-cogni:posts": "bun scripts/sync-cogni-posts.ts",
     "sync-cogni:about": "bun scripts/sync-cogni-about.ts",
     "deploy": "./scripts/deploy-blog.sh",
-    "prebuild": "bun run sync-cogni",
+    "prebuild": "[ -d ~/.cogni ] && bun run sync-cogni || echo 'Skipping sync-cogni (no ~/.cogni directory)'",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
