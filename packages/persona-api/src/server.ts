@@ -5,6 +5,7 @@ import { Elysia } from 'elysia'
 import { env } from './config/env'
 import { createRedisClient, type IRedisClient } from './infra/redis'
 import { chatRoutes } from './routes/chat'
+import { chatAISDKRoutes } from './routes/chat-aisdk'
 import { correctionRoutes } from './routes/correction'
 import { feedbackRoutes } from './routes/feedback'
 import { healthRoutes } from './routes/health'
@@ -76,7 +77,12 @@ export async function createServer() {
     // CORS
     .use(
       cors({
-        origin: env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+        origin: env.ALLOWED_ORIGINS?.split(',') || [
+          'http://localhost:3000',
+          'http://localhost:4321',
+          'http://localhost:4322',
+          'http://localhost:5173'
+        ],
         credentials: true
       })
     )
@@ -172,6 +178,7 @@ export async function createServer() {
     // Routes
     .use(healthRoutes)
     .use(chatRoutes)
+    .use(chatAISDKRoutes)
     .use(syncRoutes)
     .use(feedbackRoutes)
     .use(correctionRoutes)

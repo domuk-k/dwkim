@@ -1,184 +1,173 @@
 /**
  * Message Stream Adapter
  *
- * RAGStreamEvent → AI SDK Data Stream Protocol 변환
- * LangGraph의 streamMode: 'custom' 이벤트를 AI SDK 포맷으로 변환
+ * RAGStreamEvent → AI SDK UI Message Stream 변환
+ * LangGraph의 streamMode: 'custom' 이벤트를 AI SDK v6 포맷으로 변환
  *
- * @see https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#data-stream-protocol
+ * @see https://ai-sdk.dev/docs/ai-sdk-ui/streaming-data
  */
 
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  type UIMessageStreamWriter
+} from 'ai'
 import type { ChatStreamEvent } from '../chatService'
-import { type CustomDataPart, DATA_STREAM_TYPES } from './types'
+
+// 텍스트 블록 ID
+const TEXT_BLOCK_ID = 'main-text'
 
 // ─────────────────────────────────────────────────────────────
-// Stream Protocol Helpers
-// ─────────────────────────────────────────────────────────────
-
-/**
- * AI SDK Data Stream 포맷으로 인코딩
- */
-function encodeDataStreamPart(type: string, data: unknown): string {
-  return `${type}:${JSON.stringify(data)}\n`
-}
-
-/**
- * 텍스트 파트 인코딩
- */
-function encodeText(content: string): string {
-  return encodeDataStreamPart(DATA_STREAM_TYPES.TEXT, content)
-}
-
-/**
- * 커스텀 데이터 파트 인코딩
- */
-function encodeData(data: CustomDataPart): string {
-  return encodeDataStreamPart(DATA_STREAM_TYPES.DATA, [data])
-}
-
-/**
- * 에러 파트 인코딩
- */
-function encodeError(error: string): string {
-  return encodeDataStreamPart(DATA_STREAM_TYPES.ERROR, error)
-}
-
-/**
- * 완료 메시지 인코딩
- */
-function encodeFinish(finishReason: string = 'stop'): string {
-  return encodeDataStreamPart(DATA_STREAM_TYPES.FINISH, {
-    finishReason,
-    usage: { promptTokens: 0, completionTokens: 0 }
-  })
-}
-
-// ─────────────────────────────────────────────────────────────
-// Event Converter
+// Event Converter (UI Message Stream 형식)
 // ─────────────────────────────────────────────────────────────
 
 /**
- * ChatStreamEvent를 AI SDK Data Stream 포맷으로 변환
+ * ChatStreamEvent를 UI Message Stream 형식으로 변환하여 writer에 쓰기
  */
-export function convertToDataStreamPart(event: ChatStreamEvent): string {
+function writeEventToStream(
+  event: ChatStreamEvent,
+  writer: UIMessageStreamWriter,
+  textStarted: { value: boolean }
+): void {
   switch (event.type) {
-    // session 이벤트 → data-session (transient - UI 상태만)
+    // session 이벤트 → data-session (transient)
     case 'session':
-      return encodeData({
+      writer.write({
         type: 'data-session',
-        sessionId: event.sessionId,
+        data: { sessionId: event.sessionId },
         transient: true
       })
+      break
 
-    // content 이벤트 → text part
+    // content 이벤트 → text-start (if not started) + text-delta
     case 'content':
-      return encodeText(event.content)
-
-    // sources 이벤트 → data-sources (커스텀 Document 타입 유지)
-    case 'sources':
-      return encodeData({
-        type: 'data-sources',
-        sources: event.sources
+      if (!textStarted.value) {
+        writer.write({
+          type: 'text-start',
+          id: TEXT_BLOCK_ID
+        })
+        textStarted.value = true
+      }
+      writer.write({
+        type: 'text-delta',
+        id: TEXT_BLOCK_ID,
+        delta: event.content
       })
+      break
 
-    // progress 이벤트 → data-progress (transient - UI 상태만, 메시지에 저장 안 됨)
+    // sources 이벤트 → data-sources
+    case 'sources':
+      writer.write({
+        type: 'data-sources',
+        data: { sources: event.sources }
+      })
+      break
+
+    // progress 이벤트 → data-progress (transient)
     case 'progress':
-      return encodeData({
+      writer.write({
         type: 'data-progress',
-        items: event.items,
+        data: { items: event.items },
         transient: true
       })
+      break
 
     // clarification 이벤트 → data-clarification
     case 'clarification':
-      return encodeData({
+      writer.write({
         type: 'data-clarification',
-        suggestedQuestions: event.suggestedQuestions
+        data: { suggestedQuestions: event.suggestedQuestions }
       })
+      break
 
-    // escalation 이벤트 → data-escalation (transient - 알림성 데이터)
+    // escalation 이벤트 → data-escalation (transient)
     case 'escalation':
-      return encodeData({
+      writer.write({
         type: 'data-escalation',
-        reason: event.reason,
-        uncertainty: event.uncertainty,
+        data: {
+          reason: event.reason,
+          uncertainty: event.uncertainty
+        },
         transient: true
       })
+      break
 
     // followup 이벤트 → data-followup
     case 'followup':
-      return encodeData({
+      writer.write({
         type: 'data-followup',
-        suggestedQuestions: event.suggestedQuestions
+        data: { suggestedQuestions: event.suggestedQuestions }
       })
+      break
 
-    // done 이벤트 → data-done + finish (transient - 메타데이터)
+    // done 이벤트 → text-end (if started) + data-done (transient)
     case 'done':
-      return (
-        encodeData({
-          type: 'data-done',
-          metadata: event.metadata,
-          transient: true
-        }) + encodeFinish('stop')
-      )
+      if (textStarted.value) {
+        writer.write({
+          type: 'text-end',
+          id: TEXT_BLOCK_ID
+        })
+      }
+      writer.write({
+        type: 'data-done',
+        data: { metadata: event.metadata },
+        transient: true
+      })
+      break
 
-    // error 이벤트 → error part
+    // error 이벤트 → error
     case 'error':
-      return encodeError(event.error)
+      writer.write({
+        type: 'error',
+        errorText: event.error
+      })
+      break
 
     default:
       console.warn('[messageStreamAdapter] Unknown event type:', (event as { type: string }).type)
-      return ''
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Stream Transformer
+// Stream Creator
 // ─────────────────────────────────────────────────────────────
 
 /**
- * ChatStreamEvent 제너레이터를 AI SDK Data Stream으로 변환
+ * ChatStreamEvent 제너레이터를 AI SDK UI Message Stream Response로 변환
  */
-export async function* transformToDataStream(
-  eventStream: AsyncGenerator<ChatStreamEvent>
-): AsyncGenerator<string> {
-  try {
-    for await (const event of eventStream) {
-      const part = convertToDataStreamPart(event)
-      if (part) {
-        yield part
-      }
-    }
-  } catch (error) {
-    console.error('[messageStreamAdapter] Stream error:', error)
-    yield encodeError('스트림 처리 중 오류가 발생했습니다.')
-    yield encodeFinish('error')
-  }
-}
+export function createStreamResponse(eventStream: AsyncGenerator<ChatStreamEvent>): Response {
+  const textStarted = { value: false }
 
-/**
- * ReadableStream 생성 (Response body용)
- */
-export function createDataStreamResponse(
-  eventStream: AsyncGenerator<ChatStreamEvent>
-): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder()
+  return createUIMessageStreamResponse({
+    status: 200,
+    headers: {
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive'
+    },
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        // Start message
+        writer.write({ type: 'start' })
 
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        for await (const event of eventStream) {
-          const part = convertToDataStreamPart(event)
-          if (part) {
-            controller.enqueue(encoder.encode(part))
+        try {
+          for await (const event of eventStream) {
+            writeEventToStream(event, writer, textStarted)
           }
+
+          // Finish message
+          writer.write({ type: 'finish', finishReason: 'stop' })
+        } catch (error) {
+          console.error('[messageStreamAdapter] Stream error:', error)
+          writer.write({
+            type: 'error',
+            errorText: '스트림 처리 중 오류가 발생했습니다.'
+          })
         }
-        controller.close()
-      } catch (error) {
-        console.error('[messageStreamAdapter] ReadableStream error:', error)
-        controller.enqueue(encoder.encode(encodeError('스트림 처리 중 오류가 발생했습니다.')))
-        controller.enqueue(encoder.encode(encodeFinish('error')))
-        controller.close()
       }
-    }
+    })
   })
 }
+
+// Legacy export for backwards compatibility
+export const createDataStreamResponse = (eventStream: AsyncGenerator<ChatStreamEvent>) =>
+  createStreamResponse(eventStream)
