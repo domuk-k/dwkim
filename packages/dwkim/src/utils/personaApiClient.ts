@@ -1,97 +1,71 @@
 import { getDeviceId } from './deviceId.js'
 
 // ─────────────────────────────────────────────────────────────
-// AI SDK Data Stream Protocol Parser
-// @see https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol
+// AI SDK UI Message Stream Parser
+// @see https://ai-sdk.dev/docs/ai-sdk-ui/streaming-data
 // ─────────────────────────────────────────────────────────────
 
 /**
- * AI SDK Data Stream Protocol 타입 ID
- * 포맷: `{type_id}:{json}\n`
+ * UI Message Stream 라인을 파싱하여 이벤트로 변환
+ * 포맷: `data: {...}\n\n` (SSE)
  */
-const DATA_STREAM_TYPES = {
-  TEXT: '0', // 텍스트 청크
-  DATA: '2', // 커스텀 데이터 파트
-  ERROR: 'e', // 에러
-  FINISH: 'd' // 완료
-} as const
+function parseUIMessageStreamLine(line: string): StreamEvent | null {
+  // SSE 포맷: "data: {...}" 또는 "data: [DONE]"
+  if (!line.startsWith('data: ')) return null
 
-/**
- * Data Stream 라인을 파싱하여 이벤트로 변환
- */
-function parseDataStreamLine(line: string): StreamEvent | null {
-  if (!line || line.length < 2) return null
-
-  const typeId = line[0]
-  if (line[1] !== ':') return null
-
-  const jsonStr = line.slice(2)
+  const jsonStr = line.slice(6) // "data: " 제거
+  if (jsonStr === '[DONE]') return null
 
   try {
-    switch (typeId) {
-      case DATA_STREAM_TYPES.TEXT: {
-        const text = JSON.parse(jsonStr) as string
-        return { type: 'content', content: text }
-      }
-
-      case DATA_STREAM_TYPES.DATA: {
-        // Data parts는 배열로 옴: [{ type: 'data-xxx', ... }]
-        const parts = JSON.parse(jsonStr) as Array<{ type: string; [key: string]: unknown }>
-        for (const part of parts) {
-          return convertDataPart(part)
-        }
-        return null
-      }
-
-      case DATA_STREAM_TYPES.ERROR: {
-        const error = JSON.parse(jsonStr) as string
-        return { type: 'error', error }
-      }
-
-      case DATA_STREAM_TYPES.FINISH: {
-        // finish 이벤트는 무시 (done 이벤트가 별도로 옴)
-        return null
-      }
-
-      default:
-        return null
-    }
+    const event = JSON.parse(jsonStr) as { type: string; [key: string]: unknown }
+    return convertUIMessageEvent(event)
   } catch {
     return null
   }
 }
 
 /**
- * AI SDK 커스텀 데이터 파트를 CLI StreamEvent로 변환
+ * UI Message Stream 이벤트를 CLI StreamEvent로 변환
  */
-function convertDataPart(part: { type: string; [key: string]: unknown }): StreamEvent | null {
-  switch (part.type) {
+function convertUIMessageEvent(event: {
+  type: string
+  [key: string]: unknown
+}): StreamEvent | null {
+  switch (event.type) {
+    case 'text-delta':
+      return { type: 'content', content: event.delta as string }
+
     case 'data-session':
-      return { type: 'session', sessionId: part.sessionId as string }
+      return { type: 'session', sessionId: (event.data as { sessionId: string }).sessionId }
 
     case 'data-sources':
-      return { type: 'sources', sources: part.sources as Source[] }
+      return { type: 'sources', sources: (event.data as { sources: Source[] }).sources }
 
     case 'data-progress':
-      return { type: 'progress', items: part.items as ProgressItem[] }
+      return { type: 'progress', items: (event.data as { items: ProgressItem[] }).items }
 
     case 'data-clarification':
-      return { type: 'clarification', suggestedQuestions: part.suggestedQuestions as string[] }
+      return {
+        type: 'clarification',
+        suggestedQuestions: (event.data as { suggestedQuestions: string[] }).suggestedQuestions
+      }
 
     case 'data-followup':
-      return { type: 'followup', suggestedQuestions: part.suggestedQuestions as string[] }
+      return {
+        type: 'followup',
+        suggestedQuestions: (event.data as { suggestedQuestions: string[] }).suggestedQuestions
+      }
 
     case 'data-escalation':
       return {
         type: 'escalation',
-        reason: part.reason as string,
-        uncertainty: part.uncertainty as number
+        reason: (event.data as { reason: string }).reason,
+        uncertainty: (event.data as { uncertainty: number }).uncertainty
       }
 
-    case 'data-done':
-      return {
-        type: 'done',
-        metadata: part.metadata as {
+    case 'data-done': {
+      const data = event.data as {
+        metadata: {
           searchQuery: string
           searchResults: number
           processingTime: number
@@ -104,10 +78,13 @@ function convertDataPart(part: { type: string; [key: string]: unknown }): Stream
           confidence?: 'high' | 'medium' | 'low'
         }
       }
+      return { type: 'done', metadata: data.metadata }
+    }
 
-    case 'data-error':
-      return { type: 'error', error: part.error as string }
+    case 'error':
+      return { type: 'error', error: event.errorText as string }
 
+    // start, text-start, text-end, finish 등은 무시
     default:
       return null
   }
@@ -434,9 +411,9 @@ export class PersonaApiClient {
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          // AI SDK Data Stream Protocol 파싱
-          // 포맷: `{type_id}:{json}\n` (예: `0:"hello"`, `2:[{...}]`)
-          const event = parseDataStreamLine(line)
+          // AI SDK UI Message Stream 파싱
+          // 포맷: `data: {...}\n\n` (SSE)
+          const event = parseUIMessageStreamLine(line)
           if (event) {
             yield event
           }
