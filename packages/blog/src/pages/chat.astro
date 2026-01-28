@@ -1,0 +1,35 @@
+---
+/**
+ * /chat 페이지
+ *
+ * 전체 페이지 채팅 인터페이스
+ */
+import IndexLayout from '@/layouts/IndexLayout.astro'
+import { ChatFullPage } from '@/chat/components/ChatFullPage'
+import { themeConfig } from '@/config'
+
+const title = `Chat | ${themeConfig.site.title}`
+const description = 'AI 기반 개인 에이전트와 대화하세요. 김동욱의 경력, 프로젝트, 기술 스택에 대해 자유롭게 질문해보세요.'
+---
+
+<IndexLayout title={title} description={description}>
+
+  <main class="chat-page">
+    <ChatFullPage client:only="react" />
+  </main>
+</IndexLayout>
+
+<style>
+  .chat-page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+  }
+
+  @media (max-width: 768px) {
+    .chat-page {
+      padding: 0;
+    }
+  }
+</style>

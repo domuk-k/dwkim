@@ -1,5 +1,6 @@
 import path from 'node:path'
 import mdx from '@astrojs/mdx'
+import react from '@astrojs/react'
 import sitemap from '@astrojs/sitemap'
 import playformInline from '@playform/inline'
 import { defineConfig } from 'astro/config'
@@ -52,6 +53,7 @@ export default defineConfig({
     rehypePlugins: [rehypeKatex, rehypeCleanup, rehypeImageProcessor, rehypeCopyCode]
   },
   integrations: [
+    react(),
     mermaid(),
     mdx(),
     sitemap(),

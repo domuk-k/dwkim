@@ -1,0 +1,11 @@
+---
+/**
+ * ChatIsland.astro
+ *
+ * Astro Island wrapper for React ChatWidget
+ * client:only="react"로 클라이언트 사이드에서만 렌더링
+ */
+import { ChatWidget } from './components/ChatWidget'
+---
+
+<ChatWidget client:only="react" />
