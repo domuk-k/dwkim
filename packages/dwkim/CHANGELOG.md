@@ -1,3 +1,18 @@
+## [3.2.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.5...dwkim-v3.2.0) (2026-01-28)
+
+### Features
+
+* **blog:** add chat page with AI SDK v6 integration ([25ba5ba](https://github.com/domuk-k/dwkim/commit/25ba5ba89ae2bf528c1ae86634e86c0e94939e5a))
+
+### Bug Fixes
+
+* **dwkim:** migrate stream parser to UI Message Stream format ([6126553](https://github.com/domuk-k/dwkim/commit/612655369989376e9ad15b129b7be6242be4ed21))
+
+### Refactoring
+
+* **persona-api:** migrate to AI SDK v6 UI Message Stream ([82cf4c2](https://github.com/domuk-k/dwkim/commit/82cf4c252eabae1b3c08db48ca0c1baaf6e3ff47))
+* unify chat API to AI SDK v6 Data Stream Protocol ([07fde38](https://github.com/domuk-k/dwkim/commit/07fde381b158da0c79e9454afd7a3925b5e667c3))
+
 ## [3.1.5](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.4...dwkim-v3.1.5) (2026-01-26)
 
 ### Bug Fixes
