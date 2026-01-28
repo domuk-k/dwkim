@@ -53,3 +53,10 @@ Agent의 어원은 라틴어 *agere*, '행동하다'. 누군가를 대신해 행
 《실용주의 프로그래머》가 말한 그 agency—책임지고, 해결하고, 선택지를 제시하는 것—는 여전히 우리 몫이다.
 
 다만 관리할 대리자가 하나 늘었을 뿐.
+
+---
+
+## Related
+
+- [[Plan을 위한 Plan](/meta-plan-agent-philosophy)] - 에이전트 위임의 메타 레벨
+- [[AI Native Mindset](/ai-native-mindset)] - 오케스트레이터로서의 역할

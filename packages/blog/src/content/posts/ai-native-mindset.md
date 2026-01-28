@@ -186,3 +186,4 @@ AI 에이전트도 마찬가지다. 같은 목표라도 단계별로 나눠서 �
 
 - [[game-to-ai-creation-dopamine-loop]] - 프로슈머와 인지 부하의 역설
 - [[컨텍스트-스위칭의-뇌과학]] - AI 사용 중 주의력 전환 비용
+- [[Plan을 위한 Plan](/meta-plan-agent-philosophy)] - 계획-리뷰 핑퐁의 이론적 기초
