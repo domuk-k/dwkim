@@ -369,7 +369,7 @@ async function createHybridCollection(client: QdrantClient): Promise<void> {
  *
  * @see https://www.anthropic.com/news/contextual-retrieval
  */
-function _addContextToChunk(chunk: ChunkResult): ChunkResult {
+function addContextToChunk(chunk: ChunkResult): ChunkResult {
   const { content, metadata } = chunk
 
   // 경력/이력서 섹션에 컨텍스트 추가
@@ -452,8 +452,9 @@ async function initializeDatabase(testMode: boolean = false) {
   const personaChunks = await processPersonaFiles()
   const blogChunks = await processBlogNotes()
 
-  // OpenAI 임베딩의 시맨틱 이해력 테스트 (컨텍스트 주입 없이)
-  const allChunks = [...personaChunks, ...blogChunks]
+  // Contextual Retrieval: 청크에 의미적 컨텍스트 주입 (Anthropic 방식)
+  // @see https://www.anthropic.com/news/contextual-retrieval
+  const allChunks = [...personaChunks, ...blogChunks].map(addContextToChunk)
 
   console.log(`\n📊 총 청크 수: ${allChunks.length}`)
   console.log(`   - cogni/persona: ${personaChunks.length}`)
