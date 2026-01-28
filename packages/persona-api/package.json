@@ -27,6 +27,7 @@
     "docker:rebuild": "docker-compose down && docker-compose up -d --build"
   },
   "dependencies": {
+    "@ai-sdk/langchain": "^2.0.54",
     "@anthropic-ai/sdk": "^0.55.0",
     "@changesets/cli": "^2.29.4",
     "@elysiajs/bearer": "^1.4.2",
@@ -44,6 +45,7 @@
     "@logtail/pino": "^0.5.7",
     "@neondatabase/serverless": "^0.10.0",
     "@qdrant/js-client-rest": "^1.16.2",
+    "ai": "^6.0.49",
     "dotenv": "^16.3.1",
     "elysia": "^1.4.22",
     "fast-bm25": "^0.0.5",
