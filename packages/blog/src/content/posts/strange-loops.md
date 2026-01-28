@@ -202,6 +202,7 @@ graph LR
 - [[샤워 생각이 철학 에세이가 되는 순간](/ai-philosophical-collaboration)] - 이 탐구가 어떻게 시작되었는지
 - [[AI Native Mindset](/ai-native-mindset)] - 시스템 사고와 패턴 인식에 대해
 - [[우리는 이미 에이전트와 일하고 있다](/working-with-agents)] - Agency의 철학적 의미
+- [[Plan을 위한 Plan](/meta-plan-agent-philosophy)] - 자기참조를 계획에 적용하기
 
 ---
 

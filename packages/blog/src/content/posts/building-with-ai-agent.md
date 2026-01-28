@@ -122,3 +122,4 @@ Claude Code를 일반적인 협업 도구로 쓰는 것에서, **Cogni**라는 �
 - [[cogni-pkm-agent]] - Cogni PKM 에이전트 소개
 - [[ai-native-mindset]] - AI와 협업하는 마인드셋
 - [[claude-code-plugin-hands-on-guide-build-your-own]] - 플러그인 직접 만들기
+- [[Plan을 위한 Plan](/meta-plan-agent-philosophy)] - 메타플래닝의 철학과 구현
