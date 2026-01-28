@@ -1,3 +1,20 @@
+## [3.3.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.2.0...dwkim-v3.3.0) (2026-01-28)
+
+### Features
+
+* **dwkim:** add --version flag with build-time injection ([46f58a4](https://github.com/domuk-k/dwkim/commit/46f58a4c450cd7bc6329899276fd5314ef39d022))
+* **dwkim:** add cold-start retry for 502/503 errors ([a9a00f1](https://github.com/domuk-k/dwkim/commit/a9a00f1363d9ba3e04194d131a1ae50686b516e8))
+* **persona-api:** add AI SDK v6 dependencies ([9c2f412](https://github.com/domuk-k/dwkim/commit/9c2f41293c78c3e7cab383a1c334ebd6b17feac4))
+* **persona-api:** enable contextual retrieval chunking ([2fb1259](https://github.com/domuk-k/dwkim/commit/2fb1259978ae5245491ae4c282154fccc9de957a))
+
+### Bug Fixes
+
+* **blog:** skip sync-cogni on Vercel when ~/.cogni missing ([1cfd11d](https://github.com/domuk-k/dwkim/commit/1cfd11db265a63df89de46df5c3346211c886f39))
+
+### Refactoring
+
+* **persona-api:** improve disambiguation prompt ([2c724cc](https://github.com/domuk-k/dwkim/commit/2c724ccbd182a9537efa10884365649882bedb20))
+
 ## [3.2.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.1.5...dwkim-v3.2.0) (2026-01-28)
 
 ### Features
