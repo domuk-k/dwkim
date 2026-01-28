@@ -380,7 +380,7 @@ function getSimpleResponse(category: SimpleCategory): string {
  */
 async function classifyNode(
   state: PersonaState,
-  config: LangGraphRunnableConfig
+  _config: LangGraphRunnableConfig
 ): Promise<Partial<PersonaState>> {
   const category = classifySimpleQuery(state.query)
 
