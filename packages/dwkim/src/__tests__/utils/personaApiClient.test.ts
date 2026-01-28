@@ -36,7 +36,7 @@ describe('ApiError', () => {
  */
 function dataStream(parts: string[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
-  const content = parts.join('\n') + '\n'
+  const content = `${parts.join('\n')}\n`
   return new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(content))
