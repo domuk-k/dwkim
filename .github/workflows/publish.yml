@@ -39,7 +39,7 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Build dwkim
         run: bun run build:dwkim
