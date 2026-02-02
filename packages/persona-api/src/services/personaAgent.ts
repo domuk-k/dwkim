@@ -601,66 +601,10 @@ async function analyzeNode(
   }
 }
 
-/**
- * clarifyNode - A2UI 추천 질문 생성
- */
-async function clarifyNode(
-  state: PersonaState,
-  config: LangGraphRunnableConfig
-): Promise<Partial<PersonaState>> {
-  try {
-    const reason = state.needsClarification && !state.seuResult?.isUncertain ? 'text-based' : 'SEU'
-    console.log(`[clarifyNode] Ambiguous query detected (${reason}), query="${state.query}"`)
-
-    const progress = updateProgress(state.progress, 'context', 'in_progress', '추천 질문 생성 중')
-    config.writer?.({ type: 'progress', items: progress })
-
-    const queryRewriter = getQueryRewriter()
-    // SEU 결과가 있으면 전달하여 AI 해석 기반 구체적 질문 생성
-    const suggestions = await queryRewriter.generateSuggestedQuestions(
-      state.query,
-      state.context,
-      state.seuResult
-        ? { uncertainty: state.seuResult.uncertainty, responses: state.seuResult.responses }
-        : undefined
-    )
-
-    console.log(`[clarifyNode] Generated suggestions: ${JSON.stringify(suggestions)}`)
-    config.writer?.({
-      type: 'clarification',
-      suggestedQuestions: suggestions
-    })
-
-    // Escalation 체크 (SEU가 매우 높을 때)
-    if (state.seuResult?.shouldEscalate) {
-      console.log(
-        `[clarifyNode] High uncertainty (${state.seuResult.uncertainty}), emitting escalation`
-      )
-      config.writer?.({
-        type: 'escalation',
-        reason: '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.',
-        uncertainty: state.seuResult.uncertainty
-      })
-    }
-
-    return {
-      clarificationQuestions: suggestions,
-      metrics: {
-        ...state.metrics,
-        nodeExecutions: state.metrics.nodeExecutions + 1
-      }
-    }
-  } catch (error) {
-    console.warn('[clarifyNode] Failed to generate clarification questions:', error)
-    return {
-      clarificationQuestions: [],
-      metrics: {
-        ...state.metrics,
-        nodeExecutions: state.metrics.nodeExecutions + 1
-      }
-    }
-  }
-}
+// clarifyNode 제거됨 (2025-02-02)
+// 모호한 쿼리에 추천질문을 던지는 건 clarification과 suggestion을 혼동한 것.
+// 추천질문은 응답 후 followupNode에서만 제공.
+// @see https://www.nngroup.com/articles/prompt-controls-genai/
 
 /**
  * generateNode - LLM 스트리밍 응답 생성
@@ -747,7 +691,33 @@ async function generateNode(
 }
 
 /**
- * followupNode - 팔로업 질문 생성
+ * 안티패턴 필터: AI가 되묻는 형태의 질문 제거
+ * "궁금하세요?", "알고 싶으세요?" 등 → 유저 입장이 아닌 AI 입장 문장
+ */
+function filterAntiPatternQuestions(questions: string[]): string[] {
+  const antiPatterns = [
+    /궁금/,
+    /알고\s*싶/,
+    /질문.*있/,
+    /무엇.*대해/,
+    /어떤.*것.*알/,
+    /더\s*자세/,
+    /관심.*있/,
+    /원하/,
+    /필요/,
+    /would you like/i,
+    /do you (want|need|have)/i,
+    /any (other|more) questions/i,
+    /what else/i,
+    /is there anything/i,
+    /tell me more/i
+  ]
+
+  return questions.filter((q) => !antiPatterns.some((p) => p.test(q)))
+}
+
+/**
+ * followupNode - 팔로업 질문 생성 (응답 후에만)
  */
 async function followupNode(
   state: PersonaState,
@@ -755,14 +725,13 @@ async function followupNode(
 ): Promise<Partial<PersonaState>> {
   try {
     const queryRewriter = getQueryRewriter()
-    const followupQuestions = await queryRewriter.generateFollowupQuestions(
-      state.query,
-      state.context
-    )
+    const rawQuestions = await queryRewriter.generateFollowupQuestions(state.query, state.context)
+
+    const followupQuestions = filterAntiPatternQuestions(rawQuestions)
 
     if (followupQuestions.length > 0) {
       console.log(
-        `[followupNode] Generated followup questions: ${JSON.stringify(followupQuestions)}`
+        `[followupNode] Generated followup questions: ${JSON.stringify(followupQuestions)} (filtered ${rawQuestions.length - followupQuestions.length})`
       )
       config.writer?.({
         type: 'followup',
@@ -851,7 +820,6 @@ function createPersonaGraph() {
     .addNode('rewrite', rewriteNode)
     .addNode('search', searchNode)
     .addNode('analyze', analyzeNode)
-    .addNode('clarify', clarifyNode)
     .addNode('generate', generateNode)
     .addNode('followup', followupNode)
     .addNode('done', doneNode)
@@ -869,18 +837,12 @@ function createPersonaGraph() {
     .addEdge('rewrite', 'search')
     .addEdge('search', 'analyze')
 
-    // 조건부 분기: analyze 후 clarify 또는 generate
-    .addConditionalEdges('analyze', (state) => {
-      return state.needsClarification ? 'clarify' : 'generate'
-    })
+    // analyze 후 항상 generate로 (clarifyNode 스킵)
+    // 모호한 쿼리도 최선의 응답 생성 → 팔로업으로 탐색 유도
+    .addEdge('analyze', 'generate')
 
-    // clarify 후에도 generate 실행 (clarification 제공 후 답변)
-    .addEdge('clarify', 'generate')
-
-    // generate → followup (clarification 아닌 경우) 또는 done (clarification인 경우)
-    .addConditionalEdges('generate', (state) => {
-      return state.needsClarification ? 'done' : 'followup'
-    })
+    // generate 후 항상 followup (응답 후에만 추천질문 제공)
+    .addEdge('generate', 'followup')
     .addEdge('followup', 'done')
 
     .addEdge('done', END)
