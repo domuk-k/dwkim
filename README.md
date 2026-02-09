@@ -1,70 +1,86 @@
-# dwkim
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-light.png">
+    <img alt="dwkim - AI agent in your terminal" src="docs/assets/hero-dark.png" width="640">
+  </picture>
+</p>
 
-터미널에서 만나는 김동욱 AI 에이전트
+<p align="center">
+  <strong>Talk to Kim Dongwook's AI agent — right in your terminal.</strong>
+</p>
 
-## 사용해 보기
+<p align="center">
+  <a href="https://www.npmjs.com/package/dwkim"><img src="https://img.shields.io/npm/v/dwkim?style=flat-square&color=cba6f7&labelColor=1e1e2e" alt="npm"></a>
+  <a href="https://persona-api.fly.dev/health"><img src="https://img.shields.io/badge/api-live-a6e3a1?style=flat-square&labelColor=1e1e2e" alt="API Status"></a>
+  <a href="https://dwkim.net"><img src="https://img.shields.io/badge/blog-dwkim.net-89b4fa?style=flat-square&labelColor=1e1e2e" alt="Blog"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f5c2e7?style=flat-square&labelColor=1e1e2e" alt="License"></a>
+</p>
+
+---
+
+## Quick Start
 
 ```bash
 npx dwkim
 ```
 
-프로필 카드를 확인하고 김동욱에 대해 대화할 수 있어요.
+That's it. Profile card appears, then ask anything about Dongwook.
 
-## 프로젝트 구조
+## What is this?
 
-이 저장소는 pnpm workspace 기반 모노레포예요.
+A production AI agent system built as a monorepo — CLI frontend, RAG backend, and blog:
 
-| 패키지 | 설명 | 링크 |
-|--------|------|------|
-| [`dwkim`](./packages/dwkim) | CLI 개인 에이전트 | [![npm](https://img.shields.io/npm/v/dwkim)](https://www.npmjs.com/package/dwkim) |
-| [`persona-api`](./packages/persona-api) | 개인 AI 에이전트 API | [persona-api.fly.dev](https://persona-api.fly.dev) |
-| [`blog`](./packages/blog) | 개인 블로그 | [dwkim.net](https://dwkim.net) |
+| Package | Description | Links |
+|---------|-------------|-------|
+| [`dwkim`](./packages/dwkim) | TUI personal agent | [![npm](https://img.shields.io/npm/v/dwkim?style=flat-square&labelColor=1e1e2e)](https://www.npmjs.com/package/dwkim) |
+| [`persona-api`](./packages/persona-api) | RAG + LangGraph backend | [persona-api.fly.dev](https://persona-api.fly.dev) |
+| [`blog`](./packages/blog) | Astro static blog | [dwkim.net](https://dwkim.net) |
 
-## 로컬 개발
+## Architecture
 
-### 요구사항
-
-- Node.js 18+
-- pnpm 9+
-
-### 설치
-
-```bash
-pnpm install
+```
+┌─────────────────────────────────────────────────────────────┐
+│  dwkim CLI (pi-tui)                                         │
+│  State Machine · SSE Streaming · Catppuccin Mocha           │
+│  npx dwkim                                                  │
+└────────────────────────┬────────────────────────────────────┘
+                         │ SSE (AI SDK Data Stream Protocol)
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  persona-api (Elysia + LangGraph)          Fly.io · nrt     │
+│                                                             │
+│  classify → rewrite → search → analyze → generate → done   │
+│                          │                                  │
+│              ┌───────────┴───────────┐                      │
+│              │  Hybrid Search (RRF)  │                      │
+│              │  Qdrant + BM25        │                      │
+│              └───────────────────────┘                      │
+│                                                             │
+│  OpenRouter (Gemini 2.0 Flash) · OpenAI Embeddings          │
+│  SEU Uncertainty · Query Rewriting · Device Personalization │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 개발 서버 실행
+## Tech Stack
+
+**CLI** — pi-tui (differential rendering), chalk, marked-terminal, esbuild
+**API** — Elysia, LangGraph, Qdrant, BM25, Redis, Pino + Logtail
+**Blog** — Astro 5, Content Collections, KaTeX, Mermaid
+**Infra** — Bun workspace, Biome, Husky, Fly.io, Vercel, semantic-release
+
+## Development
 
 ```bash
-# 전체 패키지
-pnpm dev
-
-# 개별 패키지
-pnpm dev:dwkim
-pnpm dev:blog
+# Requirements: Bun (https://bun.sh)
+bun install
+bun run dev          # All packages in watch mode
+bun run lint         # Biome check
+bun test             # persona-api tests
 ```
 
-### 빌드
+See [CLAUDE.md](./CLAUDE.md) for full architecture docs and commands.
 
-```bash
-pnpm build
-```
-
-## 기술 스택
-
-**dwkim CLI**
-- TypeScript, esbuild
-- boxen, chalk, ora
-
-**persona-api**
-- Fastify, LangGraph
-- Qdrant (Vector DB)
-- Gemini 2.0 Flash, OpenAI Embeddings
-
-**blog**
-- Astro 5
-- MDX, KaTeX, Mermaid
-
-## 라이선스
+## License
 
 MIT
