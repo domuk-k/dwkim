@@ -144,7 +144,7 @@ const PersonaStateAnnotation = Annotation.Root({
     reducer: (_, b) => b,
     default: () => undefined
   }),
-  rewriteMethod: Annotation<'rule' | 'llm' | 'none' | undefined>({
+  rewriteMethod: Annotation<'rule' | 'llm' | 'none' | 'skip' | undefined>({
     reducer: (_, b) => b,
     default: () => undefined
   }),
@@ -469,7 +469,7 @@ async function rewriteNode(
 
     return {
       rewrittenQuery: result.rewritten,
-      rewriteMethod: result.method as 'rule' | 'llm' | 'none',
+      rewriteMethod: result.method as 'rule' | 'llm' | 'none' | 'skip',
       needsClarification: result.needsClarification ?? false,
       progress: completedProgress,
       metrics: {
@@ -569,9 +569,13 @@ async function analyzeNode(
 ): Promise<Partial<PersonaState>> {
   let seuResult: SEUResult | undefined
 
+  // SEU 스킵 조건: 초단문 쿼리 또는 연락처 관련 intent
+  const CONTACT_INTENT_PATTERN = /연락|이메일|email|커피챗|깃허브|github|linkedin|전화/i
+  const shouldSkipSEU = state.query.trim().length < 5 || CONTACT_INTENT_PATTERN.test(state.query)
+
   try {
     // SEU 측정 (텍스트 기반으로 모호하지 않을 때만)
-    if (ENABLE_SEU && !state.needsClarification) {
+    if (ENABLE_SEU && !state.needsClarification && !shouldSkipSEU) {
       const progress = updateProgress(
         state.progress,
         'context',
@@ -583,6 +587,15 @@ async function analyzeNode(
       console.log('[analyzeNode] Running SEU uncertainty measurement...')
       const seuService = getSEUService()
       seuResult = await seuService.measureUncertainty(state.query, state.context)
+    } else if (ENABLE_SEU && shouldSkipSEU) {
+      console.log(`[analyzeNode] SEU skipped: query="${state.query}" (short or contact intent)`)
+      seuResult = {
+        uncertainty: 0,
+        avgSimilarity: 1,
+        responses: [],
+        isUncertain: false,
+        shouldEscalate: false
+      }
     }
   } catch (error) {
     console.warn('[analyzeNode] SEU measurement failed, skipping:', error)
@@ -856,8 +869,11 @@ function createPersonaGraph() {
 
 export class PersonaEngine {
   private graph: ReturnType<typeof createPersonaGraph> | null = null
+  private _initialized = false
 
   async initialize(): Promise<void> {
+    if (this._initialized) return
+
     try {
       await initVectorStore()
       console.log('RAG Engine: VectorStore initialized')
@@ -877,6 +893,7 @@ export class PersonaEngine {
       }
 
       this.graph = createPersonaGraph()
+      this._initialized = true
       console.log('RAG Engine initialized successfully (LangGraph StateGraph)')
     } catch (error) {
       console.error('Failed to initialize RAG Engine:', error)
