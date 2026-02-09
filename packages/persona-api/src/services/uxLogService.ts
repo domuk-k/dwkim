@@ -11,8 +11,8 @@ export interface UXLogEntry {
   // 요청
   userMessage: string
   rewrittenQuery?: string
-  /** 쿼리 재작성 방법: rule(규칙 기반), llm(LLM 기반), none(재작성 안함) */
-  rewriteMethod: 'rule' | 'llm' | 'none'
+  /** 쿼리 재작성 방법: rule(규칙 기반), llm(LLM 기반), none(재작성 안함), skip(비의미 쿼리) */
+  rewriteMethod: 'rule' | 'llm' | 'none' | 'skip'
   historyLength: number
 
   // 응답

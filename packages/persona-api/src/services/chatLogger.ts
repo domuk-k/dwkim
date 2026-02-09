@@ -28,19 +28,36 @@ function createChatLogger() {
 
   // Production + Logtail: Better Stack으로 전송
   if (env.NODE_ENV === 'production' && env.LOGTAIL_TOKEN) {
-    console.log('📊 Chat logger: Better Stack enabled')
-    const transport = pino.transport({
-      targets: [
-        // stdout (Fly.io 기본 로깅용)
-        { target: 'pino/file', options: { destination: 1 } },
-        // Better Stack
-        {
-          target: '@logtail/pino',
-          options: { sourceToken: env.LOGTAIL_TOKEN }
+    console.log('Chat logger: Better Stack enabled')
+    try {
+      let logtailErrorLogged = false
+      const transport = pino.transport({
+        targets: [
+          // stdout (Fly.io 기본 로깅용)
+          { target: 'pino/file', options: { destination: 1 } },
+          // Better Stack
+          {
+            target: '@logtail/pino',
+            options: { sourceToken: env.LOGTAIL_TOKEN }
+          }
+        ]
+      })
+
+      transport.on('error', (err: Error) => {
+        if (!logtailErrorLogged) {
+          logtailErrorLogged = true
+          console.warn('Chat logger: Logtail transport error (will not repeat):', err.message)
         }
-      ]
-    })
-    return pino(baseOptions, transport)
+      })
+
+      return pino(baseOptions, transport)
+    } catch (err) {
+      console.warn(
+        'Chat logger: Logtail transport initialization failed, falling back to stdout:',
+        err instanceof Error ? err.message : err
+      )
+      return pino(baseOptions)
+    }
   }
 
   // Development: pretty print

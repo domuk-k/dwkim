@@ -84,6 +84,18 @@ export class SEUService {
    * 4. uncertainty = 1 - avg_similarity
    */
   async measureUncertainty(query: string, context: string = ''): Promise<SEUResult> {
+    // 초단문 쿼리는 불확실한 것으로 처리 (LLM 호출 낭비 방지)
+    if (query.trim().length < 3) {
+      console.log(`SEU: skipped ultra-short query="${query}" → uncertainty=0.9`)
+      return {
+        uncertainty: 0.9,
+        avgSimilarity: 0.1,
+        responses: [],
+        isUncertain: true,
+        shouldEscalate: false
+      }
+    }
+
     try {
       // 1. Generate multiple diverse responses
       const responses = await this.generateDiverseResponses(query, context)

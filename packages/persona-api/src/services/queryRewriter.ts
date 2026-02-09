@@ -20,7 +20,7 @@ import type { ChatMessage } from './llmService'
 export interface RewriteResult {
   original: string
   rewritten: string
-  method: 'rule' | 'llm' | 'none'
+  method: 'rule' | 'llm' | 'none' | 'skip'
   changes: string[]
   /** 모호한 쿼리로 명확화 필요 시 true */
   needsClarification?: boolean
@@ -174,7 +174,10 @@ function parseJsonStringArray(content: string, maxItems = 2): string[] | null {
       parsed.length > 0 &&
       parsed.every((item): item is string => typeof item === 'string')
     ) {
-      return parsed.slice(0, maxItems)
+      return parsed
+        .slice(0, maxItems)
+        .map((s) => s.replace(/\\/g, '').trim())
+        .filter((s) => s.length > 0)
     }
   } catch {
     // JSON 파싱 실패 - null 반환
@@ -277,9 +280,45 @@ export class QueryRewriter {
   }
 
   /**
+   * 비의미 쿼리 감지 (감탄사, 추임새, 반복문자, 특수문자만)
+   * "흠...", "ㅋㅋㅋ", "???" 등 RAG 파이프라인을 탈 필요가 없는 쿼리
+   */
+  private isNonSemanticQuery(query: string): boolean {
+    const trimmed = query.trim()
+
+    // 감탄사/추임새
+    if (/^(음|흠|아|어|오|우|에|이|응|ㅇㅇ|ㅋㅋ|ㅎㅎ|ㄱㅅ)[?!.~…]*$/i.test(trimmed)) {
+      return true
+    }
+
+    // 반복문자 (같은 문자 3회 이상 + 구두점)
+    if (/^(.)\1{2,}[?!.~…]*$/.test(trimmed)) {
+      return true
+    }
+
+    // 특수문자/구두점/공백만
+    if (/^[?!.~…\s]+$/.test(trimmed)) {
+      return true
+    }
+
+    return false
+  }
+
+  /**
    * 쿼리 재작성 메인 함수 (동기 - 규칙 기반만)
    */
   rewrite(query: string, history: ChatMessage[] = []): RewriteResult {
+    // 0. 비의미 쿼리 조기 감지 - rewrite 건너뜀
+    if (this.isNonSemanticQuery(query)) {
+      return {
+        original: query,
+        rewritten: query,
+        method: 'skip',
+        changes: [],
+        needsClarification: true
+      }
+    }
+
     const changes: string[] = []
     let rewritten = query
 
@@ -308,10 +347,15 @@ export class QueryRewriter {
       }
     }
 
-    // 4. 기본 맥락 추가 (김동욱 언급 없으면)
+    // 4. 기본 맥락 추가 (김동욱 언급 없으면, 최소 2자 이상 의미있는 단어)
     if (!rewritten.includes('김동욱') && !rewritten.includes('동욱')) {
-      rewritten = `김동욱 ${rewritten}`
-      changes.push('기본 맥락 추가')
+      const trimmedQuery = rewritten.trim()
+      const hasSemanticContent =
+        trimmedQuery.length >= 2 && /[\uAC00-\uD7AFa-zA-Z]/.test(trimmedQuery)
+      if (hasSemanticContent) {
+        rewritten = `김동욱 ${rewritten}`
+        changes.push('기본 맥락 추가')
+      }
     }
 
     // 5. 모호한 쿼리 감지

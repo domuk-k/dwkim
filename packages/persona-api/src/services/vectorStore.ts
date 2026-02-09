@@ -57,8 +57,8 @@ export interface Document {
 
 // 유사도 점수 threshold (이 값 이하는 관련 없는 것으로 간주)
 // Qdrant 코사인 유사도: 0 = 무관, 1 = 동일
-// 0.35로 상향: 관련 없는 문서 필터링 강화
-const RELEVANCE_THRESHOLD = 0.35
+// 0.30: hybrid RRF 스코어는 raw cosine보다 낮으므로 여유있게 설정
+const RELEVANCE_THRESHOLD = 0.3
 
 export class VectorStore {
   private vectorStore: QdrantVectorStore | null = null
@@ -326,7 +326,7 @@ export class VectorStore {
     }
 
     try {
-      const prefetchLimit = options?.prefetchLimit ?? topK * 2
+      const prefetchLimit = options?.prefetchLimit ?? topK * 3
       const denseFallback = options?.denseFallback ?? true
 
       // 1. Dense vector 생성 (캐싱 적용)
@@ -400,6 +400,12 @@ export class VectorStore {
       })
 
       console.log(`VectorStore: After filtering: ${deduplicated.length} unique results`)
+
+      if (deduplicated.length < topK) {
+        console.warn(
+          `VectorStore: Only ${deduplicated.length}/${topK} unique results after dedup (prefetchLimit=${prefetchLimit})`
+        )
+      }
 
       // 6. 결과 매핑
       return this.mapQdrantResults(deduplicated)

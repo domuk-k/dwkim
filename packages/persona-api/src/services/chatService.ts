@@ -94,6 +94,7 @@ interface UXLogParams {
   sourcesCount: number
   processingTimeMs: number
   metadata?: Record<string, unknown> | null
+  sources?: unknown[]
 }
 
 /**
@@ -109,11 +110,20 @@ function saveUXLog(params: UXLogParams): void {
     answer,
     sourcesCount,
     processingTimeMs,
-    metadata
+    metadata,
+    sources = []
   } = params
 
-  const rewriteMethod = (metadata?.rewriteMethod as 'rule' | 'llm' | 'none') || 'none'
+  const rewriteMethod = (metadata?.rewriteMethod as 'rule' | 'llm' | 'none' | 'skip') || 'none'
   const hasRewrite = Boolean(metadata?.originalQuery)
+
+  // Document[] 에서 ID 추출
+  const sourceIds = sources
+    .map((s) => {
+      if (s && typeof s === 'object' && 'id' in s) return String((s as { id: string }).id)
+      return ''
+    })
+    .filter(Boolean)
 
   const uxLogEntry: UXLogEntry = {
     id: requestId,
@@ -128,7 +138,7 @@ function saveUXLog(params: UXLogParams): void {
     answerPreview: answer.slice(0, 500),
     answerLength: answer.length,
     sourcesCount,
-    sourceIds: [],
+    sourceIds,
     processingTimeMs,
     nodeExecutions: metadata?.nodeExecutions as number | undefined,
     totalTokens: metadata?.totalTokens as number | undefined
@@ -315,7 +325,8 @@ export class ChatService {
       answer,
       sourcesCount: Array.isArray(sources) ? sources.length : 0,
       processingTimeMs,
-      metadata: metadata as Record<string, unknown>
+      metadata: metadata as Record<string, unknown>,
+      sources
     })
 
     return {
@@ -355,6 +366,7 @@ export class ChatService {
     })
     let fullAnswer = ''
     let lastMetadata: Record<string, unknown> | null = null
+    let lastSources: unknown[] = []
 
     // 세션 시작 이벤트
     yield { type: 'session', sessionId }
@@ -368,6 +380,9 @@ export class ChatService {
       )) {
         if (event.type === 'content') {
           fullAnswer += event.content
+        }
+        if (event.type === 'sources') {
+          lastSources = event.sources
         }
         // done 이벤트에 shouldSuggestContact 추가
         if (event.type === 'done' && event.metadata) {
@@ -408,7 +423,8 @@ export class ChatService {
       answer: fullAnswer,
       sourcesCount: Number(lastMetadata?.searchResults || 0),
       processingTimeMs: Date.now() - startTime,
-      metadata: lastMetadata
+      metadata: lastMetadata,
+      sources: lastSources
     })
   }
 
