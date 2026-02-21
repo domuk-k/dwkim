@@ -57,7 +57,7 @@ const transition = evaluate({ currentLevel, collectedInfo: updatedInfo });
 
 LLM이 엉뚱한 필드를 채워도 괜찮다. 상태머신은 "4개 이상 채워졌나?"만 보니까. 환각은 센서 노이즈와 같다. 노이즈가 있어도 시스템 안정성에 영향을 주지 않는 설계가 핵심이다.
 
-> 상태머신의 구체적 구현(전이 규칙, 피로도 감지, 도구 호출 기반 구조화)은 [[state-machine-plus-llm]]에서 자세히 다룬다.
+> 상태머신의 구체적 구현(전이 규칙, 피로도 감지, 도구 호출 기반 구조화)은 state-machine-plus-llm에서 자세히 다룬다.
 
 ## 더 큰 그림
 
@@ -71,10 +71,6 @@ Lilian Weng의 [LLM Powered Autonomous Agents](https://lilianweng.github.io/post
 
 이 패턴이 주는 가장 중요한 교훈은 이것이다: **LLM의 환각은 버그가 아니라 노이즈다.** 센서 노이즈를 전제하고 설계하는 것이 제어공학의 기본이듯, LLM 환각을 전제하고 설계하는 것이 에이전트 엔지니어링의 기본이다.
 
-## Related
 
-- 🔽 [[state-machine-plus-llm]] — 이 철학의 구체적 구현: 상태머신 + LLM 결합
-- 🔽 [[task-based-model-routing]] — 이 철학의 구체적 적용: 태스크별 모델 분리
-- 🌐 [[delegation-requires-decomposition]] — 다른 테마와의 연결: 센서/컨트롤러 분리도 분해 원리
-- 🌐 [[ai-native-mindset]] — 다른 시각: LLM을 제대로 쓰려면 "전통 함수가 아니다"는 인식이 필요
-- 🌐 [[lilian-weng-llm-agent-시스템-개요]] — 다른 시각: Planning, Memory, Tool Use 분리 패턴
+- 🌐 [delegation-requires-decomposition](/delegation-requires-decomposition/) — 다른 테마와의 연결: 센서/컨트롤러 분리도 분해 원리
+- 🌐 [ai-native-mindset](/ai-native-mindset/) — 다른 시각: LLM을 제대로 쓰려면 "전통 함수가 아니다"는 인식이 필요

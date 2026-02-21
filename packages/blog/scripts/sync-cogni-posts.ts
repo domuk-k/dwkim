@@ -107,6 +107,106 @@ ${contentHtml}
 }
 
 /**
+ * Obsidian 위키링크를 처리
+ *
+ * 블로그에 존재하는 노트는 내부 링크로, 없는 노트는 텍스트만 남김.
+ * "관련 노트" / "Related" 섹션의 위키링크 목록은 블로그 포스트 링크로 변환하되,
+ * 블로그에 없는 노트 항목은 제거.
+ *
+ * 패턴:
+ *   [[note-name]] → [note-name](/note-name/) 또는 텍스트만
+ *   [[note-name|Display Text]] → [Display Text](/note-name/) 또는 텍스트만
+ *   [[path/note-name]] → basename만 사용
+ */
+function transformWikiLinks(content: string, blogSlugs: Set<string>): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+  let inRelatedSection = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // 관련 노트 / Related 섹션 시작 감지
+    if (/^#{1,3}\s*(?:관련\s*노트|관련\s*글|Related)\s*$/.test(line)) {
+      inRelatedSection = true
+      result.push(line)
+      continue
+    }
+
+    // 다른 헤딩이 나오면 Related 섹션 종료
+    if (inRelatedSection && /^#{1,3}\s/.test(line)) {
+      inRelatedSection = false
+    }
+
+    if (inRelatedSection) {
+      // Related 섹션 내 목록 항목 처리
+      const isListItem = /^\s*-\s/.test(line)
+      if (isListItem) {
+        // 하이브리드 패턴: [[Display Text](/slug)] — markdown link in [[ ]]
+        const hybridMatch = line.match(/\[\[[^\]]+\]\([^)]+\)\]/)
+        if (hybridMatch) {
+          result.push(line.replace(/\[\[([^\]]+)\]\(([^)]+)\)\]/g, '[$1]($2)'))
+        } else {
+          // 표준 위키링크 패턴
+          const wikiMatch = line.match(/\[\[(?:[^|\]]*\/)?([^|\]]+?)(?:\|([^\]]+))?\]\]/)
+          if (wikiMatch) {
+            const slug = wikiMatch[1].trim()
+            const display = wikiMatch[2]?.trim() || slug
+            if (blogSlugs.has(slug)) {
+              const prefix = line.match(/^(\s*-\s*(?:[^[]*?))\[\[/)?.[1] || '- '
+              const suffix = line.match(/\]\](.*?)$/)?.[1] || ''
+              result.push(`${prefix}[${display}](/${slug}/)${suffix}`)
+            }
+            // 블로그에 없음: 목록 항목 제거
+          } else {
+            // 위키링크 없는 목록 항목은 그대로 유지
+            result.push(line)
+          }
+        }
+      } else {
+        // 빈 줄 등 비목록 항목은 유지
+        result.push(line)
+      }
+    } else {
+      // 본문 인라인 위키링크 처리
+      let transformed = line
+
+      // 패턴 1: [[Display Text](/slug)] — markdown link이 [[]] 안에 들어간 형태
+      // 구조: [[ text ]( /url ) ] → [text](/url)
+      transformed = transformed.replace(/\[\[([^\]]+)\]\(([^)]+)\)\]/g, '[$1]($2)')
+
+      // 패턴 2: [[path/note|Display]] 또는 [[note]] — 표준 Obsidian 위키링크
+      transformed = transformed.replace(
+        /\[\[(?:[^|\]]*\/)?([^|\]]+?)(?:\|([^\]]+))?\]\]/g,
+        (_match, slug: string, display?: string) => {
+          const trimmedSlug = slug.trim()
+          const trimmedDisplay = display?.trim() || trimmedSlug
+          if (blogSlugs.has(trimmedSlug)) {
+            return `[${trimmedDisplay}](/${trimmedSlug}/)`
+          }
+          return trimmedDisplay
+        }
+      )
+      result.push(transformed)
+    }
+  }
+
+  // Related 섹션이 모두 비어있으면 (헤딩 + 빈줄만) 섹션 제거
+  return cleanEmptyRelatedSections(result.join('\n'))
+}
+
+/**
+ * 내용 없는 Related 섹션 제거
+ */
+function cleanEmptyRelatedSections(content: string): string {
+  // Related 헤딩 뒤에 빈줄만 있고 다음 헤딩 또는 파일 끝까지 내용이 없는 경우 제거
+  return content.replace(
+    /^#{1,3}\s*(?:관련\s*노트|관련\s*글|Related)\s*\n(\s*\n)*(?=#{1,3}\s|$)/gm,
+    ''
+  )
+}
+
+/**
  * Cogni frontmatter를 Astro 형식으로 변환
  */
 function convertToAstroFrontmatter(frontmatter: Frontmatter): string {
@@ -183,19 +283,24 @@ function main() {
   const mdFiles = findMarkdownFiles(COGNI_NOTES_DIR)
   let syncedCount = 0
 
+  // 1단계: blog 태그가 있는 노트의 slug 목록 수집
+  const blogSlugs = new Set<string>()
+  const blogNotes: { filePath: string; frontmatter: Frontmatter; body: string }[] = []
+
   for (const filePath of mdFiles) {
     const content = readFileSync(filePath, 'utf-8')
     const { frontmatter, body } = parseFrontmatter(content)
 
-    // tags에 blog가 있는지 확인
-    if (!frontmatter.tags?.includes('blog')) {
-      continue
-    }
+    if (!frontmatter.tags?.includes('blog')) continue
 
-    // draft 태그가 있으면 스킵 (또는 draft: true로 복사)
+    const fileName = basename(filePath, '.md')
+    blogSlugs.add(fileName)
+    blogNotes.push({ filePath, frontmatter, body })
+  }
+
+  // 2단계: 변환 및 저장
+  for (const { filePath, frontmatter, body } of blogNotes) {
     const isDraft = frontmatter.tags?.includes('draft') || frontmatter.draft
-
-    // 파일명 생성
     const fileName = basename(filePath)
     const destPath = join(POSTS_DIR, fileName)
 
@@ -203,7 +308,10 @@ function main() {
     const astroFrontmatter = convertToAstroFrontmatter(frontmatter)
 
     // Obsidian callout을 HTML로 변환
-    const transformedBody = transformObsidianCallouts(body)
+    let transformedBody = transformObsidianCallouts(body)
+
+    // Obsidian 위키링크를 변환
+    transformedBody = transformWikiLinks(transformedBody, blogSlugs)
 
     const newContent = astroFrontmatter + transformedBody
 

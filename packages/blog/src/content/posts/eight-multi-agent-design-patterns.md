@@ -271,7 +271,6 @@ Google의 설명:
 
 ---
 
-## Related
 
 - [LLM 에이전트의 기본기: Planning, Memory, Tool](/blog-llm-agent-anatomy)
 - [에이전트와 자연어로 소통하며 만드는 블로그](/building-with-ai-agent)

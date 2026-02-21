@@ -190,11 +190,8 @@ Claude에게 질문 → 답변 기다림 → 다른 일 시작 → 답변 도착
 
 > 게임은 "현실 세계의 치트키를 꿈꾸게" 하고, AI 창작은 "현실 세계의 치트키를 직접 만들게" 한다.
 
-## Related
 
-- [[context-switching-neuroscience]] - Attention Residue, Switch Cost
-- [[ai-native-mindset]] - 프로슈머, "타이핑은 줄었지만 피곤함은 늘었다" 역설
-- [[intelligence-ownership-essay-idea]] - 소유 vs 존재, 반도파민 트렌드
+- [ai-native-mindset](/ai-native-mindset/) - 프로슈머, "타이핑은 줄었지만 피곤함은 늘었다" 역설
 
 ## References
 
