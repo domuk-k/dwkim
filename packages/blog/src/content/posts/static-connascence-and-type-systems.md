@@ -168,11 +168,9 @@ Python도 pyright을 켜면 많이 좋아진다. 실제로 pyright 도입 후 -8
 
 ---
 
-## Related
 
-- [[anthropic-typescript-bet]] - Anthropic의 TypeScript 올인 전략. Boris Cherny가 "검증 피드백 루프"를 강조한 것 = 정적 동변성의 이점
-- [[types-are-documentation]] - "Any는 해상도가 낮다"의 아키텍처적 재해석: Any = 동적 동변성
-- [[software-architecture-the-basics-study]] - 소프트웨어 아키텍처 기초 스터디
+- [anthropic-typescript-bet](/anthropic-typescript-bet/) - Anthropic의 TypeScript 올인 전략. Boris Cherny가 "검증 피드백 루프"를 강조한 것 = 정적 동변성의 이점
+- [types-are-documentation](/types-are-documentation/) - "Any는 해상도가 낮다"의 아키텍처적 재해석: Any = 동적 동변성
 
 ## Source
 

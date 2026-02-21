@@ -73,7 +73,7 @@ const rollbackTriggers = {
 - Level 3: 예외 케이스 학습
 - Level 4: 완전 자율화 가능 조건 학습
 
-[[hitl-is-data-engine-not-friction]]에서 말한 "HITL = 데이터 엔진"의 구체적 구현.
+hitl-is-data-engine-not-friction에서 말한 "HITL = 데이터 엔진"의 구체적 구현.
 
 ### 3. 조직 수용성
 
@@ -129,12 +129,7 @@ Trust Ladder는 감사(Audit) 레이어와 자연스럽게 통합:
 - 컴플라이언스 팀이 승격 근거 추적 가능
 - "왜 이 노드는 자동인가?" → 증거 기반 답변 가능
 
-[[governance-as-core-not-module]]에서 말한 "코어에 녹인 거버넌스"의 구체적 형태.
+governance-as-core-not-module에서 말한 "코어에 녹인 거버넌스"의 구체적 형태.
 
-## Related
 
-- 🔼 [[delegation-requires-decomposition]] — 이 글의 전제: 위임의 전제 조건. Trust Ladder는 위임의 실행 방법론
-- ↔️ [[hitl-is-data-engine-not-friction]] — 같은 테마: 각 승인/거부가 학습 데이터
-- 🔽 [[tool-confirmation-hitl-pattern]] — 이 철학의 구체적 UI 패턴
-- 🌐 [[governance-as-core-not-module]] — 다른 테마와의 연결: Trust Ladder가 거버넌스 코어
-- 🌐 [[hitl-patterns-dwkim-agent]] — 다른 시각: HITL 패턴. Level 2가 HITL의 주 영역
+- 🔼 [delegation-requires-decomposition](/delegation-requires-decomposition/) — 이 글의 전제: 위임의 전제 조건. Trust Ladder는 위임의 실행 방법론

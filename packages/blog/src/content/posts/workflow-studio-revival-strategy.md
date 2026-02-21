@@ -258,10 +258,10 @@ Hono의 어댑터를 사용하면 런타임별로 다른 설정 없이 동일한
 ---
 
 ## 참고 링크
-- [[builder-studio-planning-v1.1]] - 기획 문서
-- [[builder-app-spec-schema]] - AppSpec 스키마
-- [[builder-auth-architecture]] - 인증 아키텍처
-- [[n8n-reverse-engineering]] - n8n 분석
+- builder-studio-planning-v1.1 - 기획 문서
+- builder-app-spec-schema - AppSpec 스키마
+- builder-auth-architecture - 인증 아키텍처
+- n8n-reverse-engineering - n8n 분석
 - ADR 문서들 (프로젝트 저장소 내)
 
 ---

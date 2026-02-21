@@ -513,9 +513,3 @@ LLM 에이전트는 마법이 아니다. **뇌(LLM) + 계획(Planning) + 기억(
 
 ---
 
-## Related
-
-- [[lilian-weng-llm-agent-시스템-개요]] - 원문 정리 노트
-- [[ai-agent-tool-skill-개념정리]] - Agent/Tool/Skill 벤더별 비교
-- [[deepagents-스터디]] - deepagents 실습 로드맵
-- [[moc-ai-agent]] - AI Agent 허브

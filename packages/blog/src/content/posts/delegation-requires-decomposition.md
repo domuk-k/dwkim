@@ -55,11 +55,11 @@ pubDate: "2026-02-12"
       → 리더 (시스템을 설계함)
 ```
 
-이건 [[fleeting/orchestrator-role|The Orchestrator's Role]]에서 말한 "시즌을 설계하는 사람"과 연결된다. 직접 당근을 썰지 않고, 메뉴를 설계하는 헤드 셰프. 그 전제 조건이 바로 "레시피를 분해할 수 있는 능력"이다.
+이건 [The Orchestrator's Role](/orchestrator-role/)에서 말한 "시즌을 설계하는 사람"과 연결된다. 직접 당근을 썰지 않고, 메뉴를 설계하는 헤드 셰프. 그 전제 조건이 바로 "레시피를 분해할 수 있는 능력"이다.
 
 ### AI 시대의 핵심 역량
 
-[[ai-native-mindset|AI Native Mindset]]에서 말한 "설명을 잘하는 사람이 프롬프트도 잘한다"의 연장선:
+[AI Native Mindset](/ai-native-mindset/)에서 말한 "설명을 잘하는 사람이 프롬프트도 잘한다"의 연장선:
 - **설명할 수 있다** = 구조를 이해하고 있다
 - **프롬프트를 잘 쓴다** = 업무를 분해하여 전달할 수 있다
 - **AI를 잘 쓴다** = 위임할 수 있다
@@ -73,12 +73,7 @@ Workflow Studio의 진짜 가치는 "앱을 만들어주는 것"이 아니라 **
 > "진짜 가치는 다른 데 있을 수도 — 인터뷰 → 구조화된 스펙 → 실행이 핵심"
 > — research-synthesis.md
 
-## Related
 
-- 🔽 [[automation-bottleneck-is-definition]] — 이 글의 구체적 적용: 쪼갤 수 없으면 정의할 수 없다
-- 🔽 [[structuring-work-not-generating-apps]] — 이 글의 구체적 적용: 구조화 = 분해
-- ↔️ [[trust-ladder-automation-is-stairs]] — 같은 테마: 위임의 실행 방법론
-- 🌐 [[fleeting/orchestrator-role]] — 다른 시각: 위임하는 리더의 역할. "시즌을 설계하는 사람들"
-- 🌐 [[ai-native-mindset]] — 다른 시각: AI를 협업자로 다루는 마인드셋. 설명력 = 위임력
-- 🌐 [[deepagents-스터디]] — 다른 시각: AI Agent 시스템의 위임 패턴
-- 🌐 [[hitl-patterns-dwkim-agent]] — 다른 시각: Human-in-the-Loop 패턴. 위임의 그라데이션
+- ↔️ [trust-ladder-automation-is-stairs](/trust-ladder-automation-is-stairs/) — 같은 테마: 위임의 실행 방법론
+- 🌐 [orchestrator-role](/orchestrator-role/) — 다른 시각: 위임하는 리더의 역할. "시즌을 설계하는 사람들"
+- 🌐 [ai-native-mindset](/ai-native-mindset/) — 다른 시각: AI를 협업자로 다루는 마인드셋. 설명력 = 위임력

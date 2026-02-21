@@ -56,7 +56,6 @@ Agent의 어원은 라틴어 *agere*, '행동하다'. 누군가를 대신해 행
 
 ---
 
-## Related
 
-- [[Plan을 위한 Plan](/meta-plan-agent-philosophy)] - 에이전트 위임의 메타 레벨
-- [[AI Native Mindset](/ai-native-mindset)] - 오케스트레이터로서의 역할
+- [Plan을 위한 Plan](/meta-plan-agent-philosophy) - 에이전트 위임의 메타 레벨
+- [AI Native Mindset](/ai-native-mindset) - 오케스트레이터로서의 역할
