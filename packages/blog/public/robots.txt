@@ -1,0 +1,35 @@
+# robots.txt — blog.dwkim.me
+# Developer blog: allow all crawlers for maximum visibility
+
+User-agent: *
+Allow: /
+
+# AI search/retrieval crawlers
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://blog.dwkim.me/sitemap-index.xml
