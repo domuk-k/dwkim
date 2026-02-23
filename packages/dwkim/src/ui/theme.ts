@@ -1,4 +1,5 @@
 import { flavors } from '@catppuccin/palette'
+import chalk from 'chalk'
 
 // Catppuccin Mocha (기본 다크 테마)
 const mocha = flavors.mocha.colors
@@ -32,3 +33,27 @@ export const theme = {
 } as const
 
 export type Theme = typeof theme
+
+// ─────────────────────────────────────────────────────────────
+// Chalk color functions for pi-tui components
+// ─────────────────────────────────────────────────────────────
+
+export const c = {
+  primary: chalk.hex(theme.primary),
+  secondary: chalk.hex(theme.secondary),
+  accent: chalk.hex(theme.accent),
+  text: chalk.hex(theme.text),
+  subtext: chalk.hex(theme.subtext),
+  muted: chalk.hex(theme.muted),
+  border: chalk.hex(theme.border),
+  surface: chalk.hex(theme.surface),
+  success: chalk.hex(theme.success),
+  warning: chalk.hex(theme.warning),
+  error: chalk.hex(theme.error),
+  info: chalk.hex(theme.info),
+  lavender: chalk.hex(theme.lavender),
+  peach: chalk.hex(theme.peach),
+  teal: chalk.hex(theme.teal),
+  bold: chalk.bold,
+  dim: chalk.dim
+} as const

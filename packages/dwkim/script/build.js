@@ -12,26 +12,6 @@ const projectRoot = join(__dirname, '..')
 const pkg = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf-8'))
 const VERSION = pkg.version
 
-// Ink의 optional dependencies를 빈 모듈로 대체
-const emptyModulePlugin = {
-  name: 'empty-module',
-  setup(build) {
-    const emptyModules = ['react-devtools-core', 'yoga-wasm-web']
-
-    emptyModules.forEach((mod) => {
-      build.onResolve({ filter: new RegExp(`^${mod}$`) }, () => ({
-        path: mod,
-        namespace: 'empty-module'
-      }))
-    })
-
-    build.onLoad({ filter: /.*/, namespace: 'empty-module' }, () => ({
-      contents: 'export default {}; export const connectToDevTools = () => {};',
-      loader: 'js'
-    }))
-  }
-}
-
 // Node.js 내장 모듈 (node: prefix 포함)
 const nodeBuiltins = [...builtinModules, ...builtinModules.map((m) => `node:${m}`)]
 
@@ -39,15 +19,13 @@ console.log('🚀 Starting build...')
 
 try {
   await esbuild.build({
-    entryPoints: [join(projectRoot, 'src/index.tsx')],
+    entryPoints: [join(projectRoot, 'src/index.ts')],
     bundle: true,
     platform: 'node',
     format: 'esm',
     outfile: join(projectRoot, 'dist/index.js'),
     target: 'node18',
     minify: true,
-    jsx: 'automatic',
-    plugins: [emptyModulePlugin],
     external: nodeBuiltins,
     define: {
       __VERSION__: JSON.stringify(VERSION)
