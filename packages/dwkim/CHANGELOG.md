@@ -1,3 +1,20 @@
+## [3.4.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.3.0...dwkim-v3.4.0) (2026-02-23)
+
+### Features
+
+* **blog:** add robots.txt and auto-generated llms.txt/llms-full.txt ([47c073b](https://github.com/domuk-k/dwkim/commit/47c073b92a36d63258481de37147d0cf1d6497ca))
+* **dwkim:** adopt pi-tui native components ([4431acd](https://github.com/domuk-k/dwkim/commit/4431acda958875c6478e0c3916138ad5694cdc82))
+* **persona-api:** add Langfuse Prompt Management ([b0979cf](https://github.com/domuk-k/dwkim/commit/b0979cf1446ce3ef92d4f6b3f85aae2b63f69989))
+
+### Bug Fixes
+
+* **blog:** handle Obsidian wiki-links in sync-cogni ([6eb4e7b](https://github.com/domuk-k/dwkim/commit/6eb4e7be95d9fc98b4094455b52c010202b66cdb))
+* **persona-api:** improve RAG pipeline reliability and performance ([4ddded3](https://github.com/domuk-k/dwkim/commit/4ddded3d42ad09dbc45928f7fe27fe335b8f8ad4))
+
+### Refactoring
+
+* **persona-api:** remove clarifyNode, suggestions only after response ([5d363f5](https://github.com/domuk-k/dwkim/commit/5d363f540bd7909579beb6406574fb742e434a8d))
+
 ## [3.3.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.2.0...dwkim-v3.3.0) (2026-01-28)
 
 ### Features
