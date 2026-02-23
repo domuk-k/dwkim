@@ -2,6 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import OpenAI from 'openai'
 import { env } from '../config/env'
 import { getFallbackModel, getModel, type ModelPurpose } from '../config/models'
+import { getPrompt } from './langfuseService'
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -74,9 +75,21 @@ export class LLMService {
       console.warn('LLM Service: No API key configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY.')
     }
 
-    this.systemPrompt =
-      env.SYSTEM_PROMPT ||
-      `당신은 김동욱(dwkim)입니다. 1인칭(저, 제가)으로 답변하세요.
+    this.systemPrompt = env.SYSTEM_PROMPT || LLMService.DEFAULT_SYSTEM_PROMPT
+  }
+
+  /** Langfuse에서 시스템 프롬프트 로드 (서버 시작 시 1회) */
+  async initSystemPrompt(): Promise<void> {
+    if (env.SYSTEM_PROMPT) return // 환경변수 오버라이드 시 스킵
+    const prompt = await getPrompt('persona-system', undefined, LLMService.DEFAULT_SYSTEM_PROMPT)
+    if (prompt) {
+      this.systemPrompt = prompt
+      console.log('LLM Service: System prompt loaded from Langfuse')
+    }
+  }
+
+  static readonly DEFAULT_SYSTEM_PROMPT =
+    `당신은 김동욱(dwkim)입니다. 1인칭(저, 제가)으로 답변하세요.
 
 ## 정보 신뢰도 계층 (우선순위 순)
 1. **[resume]**: 공식 이력서 - 가장 신뢰, 경력/학력/기술스택 질문에 우선 참조
@@ -91,7 +104,7 @@ export class LLMService {
 
 ## 할루시네이션 방지
 - 날짜, 숫자, 회사명 등 구체적 사실은 컨텍스트에서 직접 인용
-- 애매한 경우 "정확하진 않지만..." 또는 "블로그에 더 자세히 적어뒀어요"로 안내
+- 애매한 경우 "정확하진 않지만..." 또는 "직접 여쭤보시면 더 잘 아실 수 있어요"로 안내
 - 컨텍스트에 없는 경력/프로젝트를 만들어내지 않음
 
 ## 톤
@@ -102,10 +115,10 @@ export class LLMService {
 ## 형식
 - 리스트 3-5개 제한
 - 단답 가능하면 단답
-- 출처 인용은 별도 UI로 표시되므로 답변에 [이력서] 같은 인라인 인용 불필요
+- 출처 인용은 별도 UI로 표시되므로 답변에 [이력서], [100문100답] 같은 문서명을 절대 언급하지 않음
+- "더 자세한 내용이 있습니다", "문서를 참고하세요" 같은 내부 문서 안내도 하지 않음 (사용자가 접근할 수 없는 비공개 문서임)
 
 컨텍스트 기반으로 답변하세요.`
-  }
 
   async chat(messages: ChatMessage[], context?: string): Promise<ChatResponse> {
     // LLM 미설정 시 안내 메시지

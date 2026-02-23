@@ -63,6 +63,11 @@ const envSchema = z
     // NPM (optional, set by package.json)
     npm_package_version: z.string().optional(),
 
+    // Langfuse (LLM Observability)
+    LANGFUSE_PUBLIC_KEY: z.string().optional(),
+    LANGFUSE_SECRET_KEY: z.string().optional(),
+    LANGFUSE_BASE_URL: z.string().url().optional(),
+
     // Admin API Key (for logs endpoint)
     ADMIN_API_KEY: z.string().optional()
   })
@@ -97,6 +102,7 @@ function validateEnv(): Env {
   console.log(`CONTEXT_WINDOW: ${result.data.CONTEXT_WINDOW}`)
   console.log(`RATE_LIMIT_MAX: ${result.data.RATE_LIMIT_MAX}`)
   console.log(`LOG_LEVEL: ${result.data.LOG_LEVEL}`)
+  console.log(`LANGFUSE: ${result.data.LANGFUSE_PUBLIC_KEY ? 'ENABLED' : 'DISABLED'}`)
   console.log('=============================')
 
   return result.data

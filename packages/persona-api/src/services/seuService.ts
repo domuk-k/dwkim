@@ -7,6 +7,7 @@
  * @see https://arxiv.org/pdf/2502.21239 (Semantic Volume for uncertainty quantification)
  */
 
+import { getPrompt } from './langfuseService'
 import { utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
 import { OpenAIEmbeddings } from './openaiEmbeddings'
@@ -32,11 +33,18 @@ const UNCERTAINTY_THRESHOLD = 0.45
 // 0.70 = 70% 불확실성 이상이면 연락 유도
 export const ESCALATION_THRESHOLD = 0.7
 
-// 빠른 응답을 위한 짧은 프롬프트
-const QUICK_RESPONSE_SYSTEM = `당신은 김동욱에 대한 질문에 **한 문장**으로 핵심만 답변하는 AI입니다.
+// 빠른 응답을 위한 짧은 프롬프트 (Langfuse에서 로드, fallback은 하드코딩)
+const DEFAULT_QUICK_RESPONSE = `당신은 김동욱에 대한 질문에 **한 문장**으로 핵심만 답변하는 AI입니다.
 - 모르면 "잘 모르겠어요"라고 솔직히 답변
 - 여러 가능성이 있으면 가장 가능성 높은 것 하나만
 - 최대 100자 이내`
+let QUICK_RESPONSE_SYSTEM = DEFAULT_QUICK_RESPONSE
+
+/** Langfuse에서 SEU 프롬프트 로드 */
+async function loadSEUPrompt(): Promise<void> {
+  const prompt = await getPrompt('seu-quick-response', undefined, DEFAULT_QUICK_RESPONSE)
+  if (prompt) QUICK_RESPONSE_SYSTEM = prompt
+}
 
 /**
  * Cosine similarity between two vectors
@@ -185,10 +193,17 @@ export class SEUService {
 
 // 싱글톤 인스턴스
 let seuService: SEUService | null = null
+let _seuPromptLoaded = false
 
 export function getSEUService(): SEUService {
   if (!seuService) {
     seuService = new SEUService()
+    // 비동기 프롬프트 로드 (fire-and-forget, fallback 있으므로 안전)
+    if (!_seuPromptLoaded) {
+      loadSEUPrompt().then(() => {
+        _seuPromptLoaded = true
+      })
+    }
   }
   return seuService
 }
