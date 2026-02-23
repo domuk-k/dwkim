@@ -19,6 +19,7 @@ import {
 import { env } from '../config/env'
 import { initBM25Engine } from './bm25Engine'
 import { getDeviceService } from './deviceService'
+import { createLangfuseHandler, initLangfuse, prefetchPrompts } from './langfuseService'
 import { generationLLM, utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
 import { getQueryRewriter } from './queryRewriter'
@@ -875,6 +876,17 @@ export class PersonaEngine {
     if (this._initialized) return
 
     try {
+      initLangfuse()
+      await prefetchPrompts([
+        'persona-system',
+        'seu-quick-response',
+        'followup-questions',
+        'suggestion-rewrite'
+      ])
+
+      // Langfuse에서 시스템 프롬프트 로드
+      await generationLLM.initSystemPrompt()
+
       await initVectorStore()
       console.log('RAG Engine: VectorStore initialized')
 
@@ -928,7 +940,15 @@ export class PersonaEngine {
       followupQuestions: undefined
     }
 
-    const result = (await this.graph.invoke(input)) as PersonaState
+    const langfuseHandler = createLangfuseHandler({
+      userId: deviceId,
+      tags: ['persona-api', 'processQuery'],
+      traceMetadata: { query }
+    })
+
+    const result = (await this.graph.invoke(input, {
+      callbacks: langfuseHandler ? [langfuseHandler] : undefined
+    })) as PersonaState
 
     return {
       answer: result.answer || '',
@@ -978,10 +998,17 @@ export class PersonaEngine {
 
     console.log('[RAGEngine] Starting stream with query:', query)
 
+    const langfuseHandler = createLangfuseHandler({
+      userId: deviceId,
+      tags: ['persona-api', 'stream'],
+      traceMetadata: { query }
+    })
+
     try {
       // streamMode: "custom" - config.writer 이벤트 수신
       for await (const event of await this.graph.stream(input, {
-        streamMode: 'custom'
+        streamMode: 'custom',
+        callbacks: langfuseHandler ? [langfuseHandler] : undefined
       })) {
         yield event as RAGStreamEvent
       }

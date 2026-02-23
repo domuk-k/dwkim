@@ -14,6 +14,7 @@ import {
   getLanguageInstruction,
   type SupportedLanguage
 } from '../utils/languageDetector'
+import { getPrompt } from './langfuseService'
 import { utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
 
@@ -79,31 +80,35 @@ interface SEUResultForSuggestion {
  * Disambiguation Menu 프롬프트 (SEU 분석 결과 포함)
  *
  * 핵심 패러다임: AI가 되묻는 게 아니라, 사용자가 선택할 대안 질문 제시
- * @see https://www.eedi.com/news/improved-human-ai-alignment-by-asking-smarter-clarifying-questions
- * @see https://www.smashingmagazine.com/2024/07/how-design-effective-conversational-ai-experiences-guide/
+ * Langfuse에서 로드 시도 → 실패 시 하드코딩 fallback
  */
-function getSuggestionPromptWithSEU(
+async function getSuggestionPromptWithSEU(
   lang: SupportedLanguage,
+  query: string,
+  context: string,
   seuResult?: SEUResultForSuggestion
-): string {
+): Promise<string> {
   const langInstruction = getLanguageInstruction(lang)
-
-  // SEU responses를 "가능한 의도/해석"으로 프레이밍
   const interpretationsSection = seuResult?.responses?.length
-    ? `
-## AI가 추론한 가능한 의도들
-${seuResult.responses.map((r, i) => `${i + 1}. ${r}`).join('\n')}
-
-위 해석들을 구분할 수 있는 질문을 생성하세요.
-`
+    ? `\n## AI가 추론한 가능한 의도들\n${seuResult.responses.map((r, i) => `${i + 1}. ${r}`).join('\n')}\n\n위 해석들을 구분할 수 있는 질문을 생성하세요.\n`
     : ''
 
+  // Langfuse에서 프롬프트 로드 시도
+  const langfusePrompt = await getPrompt('suggestion-rewrite', {
+    query,
+    context: context.slice(0, 1500),
+    interpretationsSection,
+    langInstruction
+  })
+  if (langfusePrompt) return langfusePrompt
+
+  // fallback: 하드코딩
   return `## 질문 재작성
 
-사용자가 "${'{query}'}"라고 물었습니다. 모호해서 **사용자가 김동욱에게 물어볼 구체적인 질문 2개**로 바꿔주세요.
+사용자가 "${query}"라고 물었습니다. 모호해서 **사용자가 김동욱에게 물어볼 구체적인 질문 2개**로 바꿔주세요.
 ${interpretationsSection}
 ## 김동욱 정보
-{context}
+${context.slice(0, 1500)}
 
 ## 핵심 규칙
 질문의 화자는 **사용자**입니다. 사용자가 김동욱에게 묻는 질문을 생성하세요.
@@ -186,18 +191,32 @@ function parseJsonStringArray(content: string, maxItems = 2): string[] | null {
   return null
 }
 
-// HITL: 팔로업 질문 생성 프롬프트
-function getFollowupPrompt(lang: SupportedLanguage): string {
+/** 팔로업 질문 생성 프롬프트 — Langfuse → fallback */
+async function getFollowupPromptCompiled(
+  lang: SupportedLanguage,
+  query: string,
+  context: string
+): Promise<string> {
   const langInstruction = getLanguageInstruction(lang)
+
+  // Langfuse에서 프롬프트 로드 시도
+  const langfusePrompt = await getPrompt('followup-questions', {
+    query,
+    context: context.slice(0, 1500),
+    langInstruction
+  })
+  if (langfusePrompt) return langfusePrompt
+
+  // fallback: 하드코딩
   return `You are a helpful assistant that develops conversations about Kim Dongwook.
 
 Based on the user's question and related documents, suggest 2 follow-up questions the user might naturally ask after seeing the answer.
 
 ## Related Documents
-{context}
+${context.slice(0, 1500)}
 
 ## User Question
-{query}
+${query}
 
 ## Rules
 - Don't repeat already answered content
@@ -263,9 +282,7 @@ export class QueryRewriter {
 
     try {
       const prompt = context
-        ? getSuggestionPromptWithSEU(lang, seuResult)
-            .replace('{context}', context.slice(0, 1500))
-            .replace('{query}', query)
+        ? await getSuggestionPromptWithSEU(lang, query, context, seuResult)
         : getSuggestionPromptNoContext(lang).replace('{query}', query)
 
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }]
@@ -405,9 +422,7 @@ export class QueryRewriter {
     const lang = detectLanguage(query)
 
     try {
-      const prompt = getFollowupPrompt(lang)
-        .replace('{context}', context.slice(0, 1500))
-        .replace('{query}', query)
+      const prompt = await getFollowupPromptCompiled(lang, query, context)
 
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }]
       const response = await utilityLLM.chat(messages, '')
