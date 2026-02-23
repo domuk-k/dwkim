@@ -2,9 +2,6 @@
 
 declare const __VERSION__: string
 
-import { render } from 'ink'
-import { App } from './ui/App.js'
-
 const command = process.argv[2]
 
 function showHelp() {
@@ -24,7 +21,7 @@ function showHelp() {
 `)
 }
 
-function main() {
+async function main() {
   if (command === '--version' || command === '-v') {
     console.log(__VERSION__)
     return
@@ -35,7 +32,11 @@ function main() {
     return
   }
 
-  render(<App />)
+  const { startApp } = await import('./app.js')
+  await startApp()
 }
 
-main()
+main().catch((error) => {
+  console.error('Fatal error:', error)
+  process.exit(1)
+})
