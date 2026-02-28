@@ -1,3 +1,17 @@
+## [3.5.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.4.0...dwkim-v3.5.0) (2026-02-28)
+
+### Features
+
+* **dwkim:** clear input on ESC in idle mode ([ed11a41](https://github.com/domuk-k/dwkim/commit/ed11a414b01ca4857151d9c810db63eaf90eec0c))
+* **persona-api:** index persona-tagged notes in Qdrant ([504ef74](https://github.com/domuk-k/dwkim/commit/504ef7432643b60aa076d8b11683d426ac528952))
+
+### Bug Fixes
+
+* **blog:** replace unicode three-em dash with markdown hr ([8787dd9](https://github.com/domuk-k/dwkim/commit/8787dd94d01d86facd77dee39ef9096c355109ac))
+* **persona-api:** prevent hallucination in system prompt ([7588a06](https://github.com/domuk-k/dwkim/commit/7588a06b1d24040c124c5c06fa26fa1b303237ba))
+* **persona-api:** set temperature 0.3 for OpenRouter calls ([1af9c64](https://github.com/domuk-k/dwkim/commit/1af9c64d49950f3e1b3989b1d73369ede5d3c814))
+* **persona-api:** update register-prompts to support version upsert ([6f2bfde](https://github.com/domuk-k/dwkim/commit/6f2bfde6ef2fa076e48f0583c4cdf9ac37396071))
+
 ## [3.4.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.3.0...dwkim-v3.4.0) (2026-02-23)
 
 ### Features
