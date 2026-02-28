@@ -498,6 +498,13 @@ export async function startApp(): Promise<void> {
         dispatch({ type: 'STREAM_CANCEL' })
         return
       }
+      // idle 모드: 입력 내용이 있으면 비우기
+      if (state.mode === 'idle' && state.suggestedQuestions.length === 0) {
+        if (inputField.getText().trim()) {
+          inputField.setText('')
+          return
+        }
+      }
       // Welcome and suggestions ESC: fall through to SelectList's onCancel
     }
 
