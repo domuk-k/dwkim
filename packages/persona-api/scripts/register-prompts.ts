@@ -99,15 +99,11 @@ async function main() {
 
   for (const p of prompts) {
     try {
-      await client.prompt.create(p)
-      console.log(`  ✓ ${p.name}`)
+      // v2 API: 같은 이름이면 새 버전 자동 생성
+      const result = await client.prompt.create({ ...p, type: 'text' })
+      console.log(`  ✓ ${p.name} (v${result.version})`)
     } catch (error: any) {
-      // 이미 존재하는 경우 새 버전 생성 시도
-      if (error?.message?.includes('already exists') || error?.statusCode === 409) {
-        console.log(`  ~ ${p.name} (already exists, skipping)`)
-      } else {
-        console.error(`  ✗ ${p.name}:`, error?.message || error)
-      }
+      console.error(`  ✗ ${p.name}:`, error?.message || error)
     }
   }
 
