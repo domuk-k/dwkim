@@ -149,7 +149,8 @@ export class LLMService {
       if (this.llmProvider === 'openrouter' && this.openRouterClient) {
         const response = await this.openRouterClient.chat.completions.create({
           model: this.model,
-          messages: llmMessages
+          messages: llmMessages,
+          temperature: 0.3
         })
 
         const content = response.choices[0]?.message?.content || ''
@@ -295,7 +296,8 @@ export class LLMService {
         const stream = await this.openRouterClient.chat.completions.create({
           model: this.model,
           messages: llmMessages,
-          stream: true
+          stream: true,
+          temperature: 0.3
         })
 
         for await (const chunk of stream) {
