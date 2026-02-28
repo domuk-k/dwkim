@@ -235,12 +235,13 @@ async function processPersonaFiles(): Promise<ChunkResult[]> {
 }
 
 /**
- * Cogni notes에서 tags: [blog] 또는 [rag]인 파일 처리
+ * Cogni notes에서 인덱싱 가능한 태그가 있는 파일 처리
  * - blog: 블로그 포스트로 발행된 노트들
  * - rag: RAG에만 노출할 지식 문서들 (미발행)
+ * - persona: 김동욱 관련 지식/생각 노트 (persona 디렉토리 밖에 있는 것들)
  */
-async function processBlogNotes(): Promise<ChunkResult[]> {
-  console.log('📂 Processing Cogni blog/rag notes...')
+async function processTaggedNotes(): Promise<ChunkResult[]> {
+  console.log('📂 Processing Cogni tagged notes (blog/rag/persona)...')
 
   const results: ChunkResult[] = []
 
@@ -275,7 +276,8 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
 
     // tags에 blog 또는 rag가 있는지 확인
     const tags = (frontmatter.tags as string[]) || []
-    const hasIndexableTag = tags.includes('blog') || tags.includes('rag')
+    const hasIndexableTag =
+      tags.includes('blog') || tags.includes('rag') || tags.includes('persona')
     if (!hasIndexableTag) continue
 
     // rag: false인 경우 스킵
@@ -297,9 +299,13 @@ async function processBlogNotes(): Promise<ChunkResult[]> {
 
     console.log(`  📄 ${path.basename(filePath)}: ${chunks.length} chunks`)
 
-    // blog vs rag 태그에 따라 type 구분
-    const docType = tags.includes('blog') ? 'blog' : 'knowledge'
-    const idPrefix = tags.includes('blog') ? 'blog' : 'rag'
+    // 태그 우선순위: blog > persona > rag(knowledge)
+    const docType = tags.includes('blog')
+      ? 'blog'
+      : tags.includes('persona')
+        ? 'persona'
+        : 'knowledge'
+    const idPrefix = tags.includes('blog') ? 'blog' : tags.includes('persona') ? 'persona' : 'rag'
 
     chunks.forEach((chunk, index) => {
       results.push({
@@ -450,7 +456,7 @@ async function initializeDatabase(testMode: boolean = false) {
 
   // 모든 문서 수집 (Cogni SSOT)
   const personaChunks = await processPersonaFiles()
-  const blogChunks = await processBlogNotes()
+  const blogChunks = await processTaggedNotes()
 
   // Contextual Retrieval: 청크에 의미적 컨텍스트 주입 (Anthropic 방식)
   // @see https://www.anthropic.com/news/contextual-retrieval
@@ -458,7 +464,7 @@ async function initializeDatabase(testMode: boolean = false) {
 
   console.log(`\n📊 총 청크 수: ${allChunks.length}`)
   console.log(`   - cogni/persona: ${personaChunks.length}`)
-  console.log(`   - cogni/blog: ${blogChunks.length}\n`)
+  console.log(`   - cogni/tagged (blog+rag+persona): ${blogChunks.length}\n`)
 
   if (testMode) {
     console.log('🧪 테스트 모드 - DB 업로드 건너뜀\n')
