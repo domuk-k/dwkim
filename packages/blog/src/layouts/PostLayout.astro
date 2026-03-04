@@ -13,11 +13,14 @@ import GitHubCard from '@/components/ui/GitHubCard.astro'
 import XPOST from '@/components/ui/XPOST.astro'
 import CopyCode from '@/components/ui/CopyCode.astro'
 import MermaidInit from '@/components/ui/MermaidInit.astro'
+import SeriesBadge from '@/components/ui/SeriesBadge.astro'
+import SeriesNav from '@/components/ui/SeriesNav.astro'
+import EvolvingBadge from '@/components/ui/EvolvingBadge.astro'
 import BaseLayout from '@/layouts/BaseLayout.astro'
 
 import { themeConfig } from '@/config'
 
-const { title, description, pubDate, image, readingTime, toc } = Astro.props as PostLayoutProps
+const { title, description, pubDate, image, readingTime, toc, series, seriesOrder, seriesPosts, status, version, lastEvolved } = Astro.props as PostLayoutProps
 
 const postSlug = Astro.url.pathname.split('/').filter(Boolean).pop() || ''
 const ogImage = `/open-graph/${postSlug}.png`
@@ -81,8 +84,19 @@ const jsonLd = {
               )
             }
           </div>
+          {series && seriesOrder && seriesPosts && (
+            <div class="series-badge-wrapper">
+              <SeriesBadge series={series} seriesOrder={seriesOrder} seriesPosts={seriesPosts} />
+            </div>
+          )}
+          {status === 'evolving' && (
+            <EvolvingBadge version={version} lastEvolved={lastEvolved} />
+          )}
         </div>
         <slot />
+        {series && seriesOrder && seriesPosts && (
+          <SeriesNav series={series} seriesOrder={seriesOrder} seriesPosts={seriesPosts} />
+        )}
       </div>
     </main>
     <FootnoteScroll />

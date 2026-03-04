@@ -21,6 +21,11 @@ interface Frontmatter {
   description?: string
   draft?: boolean
   slug?: string
+  series?: string
+  seriesOrder?: number
+  status?: string
+  version?: string
+  lastEvolved?: string
 }
 
 /**
@@ -53,7 +58,10 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter; body: st
     } else {
       // 따옴표 제거
       value = value.replace(/^["']|["']$/g, '')
-      ;(frontmatter as Record<string, unknown>)[key] = value
+      // 숫자 변환 (seriesOrder 등)
+      const num = Number(value)
+      ;(frontmatter as Record<string, unknown>)[key] =
+        value !== '' && !Number.isNaN(num) && /^\d+$/.test(value) ? num : value
     }
   }
 
@@ -226,6 +234,25 @@ function convertToAstroFrontmatter(frontmatter: Frontmatter): string {
     astro.slug = frontmatter.slug
   }
 
+  // 시리즈 정보
+  if (frontmatter.series) {
+    astro.series = frontmatter.series
+  }
+  if (frontmatter.seriesOrder != null) {
+    astro.seriesOrder = frontmatter.seriesOrder
+  }
+
+  // Evolving 문서 메타데이터
+  if (frontmatter.status) {
+    astro.status = frontmatter.status
+  }
+  if (frontmatter.version) {
+    astro.version = frontmatter.version
+  }
+  if (frontmatter.lastEvolved) {
+    astro.lastEvolved = frontmatter.lastEvolved
+  }
+
   // 이미지가 있으면 추가
   // (향후 확장)
 
@@ -233,7 +260,7 @@ function convertToAstroFrontmatter(frontmatter: Frontmatter): string {
   for (const [key, value] of Object.entries(astro)) {
     if (typeof value === 'string') {
       lines.push(`${key}: "${value}"`)
-    } else if (typeof value === 'boolean') {
+    } else if (typeof value === 'boolean' || typeof value === 'number') {
       lines.push(`${key}: ${value}`)
     }
   }
