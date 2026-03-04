@@ -2,6 +2,7 @@
 title: "질문하는 자가 살아남는다"
 description: "질문은 원래부터 코드보다 비쌌다. LLM이 그 진실을 드러냈을 뿐이다."
 pubDate: "2026-02-21"
+status: "published"
 ---
 
 # 질문하는 자가 살아남는다

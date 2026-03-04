@@ -2,6 +2,8 @@
 title: "Configuration에서 Conversation으로: 자동화는 어떻게 '도구'에서 '지능'이 되었나"
 description: ""
 pubDate: "2026-02-21"
+series: "자동화의 패러다임 전환"
+seriesOrder: 0
 ---
 
 # Configuration에서 Conversation으로: 자동화는 어떻게 '도구'에서 '지능'이 되었나

@@ -2,6 +2,7 @@
 title: "워크플로우를 설계하면 웹앱이 나온다 — 5가지 설계 결정으로 본 Workflow Studio 개발기"
 description: ""
 pubDate: "2026-02-03"
+status: "draft"
 ---
 
 # 워크플로우를 설계하면 웹앱이 나온다

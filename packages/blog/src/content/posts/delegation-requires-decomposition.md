@@ -2,6 +2,7 @@
 title: "위임하려면 먼저 쪼갤 수 있어야 한다"
 description: "업무 위임의 전제 조건은 분해 능력. 사람이든 AI Agent이든, 쪼갤 수 없으면 위임할 수 없다. Workflow Studio Discovery의 핵심 가설."
 pubDate: "2026-02-12"
+series: "업무 위임 빌더를 만들면서"
 ---
 
 # 위임하려면 먼저 쪼갤 수 있어야 한다

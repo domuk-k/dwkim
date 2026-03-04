@@ -2,6 +2,7 @@
 title: "DeepAgents는 왜 이렇게 생겼을까?"
 description: "AI 에이전트 코드를 뜯다 1990년 논문을 만났어요. 주방의 비유로 풀어보는 BSP."
 pubDate: "2025-12-29"
+status: "published"
 ---
 
 # DeepAgents는 왜 이렇게 생겼을까?

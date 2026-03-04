@@ -2,6 +2,7 @@
 title: "밀 것인가, 당길 것인가"
 description: "Push/Pull을 파고들다 뇌과학, 인지과학까지 연결해본 기록."
 pubDate: "2025-12-30"
+status: "published"
 ---
 
 # 밀 것인가, 당길 것인가

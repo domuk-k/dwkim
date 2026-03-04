@@ -2,6 +2,7 @@
 title: "Anthropic은 TypeScript 진영을 밀어준다"
 description: "Programming TypeScript 저자가 Claude Code를 만들고, Bun을 인수하고. Anthropic의 TypeScript 올인 전략을 개인적인 시선으로."
 pubDate: "2026-01-08"
+status: "draft"
 ---
 
 나는 Python이 별로다.
