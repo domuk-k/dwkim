@@ -2,6 +2,7 @@
 title: "LLM 에이전트의 기본기: Planning, Memory, Tool"
 description: ""
 pubDate: "2026-01-06"
+status: "published"
 ---
 
 # LLM 에이전트의 기본기: Planning, Memory, Tool

@@ -2,6 +2,7 @@
 title: "동변성으로 설명하는 TypeScript의 우위"
 description: "소프트웨어 아키텍처 교과서의 동변성(connascence) 개념으로 TypeScript vs Python 논쟁을 재해석. '취향'이라고 말해왔던 것에 아키텍처 언어를 붙여본다."
 pubDate: "2026-02-01"
+status: "draft"
 ---
 
 나는 TypeScript를 좋아하고 Python이 별로다. 이전에도 [그렇게 썼다](anthropic-typescript-bet).
