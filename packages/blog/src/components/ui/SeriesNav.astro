@@ -1,0 +1,138 @@
+---
+import type { SeriesPost } from '@/types'
+
+interface Props {
+  series: string
+  seriesOrder: number
+  seriesPosts: SeriesPost[]
+}
+
+const { series, seriesOrder, seriesPosts } = Astro.props
+
+const totalPosts = seriesPosts.length
+const currentIndex = seriesPosts.findIndex((p) => p.seriesOrder === seriesOrder)
+const prevPost = currentIndex > 0 ? seriesPosts[currentIndex - 1] : null
+const nextPost = currentIndex < totalPosts - 1 ? seriesPosts[currentIndex + 1] : null
+const firstPost = seriesPosts[0]
+---
+
+<nav class="series-nav" aria-label="시리즈 네비게이션">
+  <div class="series-nav-header">
+    시리즈: <a href={`/${firstPost.id}/`}>{series}</a>
+  </div>
+  <ol class="series-nav-list">
+    {seriesPosts.map((post) => (
+      <li class:list={[{ current: post.seriesOrder === seriesOrder }]}>
+        {post.seriesOrder === seriesOrder ? (
+          <strong>{post.title}</strong>
+        ) : (
+          <a href={`/${post.id}/`}>{post.title}</a>
+        )}
+      </li>
+    ))}
+  </ol>
+  {(prevPost || nextPost) && (
+    <div class="series-nav-links">
+      {prevPost ? (
+        <a href={`/${prevPost.id}/`} class="series-link prev">
+          ← {prevPost.title}
+        </a>
+      ) : <span />}
+      {nextPost && (
+        <a href={`/${nextPost.id}/`} class="series-link next">
+          {nextPost.title} →
+        </a>
+      )}
+    </div>
+  )}
+</nav>
+
+<style>
+  .series-nav {
+    margin-top: 3rem;
+    padding: 1.5rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--code-bg);
+  }
+
+  .series-nav-header {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .series-nav-header a {
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .series-nav-header a:hover {
+    text-decoration: underline;
+  }
+
+  .series-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    counter-reset: series;
+  }
+
+  .series-nav-list li {
+    counter-increment: series;
+    padding: 0.3rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .series-nav-list li::before {
+    content: counter(series) '. ';
+    color: var(--text-secondary);
+  }
+
+  .series-nav-list li.current {
+    color: var(--text-primary);
+  }
+
+  .series-nav-list li.current::before {
+    color: var(--text-primary);
+  }
+
+  .series-nav-list li a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .series-nav-list li a:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+  }
+
+  .series-nav-links {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .series-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-s);
+    max-width: 48%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .series-link:hover {
+    color: var(--text-primary);
+  }
+
+  .series-link.next {
+    text-align: right;
+    margin-left: auto;
+  }
+</style>

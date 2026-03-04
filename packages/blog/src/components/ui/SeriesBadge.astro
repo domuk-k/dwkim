@@ -1,0 +1,40 @@
+---
+import type { SeriesPost } from '@/types'
+
+interface Props {
+  series: string
+  seriesOrder: number
+  seriesPosts: SeriesPost[]
+}
+
+const { series, seriesOrder, seriesPosts } = Astro.props
+
+const totalPosts = seriesPosts.length
+const firstPost = seriesPosts[0]
+---
+
+<span class="series-badge">
+  <a href={`/${firstPost.id}/`} class="series-name">{series}</a>
+  <span class="sep">·</span>
+  {totalPosts}편 중 {seriesOrder}편
+</span>
+
+<style>
+  .series-badge {
+    color: var(--text-secondary);
+    font-size: var(--font-size-s);
+  }
+
+  .series-badge .series-name {
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .series-badge .series-name:hover {
+    text-decoration: underline;
+  }
+
+  .series-badge .sep {
+    margin: 0 0.25em;
+  }
+</style>
