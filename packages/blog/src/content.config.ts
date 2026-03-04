@@ -14,7 +14,12 @@ const posts = defineCollection({
       image: z.string().optional(),
       // Hero section fields
       highlight: z.string().optional(), // Key quote for flash card
-      keywords: z.array(z.string()).optional() // Keywords for marquee
+      keywords: z.array(z.string()).optional(), // Keywords for marquee
+      series: z.string().optional(),
+      seriesOrder: z.number().optional(),
+      status: z.enum(['evolving', 'published', 'draft', 'stable']).optional(),
+      version: z.string().optional(),
+      lastEvolved: z.coerce.date().optional()
     })
 })
 

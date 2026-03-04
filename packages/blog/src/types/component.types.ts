@@ -5,6 +5,13 @@ export interface TOCProps {
   toc?: TOCItem[]
 }
 
+// Series post for navigation
+export interface SeriesPost {
+  id: string
+  title: string
+  seriesOrder: number
+}
+
 // Post layout props interface (generic, not tied to specific data source)
 export interface PostLayoutProps {
   title: string
@@ -13,6 +20,12 @@ export interface PostLayoutProps {
   image?: string
   readingTime?: ReadingTime
   toc?: TOCItem[]
+  series?: string
+  seriesOrder?: number
+  seriesPosts?: SeriesPost[]
+  status?: 'evolving' | 'published' | 'draft' | 'stable'
+  version?: string
+  lastEvolved?: Date
 }
 
 // Transition props interface

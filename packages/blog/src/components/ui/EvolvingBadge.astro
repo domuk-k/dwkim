@@ -1,0 +1,223 @@
+---
+interface Props {
+  version?: string
+  lastEvolved?: Date
+}
+
+const { version, lastEvolved } = Astro.props
+
+const formattedDate = lastEvolved
+  ? lastEvolved.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+  : null
+---
+
+<div class="evolving-wrap">
+  <div class="evolving-border" aria-hidden="true"></div>
+  <div class="evolving-banner">
+    <span class="evolving-dot" aria-hidden="true"></span>
+    <span class="evolving-label">
+      Living Document
+      {version && <span class="evolving-version">v{version}</span>}
+    </span>
+    {formattedDate && (
+      <span class="evolving-meta">last evolved {formattedDate}</span>
+    )}
+    <span class="evolving-shimmer" aria-hidden="true"></span>
+  </div>
+</div>
+
+<style>
+  @property --border-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  @property --shimmer-x {
+    syntax: "<percentage>";
+    initial-value: -100%;
+    inherits: false;
+  }
+
+  .evolving-wrap {
+    position: relative;
+    width: fit-content;
+    margin-top: 0.75em;
+    padding: 1.5px;
+    border-radius: 10px;
+    background:
+      conic-gradient(
+        from var(--border-angle),
+        oklch(0.62 0.18 260),
+        oklch(0.55 0.15 290),
+        oklch(0.50 0.12 320),
+        oklch(0.55 0.15 290),
+        oklch(0.62 0.18 260)
+      );
+    animation: border-spin 4s linear infinite;
+  }
+
+  @keyframes border-spin {
+    to { --border-angle: 360deg; }
+  }
+
+  .evolving-border {
+    display: none;
+  }
+
+  .evolving-banner {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.45em 0.9em;
+    border-radius: 8.5px;
+    font-size: var(--font-size-s);
+    overflow: hidden;
+
+    /* solid inner bg to mask the conic gradient behind */
+    background: var(--bg);
+    color: var(--text-secondary);
+  }
+
+  /* pulse dot with glow */
+  .evolving-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: oklch(0.58 0.18 270);
+    box-shadow: 0 0 8px oklch(0.58 0.20 270 / 0.6);
+    animation: evo-pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes evo-pulse {
+    0%, 100% {
+      box-shadow: 0 0 4px oklch(0.58 0.20 270 / 0.3);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 12px oklch(0.58 0.22 270 / 0.7);
+      transform: scale(1.2);
+    }
+  }
+
+  .evolving-label {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: oklch(0.42 0.12 270);
+  }
+
+  .evolving-version {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    opacity: 0.5;
+    margin-left: 0.15em;
+  }
+
+  .evolving-meta {
+    opacity: 0.45;
+    font-size: 0.92em;
+  }
+
+  .evolving-meta::before {
+    content: '\00b7';
+    margin-right: 0.4em;
+  }
+
+  /* shimmer sweep — holographic card feel */
+  .evolving-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      oklch(0.70 0.10 270 / 0.12) 45%,
+      oklch(0.80 0.08 280 / 0.18) 50%,
+      oklch(0.70 0.10 270 / 0.12) 55%,
+      transparent 60%
+    );
+    animation: shimmer-sweep 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes shimmer-sweep {
+    0%   { --shimmer-x: -100%; transform: translateX(var(--shimmer-x)); }
+    100% { --shimmer-x: 200%; transform: translateX(var(--shimmer-x)); }
+  }
+
+  /* ── Dark mode ── */
+  :global(html.dark) .evolving-wrap {
+    background:
+      conic-gradient(
+        from var(--border-angle),
+        oklch(0.55 0.22 260),
+        oklch(0.48 0.20 290),
+        oklch(0.42 0.18 320),
+        oklch(0.48 0.20 290),
+        oklch(0.55 0.22 260)
+      );
+  }
+
+  :global(html.dark) .evolving-dot {
+    background: oklch(0.68 0.22 270);
+    box-shadow: 0 0 10px oklch(0.65 0.24 270 / 0.7);
+  }
+
+  :global(html.dark) .evolving-label {
+    color: oklch(0.80 0.14 270);
+  }
+
+  :global(html.dark) .evolving-shimmer {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      oklch(0.60 0.14 270 / 0.10) 45%,
+      oklch(0.70 0.12 280 / 0.16) 50%,
+      oklch(0.60 0.14 270 / 0.10) 55%,
+      transparent 60%
+    );
+  }
+
+  /* ── Beige mode ── */
+  :global(html.beige) .evolving-wrap {
+    background:
+      conic-gradient(
+        from var(--border-angle),
+        oklch(0.55 0.12 260),
+        oklch(0.50 0.10 290),
+        oklch(0.45 0.08 320),
+        oklch(0.50 0.10 290),
+        oklch(0.55 0.12 260)
+      );
+  }
+
+  :global(html.beige) .evolving-label {
+    color: oklch(0.40 0.08 270);
+  }
+
+  :global(html.beige) .evolving-shimmer {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      oklch(0.60 0.06 270 / 0.10) 45%,
+      oklch(0.70 0.04 280 / 0.14) 50%,
+      oklch(0.60 0.06 270 / 0.10) 55%,
+      transparent 60%
+    );
+  }
+
+  /* ── Accessibility ── */
+  @media (prefers-reduced-motion: reduce) {
+    .evolving-wrap {
+      animation: none;
+      background: linear-gradient(135deg, oklch(0.62 0.18 260), oklch(0.55 0.15 290));
+    }
+    .evolving-dot {
+      animation: none;
+    }
+    .evolving-shimmer {
+      display: none;
+    }
+  }
+</style>
