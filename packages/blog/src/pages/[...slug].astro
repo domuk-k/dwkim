@@ -1,26 +1,52 @@
 ---
 import { type CollectionEntry, getCollection } from 'astro:content'
+import type { SeriesPost } from '@/types'
 import PostLayout from '@/layouts/PostLayout.astro'
 import { render } from 'astro:content'
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts')
-  return posts
-    .filter((post) => !post.id.startsWith('_'))
-    .map((post) => ({
-      params: { slug: post.id },
-      props: post
-    }))
-}
-type Props = CollectionEntry<'posts'>
+  const published = posts.filter((post) => !post.id.startsWith('_'))
 
-const post = Astro.props
+  // 시리즈별 포스트 그룹핑
+  const seriesMap = new Map<string, SeriesPost[]>()
+  for (const post of published) {
+    const { series, seriesOrder } = post.data
+    if (series && seriesOrder != null) {
+      if (!seriesMap.has(series)) seriesMap.set(series, [])
+      seriesMap.get(series)!.push({
+        id: post.id,
+        title: post.data.title,
+        seriesOrder
+      })
+    }
+  }
+  // seriesOrder 순 정렬
+  for (const posts of seriesMap.values()) {
+    posts.sort((a, b) => a.seriesOrder - b.seriesOrder)
+  }
+
+  return published.map((post) => ({
+    params: { slug: post.id },
+    props: {
+      post,
+      seriesPosts: post.data.series ? seriesMap.get(post.data.series) ?? [] : []
+    }
+  }))
+}
+
+interface Props {
+  post: CollectionEntry<'posts'>
+  seriesPosts: SeriesPost[]
+}
+
+const { post, seriesPosts } = Astro.props
 const { Content, remarkPluginFrontmatter } = await render(post)
 
 const readingTime = remarkPluginFrontmatter.readingTime
 const toc = remarkPluginFrontmatter.toc || []
 ---
 
-<PostLayout {...post.data} readingTime={readingTime} toc={toc}>
+<PostLayout {...post.data} readingTime={readingTime} toc={toc} seriesPosts={seriesPosts}>
   <Content />
 </PostLayout>
