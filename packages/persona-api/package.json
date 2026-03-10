@@ -16,6 +16,7 @@
     "init-neon:clean": "bun scripts/initNeonData.ts --clean",
     "init-neon:test": "bun scripts/initNeonData.ts --test",
     "init-neon:retrieval": "bun scripts/initNeonData.ts --retrieval",
+    "build:index": "bun scripts/buildSearchIndex.ts",
     "init-qdrant": "bun scripts/initQdrantData.ts",
     "init-qdrant:clean": "bun scripts/initQdrantData.ts --clean",
     "init-qdrant:test": "bun scripts/initQdrantData.ts --test",

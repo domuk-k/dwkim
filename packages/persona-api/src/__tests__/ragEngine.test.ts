@@ -37,12 +37,6 @@ jest.mock('../services/llmService', () => {
   }
 })
 
-// BM25 mock
-jest.mock('../services/bm25Engine', () => ({
-  initBM25Engine: jest.fn().mockResolvedValue(undefined),
-  getBM25Engine: jest.fn().mockReturnValue(null)
-}))
-
 // QueryRewriter mock
 jest.mock('../services/queryRewriter', () => ({
   getQueryRewriter: jest.fn().mockReturnValue({
