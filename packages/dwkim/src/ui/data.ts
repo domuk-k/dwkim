@@ -10,7 +10,7 @@ export const icons = {
 export const profile = {
   name: '김동욱',
   email: 'dannyworks102@gmail.com',
-  title: 'Agent Engineer, Coxwave',
+  title: 'Agent Builder Product Lead, Coxwave',
   github: 'https://github.com/domuk-k',
   website: 'https://domuk-k.vercel.app',
   project: 'https://github.com/domuk-k/dwkim',
