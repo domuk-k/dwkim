@@ -2,9 +2,6 @@ import { z } from 'zod'
 
 const envSchema = z
   .object({
-    // Required
-    VOYAGE_API_KEY: z.string().optional(),
-
     // LLM (at least one required)
     GOOGLE_API_KEY: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
@@ -21,10 +18,7 @@ const envSchema = z
     // OpenAI (for embeddings)
     OPENAI_API_KEY: z.string().optional(),
 
-    // Vector Store
-    QDRANT_URL: z.string().url().optional(),
-    QDRANT_API_KEY: z.string().optional(),
-    USE_VECTOR_STORE: z.string().optional(),
+    // Search
     MOCK_MODE: z.string().optional(),
 
     // Redis
@@ -97,7 +91,7 @@ function validateEnv(): Env {
   // 설정 요약 로그 (민감 정보 제외)
   console.log('=== Configuration Summary ===')
   console.log(`NODE_ENV: ${result.data.NODE_ENV}`)
-  console.log(`QDRANT_URL: ${result.data.QDRANT_URL || 'NOT SET (mock mode)'}`)
+  console.log(`SEARCH: local BM25 (searchIndex.json)`)
   console.log(`MAX_SEARCH_RESULTS: ${result.data.MAX_SEARCH_RESULTS}`)
   console.log(`CONTEXT_WINDOW: ${result.data.CONTEXT_WINDOW}`)
   console.log(`RATE_LIMIT_MAX: ${result.data.RATE_LIMIT_MAX}`)

@@ -17,7 +17,7 @@ This is a **Bun workspace monorepo** with three main packages:
 - **Purpose**: 김동욱 AI 에이전트 백엔드 (RAG + 개인화 + 대화형 UX)
 - **Framework**: Elysia with TypeScript
 - **Agent**: LangGraph StateGraph + OpenRouter (Gemini 2.0 Flash)
-- **Vector DB**: Qdrant (hybrid search: dense + BM25)
+- **Search**: Local BM25 (build-time JSON index from cogni notes)
 - **Features**: Query Rewriting, SEU (Semantic Embedding Uncertainty), Device ID 개인화, A2UI, 대화 제한
 - **Deployment**: Fly.io at https://persona-api.fly.dev
 
@@ -60,8 +60,7 @@ bun test --coverage      # Coverage report
 bun run type-check       # TypeScript check
 
 # Vector DB initialization (choose one)
-bun run init-qdrant      # Initialize Qdrant vector DB
-bun run init-qdrant:clean # Clean and reinitialize Qdrant
+bun run build:index      # Build BM25 search index from cogni notes
 bun run init-neon        # Initialize Neon postgres vector DB
 bun run init-neon:clean  # Clean and reinitialize Neon
 
@@ -127,7 +126,7 @@ classify → [simple: directResponse] / [complex: rewrite → search → analyze
 ```
 - **classify**: 쿼리 복잡도 분류 (simple/complex)
 - **rewrite**: 규칙 기반 쿼리 재작성 (대명사 치환, "김동욱" 맥락 추가). 비의미 쿼리("흠...", "ㅋㅋ")는 `method: 'skip'`으로 조기 반환
-- **search**: Hybrid search (Qdrant dense + BM25 sparse → RRF fusion)
+- **search**: BM25 keyword search (local, no external API)
 - **analyze**: SEU 불확실성 측정 (초단문/연락처 intent 시 스킵)
 - **generate**: LLM 스트리밍 응답 생성
 - **followup**: 추천 질문 생성
@@ -136,11 +135,10 @@ classify → [simple: directResponse] / [complex: rewrite → search → analyze
 #### Services (`src/services/`)
 - `personaAgent.ts` - LangGraph StateGraph 정의 + PersonaEngine 클래스 (싱글턴, `_initialized` 플래그)
 - `chatService.ts` - 비즈니스 로직 (대화 추적, UX 로그, sources 이벤트 캡처)
-- `vectorStore.ts` - Qdrant hybrid search (dense + BM25 RRF) + LRU 임베딩 캐시
+- `vectorStore.ts` - Local BM25 search engine (JSON index, in-memory)
 - `queryRewriter.ts` - 규칙 기반 쿼리 재작성 + 비의미 쿼리 감지 + followup 질문 생성
 - `seuService.ts` - Semantic Embedding Uncertainty (다중 LLM 응답 유사도 비교)
 - `llmService.ts` - LLM 래퍼 (OpenRouter → Gemini/Claude, 스트리밍/채팅 모드)
-- `bm25Engine.ts` - BM25 키워드 인덱싱 (싱글턴)
 - `deviceService.ts` - Device ID 기반 개인화 (활동 추적, 관심사 추론)
 - `conversationLimiter.ts` - 대화 제한 (턴 수, rate limit)
 - `conversationStore.ts` - Redis 기반 대화 히스토리
