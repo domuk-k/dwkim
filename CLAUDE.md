@@ -159,7 +159,7 @@ export function getService() { if (!instance) throw; return instance }
 
 - **Infra**: `src/infra/redis.ts` (IRedisClient 인터페이스, Redis 실패 시 in-memory fallback)
 - **Config**: `src/config/env.ts` (Zod 스키마), `src/config/models.ts` (LLM 모델 프로파일)
-- **Data**: `~/.cogni/notes/persona/` (SSOT for vector DB indexing)
+- **Data**: `~/.cogni/notes/` 전체에서 `tags: [persona]` 파일이 SSOT
 - **Tests**: `src/__tests__/` (Bun test, LLM/VectorStore 모킹)
 
 ### Blog Architecture
