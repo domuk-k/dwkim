@@ -1,3 +1,16 @@
+## [3.6.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.5.0...dwkim-v3.6.0) (2026-03-10)
+
+### Features
+
+* **blog:** add evolving document status with animated badge ([f7ddb45](https://github.com/domuk-k/dwkim/commit/f7ddb45ce1f26e6c96437ca43f1c0b2b43ed66d8))
+* **blog:** add series navigation to post pages ([ebc7f9d](https://github.com/domuk-k/dwkim/commit/ebc7f9dc9d6666a649c93c0b55363e24dde6636d))
+* **persona-api:** add search index build script ([80f9f61](https://github.com/domuk-k/dwkim/commit/80f9f61289d80d86acbec040c1719c5b8af89a1a))
+* **persona-api:** update systemPrompt and RAG pipeline for resume renewal ([d3062bd](https://github.com/domuk-k/dwkim/commit/d3062bd9fd0e91f59e51e340e06d92e017ea9f14))
+
+### Bug Fixes
+
+* **dwkim:** update title to Agent Builder Product Lead ([39a917a](https://github.com/domuk-k/dwkim/commit/39a917a60222b79ccab8236893bcb5bca3a7e5c6))
+
 ## [3.5.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.4.0...dwkim-v3.5.0) (2026-02-28)
 
 ### Features
