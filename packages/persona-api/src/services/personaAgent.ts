@@ -584,9 +584,14 @@ async function analyzeNode(
       )
       config.writer?.({ type: 'progress', items: progress })
 
+      const seuStart = performance.now()
       console.log('[analyzeNode] Running SEU uncertainty measurement...')
       const seuService = getSEUService()
       seuResult = await seuService.measureUncertainty(state.query, state.context)
+      const seuMs = Math.round(performance.now() - seuStart)
+      console.log(
+        `[analyzeNode] SEU completed in ${seuMs}ms (uncertainty=${seuResult.uncertainty})`
+      )
     } else if (ENABLE_SEU && shouldSkipSEU) {
       console.log(`[analyzeNode] SEU skipped: query="${state.query}" (short or contact intent)`)
       seuResult = {
