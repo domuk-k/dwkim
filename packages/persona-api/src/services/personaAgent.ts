@@ -17,7 +17,6 @@ import {
   StateGraph
 } from '@langchain/langgraph'
 import { env } from '../config/env'
-import { initBM25Engine } from './bm25Engine'
 import { getDeviceService } from './deviceService'
 import { createLangfuseHandler, initLangfuse, prefetchPrompts } from './langfuseService'
 import { generationLLM, utilityLLM } from './llmInstances'
@@ -497,7 +496,7 @@ async function rewriteNode(
 }
 
 /**
- * searchNode - Hybrid Search (Dense + BM25 + RRF)
+ * searchNode - BM25 Search (local, no external API)
  */
 async function searchNode(
   state: PersonaState,
@@ -888,21 +887,7 @@ export class PersonaEngine {
       await generationLLM.initSystemPrompt()
 
       await initVectorStore()
-      console.log('RAG Engine: VectorStore initialized')
-
-      // BM25 엔진 초기화
-      try {
-        const vectorStore = getVectorStore()
-        const documents = await vectorStore.getAllDocuments()
-        if (documents.length > 0) {
-          await initBM25Engine(documents)
-          console.log('RAG Engine: BM25 initialized with corpus')
-        } else {
-          console.warn('RAG Engine: No documents for BM25, will use dense-only search')
-        }
-      } catch (bm25Error) {
-        console.warn('RAG Engine: BM25 initialization failed, will use dense-only:', bm25Error)
-      }
+      console.log('RAG Engine: VectorStore initialized (local BM25)')
 
       this.graph = createPersonaGraph()
       this._initialized = true

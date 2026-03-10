@@ -65,23 +65,30 @@ const mockSearchResults = [
   }
 ]
 
-jest.mock('../services/vectorStore', () => ({
-  VectorStore: jest.fn().mockImplementation(() => ({
+jest.mock('../services/vectorStore', () => {
+  const mockStore = {
+    initialized: true,
     initialize: jest.fn().mockResolvedValue(undefined),
-    search: jest.fn().mockResolvedValue(mockSearchResults),
+    searchHybrid: jest.fn().mockResolvedValue(mockSearchResults),
     searchDiverse: jest.fn().mockResolvedValue(mockSearchResults),
-    searchMMR: jest.fn().mockResolvedValue(mockSearchResults),
     addDocument: jest.fn().mockResolvedValue(undefined),
     addDocuments: jest.fn().mockResolvedValue(undefined),
     deleteDocument: jest.fn().mockResolvedValue(undefined),
+    getAllDocuments: jest.fn().mockResolvedValue([]),
     getCollectionInfo: jest.fn().mockResolvedValue({
       initialized: true,
       hasVectorStore: true,
-      provider: 'qdrant',
-      collectionName: 'persona_documents'
+      provider: 'local-bm25',
+      collectionName: 'searchIndex.json'
     })
-  }))
-}))
+  }
+  return {
+    VectorStore: jest.fn().mockImplementation(() => mockStore),
+    getVectorStore: jest.fn().mockReturnValue(mockStore),
+    initVectorStore: jest.fn().mockResolvedValue(undefined),
+    resetVectorStore: jest.fn()
+  }
+})
 
 // 테스트 타임아웃 설정
 jest.setTimeout(10000)

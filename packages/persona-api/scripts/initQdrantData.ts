@@ -14,8 +14,7 @@ dotenv.config({ path: '.env.local' })
 dotenv.config()
 
 // Configuration - Cogni as SSOT (Single Source of Truth)
-// about 콘텐츠도 cogni/persona에 tags: [persona]로 통합됨
-const COGNI_PERSONA_DIR = path.join(homedir(), '.cogni', 'notes', 'persona')
+// persona 태그 기반으로 전체 notes 디렉토리에서 수집 (디렉토리 구조 무관)
 const COGNI_NOTES_DIR = path.join(homedir(), '.cogni', 'notes')
 const COLLECTION_NAME = 'persona_documents'
 
@@ -139,109 +138,13 @@ function inferCategory(keywords?: string[] | string): string {
 }
 
 /**
- * ~/.cogni/notes/persona/*.md 처리 (SSOT)
- */
-async function processPersonaFiles(): Promise<ChunkResult[]> {
-  console.log('📂 Processing Cogni persona files...')
-
-  let files: string[]
-  try {
-    files = await fs.readdir(COGNI_PERSONA_DIR)
-  } catch {
-    console.warn('⚠️  Cogni persona 디렉토리를 찾을 수 없습니다:', COGNI_PERSONA_DIR)
-    return []
-  }
-
-  const results: ChunkResult[] = []
-  const mdFiles = files.filter((f) => f.endsWith('.md'))
-
-  for (const file of mdFiles) {
-    const content = await fs.readFile(path.join(COGNI_PERSONA_DIR, file), 'utf-8')
-    const { frontmatter, body } = parseFrontmatter(content)
-
-    // tags에 persona가 없으면 스킵
-    const tags = (frontmatter.tags as string[]) || []
-    if (!tags.includes('persona')) {
-      console.log(`  ⏭️  ${file}: skipped (no persona tag)`)
-      continue
-    }
-    const type = path.basename(file, '.md')
-    const title = (frontmatter.title as string) || type
-
-    // resume.md는 섹션 기반 청킹 (## 기준)
-    // 100-questions.md는 질문별 청킹 (### Q 기준)
-    if (type === 'resume' || type === '100-questions') {
-      const delimiter = type === '100-questions' ? /(?=^### Q\d+)/m : /(?=^## )/m
-      const chunks = body.split(delimiter).filter((s) => s.trim().length > 0)
-
-      let validIndex = 0
-      let skippedCount = 0
-      chunks.forEach((chunk) => {
-        // 제목 추출: 100-questions는 ### Q, resume는 ##
-        const titleMatch =
-          type === '100-questions' ? chunk.match(/^### (Q\d+\..+)/m) : chunk.match(/^##\s+(.+)/m)
-        const sectionTitle = titleMatch?.[1] || title
-
-        // [?] 플레이스홀더만 있는 답변 스킵 (노이즈 제거)
-        if (type === '100-questions') {
-          const content = chunk.replace(/^### Q\d+\..+\n+/m, '').trim()
-          if (content === '[?]' || content.length < 20) {
-            skippedCount++
-            return // 답변이 없거나 너무 짧으면 스킵
-          }
-        }
-
-        results.push({
-          id: `cogni_${type}_${validIndex}`,
-          content: chunk.trim(),
-          metadata: {
-            type,
-            title: sectionTitle,
-            source: 'cogni',
-            chunkIndex: validIndex,
-            totalChunks: chunks.length
-          }
-        })
-        validIndex++
-      })
-
-      const chunkInfo =
-        type === '100-questions'
-          ? `${validIndex} valid, ${skippedCount} skipped`
-          : `${validIndex} chunks`
-      console.log(`  📄 ${file}: ${chunkInfo}`)
-      continue
-    }
-
-    const chunks = chunkByParagraph(body)
-    console.log(`  📄 ${file}: ${chunks.length} chunks`)
-
-    chunks.forEach((chunk, index) => {
-      results.push({
-        id: `cogni_${type}_${index}`,
-        content: chunk,
-        metadata: {
-          type,
-          title: extractTitle(chunk) || title,
-          source: 'cogni',
-          chunkIndex: index,
-          totalChunks: chunks.length
-        }
-      })
-    })
-  }
-
-  return results
-}
-
-/**
- * Cogni notes에서 인덱싱 가능한 태그가 있는 파일 처리
+ * Cogni notes 전체에서 인덱싱 가능한 태그가 있는 파일 처리 (통합)
+ * - persona: 김동욱 프로필/경력/생각 노트 (특수 청킹 포함)
  * - blog: 블로그 포스트로 발행된 노트들
  * - rag: RAG에만 노출할 지식 문서들 (미발행)
- * - persona: 김동욱 관련 지식/생각 노트 (persona 디렉토리 밖에 있는 것들)
  */
 async function processTaggedNotes(): Promise<ChunkResult[]> {
-  console.log('📂 Processing Cogni tagged notes (blog/rag/persona)...')
+  console.log('📂 Processing Cogni tagged notes (persona/blog/rag)...')
 
   const results: ChunkResult[] = []
 
@@ -268,13 +171,9 @@ async function processTaggedNotes(): Promise<ChunkResult[]> {
   const mdFiles = await findMdFiles(COGNI_NOTES_DIR)
 
   for (const filePath of mdFiles) {
-    // persona 디렉토리는 이미 processPersonaFiles에서 처리하므로 스킵
-    if (filePath.includes('/persona/')) continue
-
     const content = await fs.readFile(filePath, 'utf-8')
     const { frontmatter, body } = parseFrontmatter(content)
 
-    // tags에 blog 또는 rag가 있는지 확인
     const tags = (frontmatter.tags as string[]) || []
     const hasIndexableTag =
       tags.includes('blog') || tags.includes('rag') || tags.includes('persona')
@@ -287,6 +186,7 @@ async function processTaggedNotes(): Promise<ChunkResult[]> {
     }
 
     const slug = path.basename(filePath, '.md')
+    const title = (frontmatter.title as string) || slug
     const rawKeywords = frontmatter.keywords
     const keywords: string[] | undefined = Array.isArray(rawKeywords)
       ? rawKeywords
@@ -294,18 +194,80 @@ async function processTaggedNotes(): Promise<ChunkResult[]> {
         ? [rawKeywords]
         : undefined
 
-    // 섹션 기반 청킹
-    const chunks = chunkBySection(body)
+    // persona 태그 파일: 특수 청킹 (resume→## 기준, 100-questions→### Q 기준)
+    if (
+      tags.includes('persona') &&
+      (slug === 'resume' || slug === 'resume-en' || slug === '100-questions')
+    ) {
+      const isQuestions = slug === '100-questions'
+      const delimiter = isQuestions ? /(?=^### Q\d+)/m : /(?=^## )/m
+      const chunks = body.split(delimiter).filter((s) => s.trim().length > 0)
 
+      let validIndex = 0
+      let skippedCount = 0
+      for (const chunk of chunks) {
+        const titleMatch = isQuestions
+          ? chunk.match(/^### (Q\d+\..+)/m)
+          : chunk.match(/^##\s+(.+)/m)
+        const sectionTitle = titleMatch?.[1] || title
+
+        // [?] 플레이스홀더만 있는 답변 스킵 (노이즈 제거)
+        if (isQuestions) {
+          const answerContent = chunk.replace(/^### Q\d+\..+\n+/m, '').trim()
+          if (answerContent === '[?]' || answerContent.length < 20) {
+            skippedCount++
+            continue
+          }
+        }
+
+        results.push({
+          id: `cogni_${slug}_${validIndex}`,
+          content: chunk.trim(),
+          metadata: {
+            type: slug,
+            title: sectionTitle,
+            source: 'cogni',
+            chunkIndex: validIndex,
+            totalChunks: chunks.length
+          }
+        })
+        validIndex++
+      }
+
+      const chunkInfo = isQuestions
+        ? `${validIndex} valid, ${skippedCount} skipped`
+        : `${validIndex} chunks`
+      console.log(`  📄 ${path.basename(filePath)}: ${chunkInfo} (special chunking)`)
+      continue
+    }
+
+    // persona 태그 파일 (일반): 단락 기반 청킹
+    if (tags.includes('persona') && !tags.includes('blog')) {
+      const chunks = chunkByParagraph(body)
+      console.log(`  📄 ${path.basename(filePath)}: ${chunks.length} chunks (persona)`)
+
+      chunks.forEach((chunk, index) => {
+        results.push({
+          id: `cogni_${slug}_${index}`,
+          content: chunk,
+          metadata: {
+            type: slug,
+            title: extractTitle(chunk) || title,
+            source: 'cogni',
+            chunkIndex: index,
+            totalChunks: chunks.length
+          }
+        })
+      })
+      continue
+    }
+
+    // blog/rag 태그 파일: 섹션 기반 청킹
+    const chunks = chunkBySection(body)
     console.log(`  📄 ${path.basename(filePath)}: ${chunks.length} chunks`)
 
-    // 태그 우선순위: blog > persona > rag(knowledge)
-    const docType = tags.includes('blog')
-      ? 'blog'
-      : tags.includes('persona')
-        ? 'persona'
-        : 'knowledge'
-    const idPrefix = tags.includes('blog') ? 'blog' : tags.includes('persona') ? 'persona' : 'rag'
+    const docType = tags.includes('blog') ? 'blog' : 'knowledge'
+    const idPrefix = tags.includes('blog') ? 'blog' : 'rag'
 
     chunks.forEach((chunk, index) => {
       results.push({
@@ -313,7 +275,7 @@ async function processTaggedNotes(): Promise<ChunkResult[]> {
         content: chunk.trim(),
         metadata: {
           type: docType,
-          title: (frontmatter.title as string) || slug,
+          title,
           category: inferCategory(keywords),
           source: 'cogni',
           pubDate: frontmatter.pubDate as string,
@@ -454,17 +416,14 @@ async function initializeDatabase(testMode: boolean = false) {
     }
   }
 
-  // 모든 문서 수집 (Cogni SSOT)
-  const personaChunks = await processPersonaFiles()
-  const blogChunks = await processTaggedNotes()
+  // 모든 문서 수집 (Cogni SSOT — persona 태그 기반 통합)
+  const chunks = await processTaggedNotes()
 
   // Contextual Retrieval: 청크에 의미적 컨텍스트 주입 (Anthropic 방식)
   // @see https://www.anthropic.com/news/contextual-retrieval
-  const allChunks = [...personaChunks, ...blogChunks].map(addContextToChunk)
+  const allChunks = chunks.map(addContextToChunk)
 
-  console.log(`\n📊 총 청크 수: ${allChunks.length}`)
-  console.log(`   - cogni/persona: ${personaChunks.length}`)
-  console.log(`   - cogni/tagged (blog+rag+persona): ${blogChunks.length}\n`)
+  console.log(`\n📊 총 청크 수: ${allChunks.length}\n`)
 
   if (testMode) {
     console.log('🧪 테스트 모드 - DB 업로드 건너뜀\n')

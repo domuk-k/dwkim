@@ -131,7 +131,7 @@ fly deploy
 
 ## Data Source
 
-`~/.cogni/notes/persona/` 디렉토리의 마크다운 파일들이 SSOT. `pnpm init-qdrant:clean`으로 인덱싱.
+`~/.cogni/notes/` 전체에서 `tags: [persona]` 프론트매터가 있는 마크다운 파일이 SSOT. `pnpm init-qdrant:clean`으로 인덱싱.
 
 ---
 
