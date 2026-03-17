@@ -1,6 +1,6 @@
 ---
 title: "How를 아는 사람이 Why를 말할 때"
-description: "PM이 Why-What, 엔지니어가 How를 담당하는 분업 모델은 낡아가고 있다. AI 시대에 필요한 건 세 레이어를 오가면서 의식적으로 선택하는 제품 빌더다."
+description: ""
 pubDate: "2026-03-11"
 ---
 
