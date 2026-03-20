@@ -1,51 +1,40 @@
 ---
 import { getEntry, render } from 'astro:content'
 
-const developerEntry = await getEntry('about', 'developer')!
-const runnerEntry = await getEntry('about', 'runner')!
-const contributorEntry = await getEntry('about', 'contributor')!
-const coachEntry = await getEntry('about', 'coach')!
+const tabs = [
+  { id: 'developer', label: '개발자' },
+  { id: 'runner', label: '러너' },
+  { id: 'contributor', label: '기여자' },
+  { id: 'coach', label: '코치' },
+]
 
-const [DeveloperContent, RunnerContent, ContributorContent, CoachContent] = await Promise.all([
-  render(developerEntry),
-  render(runnerEntry),
-  render(contributorEntry),
-  render(coachEntry)
-]).then((n) => n.map((n) => n.Content))
+const entries = await Promise.all(
+  tabs.map(async (tab) => {
+    const entry = await getEntry('about', tab.id)
+    if (!entry || entry.data.hidden) return null
+    const { Content } = await render(entry)
+    return { ...tab, Content }
+  })
+)
+
+const visibleTabs = entries.filter(Boolean)
 ---
 
 <div class="about-tabs">
   <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="developer">개발자</button>
-    <button class="tab-btn" data-tab="runner">러너</button>
-    <button class="tab-btn" data-tab="contributor">기여자</button>
-    <button class="tab-btn" data-tab="coach">코치</button>
+    {visibleTabs.map((tab, i) => (
+      <button class={`tab-btn${i === 0 ? ' active' : ''}`} data-tab={tab.id}>{tab.label}</button>
+    ))}
   </nav>
 
   <div class="tab-content">
-    <div class="tab-panel active" id="developer">
-      <div class="prose content-from-md">
-        <DeveloperContent />
+    {visibleTabs.map((tab, i) => (
+      <div class={`tab-panel${i === 0 ? ' active' : ''}`} id={tab.id}>
+        <div class="prose content-from-md">
+          <tab.Content />
+        </div>
       </div>
-    </div>
-
-    <div class="tab-panel" id="runner">
-      <div class="prose content-from-md">
-        <RunnerContent />
-      </div>
-    </div>
-
-    <div class="tab-panel" id="contributor">
-      <div class="prose content-from-md">
-        <ContributorContent />
-      </div>
-    </div>
-
-    <div class="tab-panel" id="coach">
-      <div class="prose content-from-md">
-        <CoachContent />
-      </div>
-    </div>
+    ))}
   </div>
 </div>
 
