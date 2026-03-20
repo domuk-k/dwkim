@@ -11,6 +11,7 @@
     "prebuild": "[ -d ~/.cogni ] && bun run sync-cogni || echo 'Skipping sync-cogni (no ~/.cogni directory)'",
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "bun scripts/check-links.ts",
     "preview": "astro preview",
     "astro": "astro",
     "new": "bun scripts/new-post.ts",

@@ -7,7 +7,7 @@ pubDate: "2026-01-04"
 # 왜 대규모 그래프 처리 시스템이 AI 에이전트가 되었을까
 
 > 시리즈: BSP에서 AI 에이전트까지 (2/N)
-> 이전 글: [DeepAgents는 왜 이렇게 생겼을까?](/posts/bsp-parallel-model/)
+> 이전 글: [DeepAgents는 왜 이렇게 생겼을까?](/bsp-parallel-model)
 
 ---
 
