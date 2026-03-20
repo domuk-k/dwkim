@@ -2057,6 +2057,78 @@
     }
   },
   {
+    "id": "blog_blog-decision-agent_0",
+    "content": "# 우린 '원래부터' 의사결정 에이전트였다\n\n개발자로 채용될 때 이런 평가를 받은 적이 있다.\n\n> \"창업과 투자 경험에서 나온, 의사결정자로서의 트레이드오프 인사이트가 있다.\"\n\n솔직히 말하면 그 말이 꽤 좋았다. 그리고 그 이후로 나는 계속 스스로를 의사결정자라고 생각해왔다. 코드를 짜면서도. 물론 결정의 범위는 점점 넓어지고 있다.\n\n그러니까 코딩 에이전트로 정적 사이트 만들고 \"이게 프로그래밍인가요?\"라는 질문을 보면, 가끔 이런 생각이 든다.\n\n**그게 신기한 거였나?**\n\n\n\n## Unopinionated한 것들은 재현하기 쉬워졌다\n\nExpress 서버 띄우고, Next.js 부트스트랩하고, 기본 CRUD 갖춘 게시판 만드는 일—지금은 Claude Code나 Cursor한테 맡기면 어지간하면 돌아간다. 복잡도에 따라 난도는 다르지만, \"어떻게 만드느냐\"가 이미 정해진 작업들은 재현 비용이 급격히 낮아졌다.\n\n이 작업들을 나는 unopinionated한 작업이라고 부른다. 정답이 있거나, 정답에 수렴하는 패턴이 이미 커뮤니티에 쌓인 것들. RESTful endpoint 설계, 컴포넌트 폴더 구조, ORM 쿼리 작성—에이전트가 인터넷의 집단지성을 학습했으니, 집단지성이 합의한 답은 잘 낸다.\n\n문제는 그 다음이다.",
+    "metadata": {
+      "type": "blog",
+      "title": "우린 '원래부터' 의사결정 에이전트였다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_blog-decision-agent_1",
+    "content": "## Opinionated한 결정 하나가 진짜 비싸졌다\n\n최근에 복잡한 워크플로우 빌더를 만들었다. 정확히는 \"빌더를 돕는 빌더\", 메타 빌딩에 가까운 작업이었다.\n\n그 레벨에서 개발하다 보면 재미있는 일이 생긴다. 코드를 작성하는 시간보다, 결정을 하는 시간이 더 소진된다. 수직·수평으로 쪼개진 모듈과 정책과 패턴과 마케팅적 요소들 사이에서, 매 순간 이 질문이 따라온다:\n\n> **이 결정은 의견이 있어야 하는가, 없어야 하는가?**\n\n노드 간 데이터 흐름을 어떻게 추상화할 것인가. 사용자가 커스텀 로직을 넣을 수 있게 열어줄 것인가, 아니면 프리셋만 제공할 것인가. 에러 처리를 워크플로우 레벨에서 할 것인가 노드 레벨에서 할 것인가. 이 컴포넌트는 제품 마케팅 관점에서 \"기능\"인가 \"동작\"인가.\n\n에이전트는 이 결정을 못 한다. 정확히는, 할 수 없다. 이 결정들은 코드베이스의 역사, 제품의 방향, 팀의 문화, 사용자의 멘탈모델을 모두 알아야 내릴 수 있는 판단이다.\n\n역설적으로, 에이전트가 구현을 가져가면 갈수록 opinionated한 판단의 가치는 올라간다. **재현할 수 없는 것이기 때문에.**",
+    "metadata": {
+      "type": "blog",
+      "title": "우린 '원래부터' 의사결정 에이전트였다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_blog-decision-agent_2",
+    "content": "## 코드 작성은 차라리 즐겁다\n\n좀 더 솔직하게 말하자면—나는 코드를 작성하는 시간이 즐겁다. 생각을 정리하고 발전시킬 수 있는 귀중한 시간이기도 하다. 타이핑하면서 설계가 잘못됐다는 걸 깨닫고, 변수명을 짓다가 추상화가 틀렸다는 걸 알아챈다.\n\n에이전트는 이 피드백 루프를 더 빠르게 해줬다. 내가 방향을 잡으면 구현은 빠르게 나오고, 나는 그걸 보면서 더 빠르게 판단을 수정한다.\n\n**피곤한 건 코딩이 아니다. 결정이 피곤하다.** 특히 opinionated와 unopinionated 사이 경계가 흐릿한 구간—거기서 잘못 결정하면 나중에 기술 부채가 아니라 구조 부채가 된다. 되돌리기 어려운 것들.",
+    "metadata": {
+      "type": "blog",
+      "title": "우린 '원래부터' 의사결정 에이전트였다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_blog-decision-agent_3",
+    "content": "## \"프롬프팅이 프로그래밍이냐\"는 질문이 왜 틀렸나\n\n다시 처음으로 돌아가자. 코딩 에이전트로 사이트 만들고 \"이게 프로그래밍인가요?\"라는 질문.\n\n나는 프로그래밍을 시작할 때부터—자아가 좀 비대했는지—이렇게 생각해왔다:\n\n> **프로그래밍의 본질은 의사결정이고, 그 결정들을 사람이 아닌 시스템에 조금씩 더 위임하는 과정이다.**\n\n컴파일러가 등장했을 때, \"어셈블리를 안 짜면 진짜 프로그래밍이 아니다\"라고 했다. 프레임워크가 등장했을 때, \"라이브러리 없이 짜야 진짜다\"라고 했다. 지금은 에이전트한테 프롬프트 쓰면 \"그건 프로그래밍이 아니다\"라고 한다.\n\n패턴이 보인다.\n\n매번 추상화 레이어가 올라갈 때마다, 이전 레이어에 있던 사람들은 그게 \"진짜\"가 아니라고 말했다. 하지만 결국 살아남는 건 더 높은 레이어에서 더 좋은 결정을 내리는 사람이었다.\n\n프롬프트도 결정이다. 무엇을 만들지, 어떤 제약을 걸지, 어디서 에이전트를 믿고 어디서 직접 개입할지—이 모든 것이 의사결정이다.",
+    "metadata": {
+      "type": "blog",
+      "title": "우린 '원래부터' 의사결정 에이전트였다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_blog-decision-agent_4",
+    "content": "## 그래서\n\n에이전트 시대에 살아남는 개발자가 어떤 사람인지에 대한 글은 이미 넘쳐난다. 나는 그런 식의 정리를 별로 좋아하지 않는다. 너무 쉽게 리스트가 되고, 리스트는 대부분 틀리기 때문에.\n\n대신 이렇게 말하고 싶다.\n\n에이전트가 잘하는 것과 못하는 것의 경계를 정확하게 아는 사람—그 경계에서 opinionated한 판단을 빠르게, 명확하게, 정당화할 수 있게 내리는 사람이 앞으로 더 비싸진다.\n\n형태는 달라도 공통점은 하나다. **재현되지 않는다.** 그리고 재현되지 않는 것에 가격이 붙는다.\n\n우린 원래부터 의사결정 에이전트였다. 코딩 에이전트가 바꾼 게 아니라, 나머지를 다 가져가면서 그게 더 선명하게 보이게 됐을 뿐이다.\n\n---",
+    "metadata": {
+      "type": "blog",
+      "title": "우린 '원래부터' 의사결정 에이전트였다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_blog-decision-agent_5",
+    "content": "## Related\n\n- [[ai-native-mindset]] - AI Native Mindset의 연장선. \"설계자로 일하는 방식\"의 구체적 테제\n- [[blog-workflow-studio-decisions]] - 워크플로우 빌더 개발기. 이 글에서 언급한 \"메타 빌딩\" 경험의 구체적 사례\n- [[building-with-ai-agent]] - AI 에이전트와 함께 빌딩하는 경험",
+    "metadata": {
+      "type": "blog",
+      "title": "우린 '원래부터' 의사결정 에이전트였다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 5,
+      "totalChunks": 6
+    }
+  },
+  {
     "id": "blog_blog-llm-agent-anatomy_0",
     "content": "# LLM 에이전트의 기본기: Planning, Memory, Tool\n\n> 2023년에 정립된 프레임워크가 왜 아직도 유효한가\n\n---\n\n\n\n## 들어가며: LLM은 뇌일 뿐이다\n\nChatGPT가 나왔을 때 우리는 \"AI가 모든 걸 할 수 있다\"고 생각했다. 하지만 실제로 LLM에게 복잡한 작업을 시키면 금방 한계에 부딪힌다.\n\n```\n사용자: \"우리 회사 코드베이스에서 보안 취약점을 찾아서 고쳐줘\"\nLLM: \"네, 코드를 보여주시면 분석해드리겠습니다...\"\n```\n\n문제는 명확하다:\n- **계획을 못 세운다**: 한 번에 다 풀려고 하다가 실패\n- **기억을 못 한다**: 컨텍스트 윈도우가 끝이다\n- **행동을 못 한다**: 텍스트만 생성할 뿐, 실제로 뭘 \"하지\" 못함\n\nLLM은 **뇌**일 뿐이다. 뇌만 있는 존재가 세상에서 일을 할 수 있을까?\n\n---",
     "metadata": {
@@ -3133,6 +3205,285 @@
       "source": "cogni",
       "chunkIndex": 14,
       "totalChunks": 15
+    }
+  },
+  {
+    "id": "cogni_bun-worker-rss-memory-guard_0",
+    "content": "\n## 배경\n\nWorkflow Studio의 Step Agent는 `Bun.spawn()`으로 subprocess 격리된 Worker에서 실행된다. 하지만 메모리 제한이 전혀 없어서, Worker OOM 시 Fly.io VM(512MB) 전체가 죽을 수 있는 위험이 있었다.\n\nVSCode Extension Host 패턴을 분석하면서, WS가 이미 동일한 subprocess 격리(Bun.spawn + IPC + watchdog)를 구현하고 있지만 **리소스 제한**이 빠져있다는 것을 발견.\n\n## Bun 메모리 제한의 현실 (v1.3.10, 2026-03)\n\n### 없는 것들\n- **`resourceLimits`**: worker_threads에서 미구현 (issue #10768, 2024년 이후 진전 없음)\n- **`--max-old-space-size`**: JSC(JavaScriptCore)는 V8과 달리 힙 하드캡 개념 자체가 없음\n- **`BUN_JSC_forceRAMSize`**: 환경변수로 존재하나 실제 효과 없다는 리포트 (#25487)\n\n### 있는 것들\n- **`--smol`**: JSC HeapSize를 Small로 설정, GC 빈도 증가. 하드캡이 아닌 GC 행동 변경\n- **`process.memoryUsage.rss()`**: syscall 1회, 할당 없음 — 고빈도 폴링에 적합\n- **`Bun.gc(true)`**: 동기 full GC 트리거 가능\n\n### 핵심 인사이트\n> Bun은 V8이 아닌 JSC 위에 구축되어 있어, Node.js 생태계의 메모리 제한 메커니즘이 대부분 적용 불가. 커뮤니티의 합의는 **OS 레벨(cgroup, Docker)에 의존**하는 것.\n\n## 접근법 비교",
+    "metadata": {
+      "type": "bun-worker-rss-memory-guard",
+      "title": "Bun Worker RSS Memory Guard — 리서치와 구현",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_bun-worker-rss-memory-guard_1",
+    "content": "| 접근법 | 하드캡? | Cross-platform | 복잡도 |\n|--------|---------|----------------|--------|\n| Self-monitoring RSS (폴링) | No (advisory) | macOS + Linux | 낮음 |\n| systemd-run cgroup | **Yes** | Linux only | 중간 |\n| Docker --memory | **Yes** | Any | 높음 |\n| prlimit/ulimit | 부분적 | Linux only | 낮지만 비실용적 |\n\n`prlimit`은 Virtual Address Space를 제한하는데, V8/JSC는 가상 메모리를 크게 선점하므로 RSS 50MB인 프로세스도 죽일 수 있어 비실용적.\n\n## 구현: Self-Monitoring RSS + --smol\n\n### 아키텍처\n\n```\nWorker (child)                    API Server (parent)\n┌─────────────────────┐          ┌──────────────────────┐\n│ memory-guard.ts     │          │ worker-manager.ts    │\n│  - 3초 RSS 폴링     │─IPC────→│  - memory_report 수신 │\n│  - 80% soft limit   │         │  - 10초 /proc 폴링    │\n│    → Bun.gc(true)   │         │  - 15초 stale 감지    │\n│  - 100% hard limit  │         │    → kill(runId)     │\n│    → graceful exit  │         │                      │\n└─────────────────────┘          └──────────────────────┘\n```\n\n### 설계 판단",
+    "metadata": {
+      "type": "bun-worker-rss-memory-guard",
+      "title": "Bun Worker RSS Memory Guard — 리서치와 구현",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_bun-worker-rss-memory-guard_2",
+    "content": "**왜 256MB 기본값?**\nFly.io VM이 512MB. API 서버 ~100MB, Worker는 보통 1-2개 동시 실행. 256MB면 단일 Worker가 VM을 죽이는 건 방지하면서, 대부분의 LLM 워크로드는 충분히 수용.\n\n**왜 3초 폴링?**\nLLM 스트리밍 응답은 점진적으로 메모리가 증가하지, 순간 스파이크는 드묾. 3초면 충분히 빠르고, `process.memoryUsage.rss()`는 syscall 1회라 오버헤드 무시 가능.\n\n**왜 80% soft limit?**\nhard limit 직전에 `Bun.gc(true)`로 GC 기회를 주면, 실제로 도달하지 않을 수 있음. 30초 debounce로 반복 트리거 방지.\n\n**왜 exit(137)?**\nSIGKILL의 관례적 exit code. 모니터링 도구(PM2, Docker, Fly.io)가 OOM으로 인식.\n\n**왜 부모 모니터링도 필요?**\nWorker의 이벤트루프가 블록되면(예: 동기 연산) 자체 setInterval이 동작하지 않음. 부모가 `/proc/<pid>/status` 직접 읽기(Linux) 또는 IPC 보고 타임아웃(15초)으로 감지.\n\n### 변경 파일\n- `memory-guard.ts` — RSS 폴링 + 임계값 콜백 모듈 (신규)\n- `worker-ipc.ts` — memory_report, memory_exceeded IPC 메시지\n- `worker-entry.ts` — 셀프 모니터링 + graceful shutdown\n- `worker-manager.ts` — --smol, 부모 모니터링, exit 137 감지\n\n## 향후 과제",
+    "metadata": {
+      "type": "bun-worker-rss-memory-guard",
+      "title": "Bun Worker RSS Memory Guard — 리서치와 구현",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_bun-worker-rss-memory-guard_3",
+    "content": "- **Phase 2**: Linux 배포 시 `systemd-run --scope -p MemoryMax` cgroup 래핑\n- **Builder testEngine**: 현재 in-process(RealEngine) → subprocess 전환 검토\n- **Bun #10768 추적**: resourceLimits 구현되면 네이티브 전환\n\n## Related\n\n- [[automation-bottleneck-is-definition]] - 워크플로우 실행의 안정성 관점\n",
+    "metadata": {
+      "type": "bun-worker-rss-memory-guard",
+      "title": "Bun Worker RSS Memory Guard — 리서치와 구현",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_0",
+    "content": "# 코드를 안 짜는데 더 피곤한 이유\n\n> 판단은 위임할 수 없다.\n\n⸻\n\n\n\n## 타이핑을 멈추니 머리가 더 아프다\n\n요즘 나는 코드를 거의 직접 타이핑하지 않는다.\n\nClaude Code와 페어 프로그래밍하듯 일하면서, 구현의 대부분을 AI에게 맡긴다. 보일러플레이트, 라우팅 설정, 타입 정의, 테스트 작성. 예전에는 타이핑하면서 머리를 쉴 수 있었다. 손이 움직이는 동안 다음 설계를 느긋하게 생각했다.\n\n그런데 이제 타이핑이 사라지니까, 고수준 의사결정만 연속으로 내려야 한다.\n\n\"이 모듈은 쪼갤까 뭉칠까.\" \"여기서 추상화할까 아직 이를까.\" \"이벤트 드리븐으로 갈까 폴링으로 갈까.\" 쉬는 시간 없이 판단, 판단, 판단.\n\n정신적으로 훨씬 피곤해졌다. 그런데 동시에, 이상하게도 더 즐겁다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 0,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_1",
+    "content": "## AI가 준 것, AI가 가져간 것\n\nAI가 준 건 속도다. 예전에 이틀 걸리던 구현이 반나절이면 끝난다. 언어 문법을 몰라도 새로운 스택에 뛰어들 수 있다. Kotlin/Spring 백엔드도, C++ Chromium 코드베이스도, 예전 같으면 시도조차 안 했을 영역에 손을 뻗게 됐다.\n\nAI가 가져간 건 핑계다.\n\n\"아직 그 언어를 잘 몰라서요.\" \"프레임워크를 공부하고 나서 할게요.\" 이런 말을 더 이상 할 수 없다. 도구의 제약이 사라지니, 남은 건 순수하게 — 뭘 만들지, 어떻게 만들지, 왜 이렇게 만들지.\n\nAddy Osmani의 말이 자꾸 떠오른다.\n\n> \"Agents can implement, but they cannot judge whether what they are implementing is the right design.\"\n\n결국 그거다. 구현은 해주는데, 그게 맞는 설계인지는 알아서 안 봐준다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 1,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_2",
+    "content": "## 같은 도구를 쓰는데 결과가 다른 이유\n\n얼마 전 흥미로운 경험을 했다.\n\n같은 Claude Code를 쓰고, 같은 프롬프트를 쓰는데, 시니어와 주니어의 결과물이 확연히 달랐다. 차이는 \"AI에게 뭘 시키느냐\"가 아니라, \"AI가 준 결과를 보고 뭘 고치느냐\"에 있었다.\n\n주니어는 돌아가면 넘어갔다. 시니어는 돌아가는 코드를 받고 나서 리팩토링을 시작했다. 네이밍을 다듬고, 불필요한 추상화를 걷어내고, 에러 핸들링의 granularity를 조정했다.\n\nVivian Qu가 쓴 글에 이런 표현이 있다:\n\n> \"Junior developers often hit a wall at 70% of a project due to accumulated technical debt from AI-generated code.\"\n\n70%의 벽. AI가 만든 기술 부채가 누적되면서 프로젝트가 멈추는 지점. 그 벽을 넘는 건 더 좋은 프롬프트가 아니라, 더 좋은 판단이다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 2,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_3",
+    "content": "## 근데 \"좋은 판단\"이 대체 뭔데?\n\n여기서 솔직해지자.\n\n나도 모른다. 적어도 한 문장으로 정의하지 못한다.\n\n하지만 몇 가지는 안다. AI가 생성한 코드를 리뷰할 때, \"이건 돌아가지만 좋은 코드는 아니다\"라는 감각이 있다. 이걸 설명하려고 하면 이런 기준들이 나온다:\n\n- 읽기 편한가? — 표현력\n- 역할 분리가 네이밍으로 드러나는가? — 의도 명확성\n- 수정하기 쉬운가? — 변경 용이성\n- 지우기 쉬운가? — 결합도\n\n스스로 설명할 수 없는 코드는, 고민이 부족한 코드다.\n\n이런 기준은 4년간 코드를 짜면서 쌓였다. AI가 이걸 대체하진 못한다. 오히려 아웃풋이 많아지니까, 필터링하는 눈이 더 중요해졌다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 3,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_4",
+    "content": "## Linus Torvalds의 linked list\n\n2016년, Linus Torvalds가 TED 무대에서 \"good taste\"를 설명했다. Linked list에서 노드를 삭제하는 코드 두 개를 보여줬다.\n\n첫 번째는 특수 케이스가 있다. head 노드인지 아닌지 분기하는 if문.\n\n두 번째는 특수 케이스가 없다. 포인터의 포인터를 써서, head든 아니든 같은 로직으로 동작한다.\n\nTorvalds는 이걸 \"good taste\"라고 불렀다.\n\n> \"Sometimes you can see a problem in a different way and rewrite it so that a special case goes away and becomes the normal case, and that's good code.\"\n\n결국 **같은 문제를 다르게 봐서, 복잡성을 제거하는 눈**이다. 돌아가냐가 아니라 어떻게 돌아가느냐의 문제.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 4,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_5",
+    "content": "## 하지만 잠깐 — taste는 주관 아닌가?\n\n\"그건 네 취향이잖아\" — 이 말을 들은 적이 있다.\n\n맞다. 그리고 틀리다.\n\nPaul Graham은 \"Taste for Makers\"에서 이렇게 말한다. 좋은 디자인은 단순하고, 시대를 초월하고, 약간 웃기다. 이건 개인 취향이 아니라 숙련된 판단이다. 연습과 노출과 실패를 통해 길러지는 것.\n\n동시에, taste에는 분명 개인적인 결이 있다.\n\n같은 트레이드오프 앞에서 어떤 사람은 유연성을 택하고, 어떤 사람은 단순성을 택한다. 둘 다 \"좋은 판단\"일 수 있다. 중요한 건 **왜 그쪽을 택했는지 설명할 수 있느냐**다.\n\n설명할 수 없는 판단은, 판단이 아니라 습관이다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 5,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_6",
+    "content": "## 판단은 기록해야 날카로워진다\n\n1년 전 내가 쓴 코드를 본다. \"왜 이렇게 했지?\" 감각이 변했다는 증거다.\n\n그런데 **어떻게** 변했는지는 기억나지 않는다.\n\n어느 순간 \"DRY를 무조건 따르자\"에서 \"이 중복은 의도적이다\"로 넘어갔다. 어느 순간 \"SRP를 지키자\"에서 \"이 정도 응집은 쪼개면 오히려 나빠진다\"로 넘어갔다. 그 전환점들이 기록되어 있지 않다.\n\n이 시리즈는 그 전환점을 기록하려는 시도다.\n\n매 회 하나의 기술 트레이드오프를 잡는다. 양쪽의 논리를 공정하게 이해하고, 나의 경향을 선언하고, 그 이유를 쓴다. 그리고 \"아직 모르겠는 것\"도 솔직히 남긴다.\n\n이건 정답을 알려주는 글이 아니다. 판단이 만들어지는 과정을 보여주는 글이다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 6,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_7",
+    "content": "## 앞으로 다룰 것들\n\n이 시리즈에서 탐구할 갈림길들:\n\n**SRP vs 응집성** — 쪼개는 게 항상 좋은가? switch/case 20개가 Registry보다 나을 때가 있다.\n\n**DRY vs WET** — Dan Abramov는 \"비슷해 보이는 건 아직 문제를 이해 못한 거\"라고 했다. 언제 추상화하고 언제 복붙하는가.\n\n**Push vs Pull** — 이벤트 구동이 항상 우월한가? 폴링이 맞는 상황은 언제인가.\n\n**병렬 에이전트의 맥락 공유** — 독립성과 공유 상태 사이. AI 에이전트 시대의 새로운 트레이드오프.\n\n**코드 생성 vs 컴포지션** — 템플릿으로 찍어낼 것인가, 런타임에 조합할 것인가.\n\n각 글은 같은 구조를 따른다: 갈림길 → 양쪽의 논리 → 나의 경향 → 갈고닦는 중.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 7,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_8",
+    "content": "## 이 글이 필요한 사람\n\nAI와 함께 코드를 쓰면서, \"이게 좋은 코드인지 어떻게 알지?\"라고 한 번이라도 생각해본 사람.\n\n혹은 기술적 결정을 내릴 때 \"상황에 따라 다르다\"는 말에 동의하면서도, 그 '상황'을 어떻게 구분하는지 정리해본 적 없는 사람.\n\n그리고 솔직히, 가장 필요한 사람은 나 자신이다.\n\n판단은 쓰면서 날카로워진다. 설명하지 못하는 감각은 성장하지 않는다. 이 시리즈는 내 taste를 갈고닦는 숫돌이다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 8,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_tastelog-0-why-taste_9",
+    "content": "## 참고한 것들\n\n### Taste는 원래 중요했다\n\n- Linus Torvalds, [\"The mind behind Linux\"](https://www.ted.com/talks/linus_torvalds_the_mind_behind_linux), TED 2016 — \"Good taste = 특수 케이스를 제거하는 눈\"\n- Paul Graham, [\"Taste for Makers\"](https://paulgraham.com/taste.html), 2002 — \"The recipe for great work is: very exacting taste, plus the ability to gratify it.\"\n- Sean Goedecke, [\"What is 'good taste' in software engineering?\"](https://www.seangoedecke.com/taste/) — \"Bad taste = 맥락 무시하고 익숙한 해법 전도\"\n\n### 그리고 세상이 따라왔다 (2025-2026)\n\n- Andrej Karpathy, 2025 — \"Access to models is no longer a moat. Taste, insight, and context are king.\"\n- Kent Beck, [\"Augmented Coding & Design\"](https://tidyfirst.substack.com/p/augmented-coding-and-design), 2025 — \"Today's AI assistants lack taste. That giant function? The AI just added another 20 lines to it.\"\n- Addy Osmani, [\"The Factory Model\"](https://addyosmani.com/blog/factory-model/), 2025 — \"The era of programming as primarily a keystroke activity is over. The era of programming as primarily a thinking and judgment activity has been accelerating for decades and just shifted into a higher gear.\"\n- John Carmack, [X post](https://x.com/ID_AA_Carmack/status/1921967025628578230), 2025 — \"'Coding' was never the source of value. Problem solving is the core skill.\"\n- Gergely Orosz, [The Pragmatic Engineer](https://newsletter.pragmaticengineer.com/p/the-future-of-software-engineering-with-ai), 2025 — \"Well-developed 'systems taste' is still required upfront — LLMs, without strong guidelines, will slop-fill greedy solutions.\"\n- Vivian Qu, [\"There's no accounting for taste\"](https://vivqu.com/blog/2025/06/29/no-accounting-for-taste/), 2025 — \"Junior developers often hit a wall at 70% of a project due to accumulated technical debt from AI-generated code.\"\n- Dane Knecht (Cloudflare CTO), [X post](https://x.com/dok2001/status/2006736670499233830), 2026.01 — \"In 2026, taste is the engineering differentiator. Building is easy now. Knowing what to build, and what not to, is the hard part.\"\n- Designative, [\"Taste Is the New Bottleneck\"](https://www.designative.info/2026/02/01/taste-is-the-new-bottleneck-design-strategy-and-judgment-in-the-age-of-agents-and-vibe-coding/), 2026.02 — \"The real bottleneck was never coding — it was creativity and taste.\"\n- Paul Graham, [X post](https://x.com/paulg/status/2022604692178522562), 2026.02 — \"In the AI age, taste will become even more important. When anyone can make anything, the big differentiator is what you choose to make.\"\n- Sam Altman, [Fortune](https://fortune.com/2026/02/27/openai-sam-altman-taste-get-jobseekers-hired-ai-jobpocalypse/), 2026.02 — \"Leverage the one thing AI has so far struggled to replicate: human judgment.\"",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log #0: 왜 Taste인가",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-03-17",
+      "chunkIndex": 9,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "cogni_tastelog-series-plan_0",
+    "content": "\n# Taste Log: 기술 판단의 결을 기록하다\n\n## 컨셉\n\nAI가 코드를 짜주는 시대에, 남는 건 판단이다. 이 시리즈는 기술 의사결정의 갈림길에서 내가 어떤 기준으로 갈라서는지 기록하는 로그다.\n\n매 회 하나의 기술 트레이드오프 주제를 잡고:\n1. 양쪽의 논리를 공정하게 이해한다\n2. 나의 경향성을 선언한다\n3. \"상황에 따라 다르다\"의 구체적 분기점을 제시한다\n4. 아직 모르는 것을 솔직히 인정한다\n\n## 스타일\n\n- **Dan Abramov** (overreacted.io): 생각의 흐름, 통념 도전, 짧은 문단, \"But wait...\" 패턴\n- **Kent C. Dodds** (kentcdodds.com): 문제→해결→인사이트 아크, 실용적 예제, \"The key insight is...\"\n- **언어**: 한국어 기반, 기술 용어 영문 혼용\n\n## 시리즈 목록\n\n### #0: 왜 Taste인가 (인트로)\n- AI 시대에 taste가 왜 핵심 역량인지\n- 이 시리즈를 쓰는 동기\n- 참고: Linus Torvalds \"good taste\", Paul Graham \"Taste for Makers\", Addy Osmani \"taste is management skill in disguise\"\n- 관련 노트: [[ai-native-mindset]]\n\n### #1: SRP vs 응집성 — 쪼개기 vs 뭉치기\n- 언제 쪼개고 언제 뭉치는가\n- 관련 노트: [[switch-case-twenty-is-fine]], [[static-connascence-and-type-systems]]\n\n### #2: 추상화의 타이밍 — DRY vs WET\n- Dan Abramov \"The WET Codebase\" 확장\n- 관련 노트: [[composition-over-registry]]\n\n### #3: Push vs Pull\n- 이벤트 구동 vs 폴링, 능동 vs 수동\n- 관련 노트: [[push-pull-architecture]]",
+    "metadata": {
+      "type": "tastelog-series-plan",
+      "title": "Taste Log: 기술 판단의 결을 기록하다",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "cogni_tastelog-series-plan_1",
+    "content": "### #4: 병렬 에이전트의 맥락 공유\n- 독립성 vs 공유 상태 — DeepAgents 사례\n- 관련 노트: 빠른말-스터디\n\n### #5: 코드 생성 vs 컴포지션\n- 템플릿/AST vs 런타임 조합\n- 관련 노트: [[sdui-journey-react-to-composition]]\n\n### #6: 표준화 vs 속도\n- 에이스 복제 vs 빠른 출시\n- 관련 노트: [[standardization-over-speed]]\n\n### #7: 제약이 좋은 설계를 만든다\n- 자유도 vs 가드레일\n- 관련 노트: [[constraints-force-good-design]]\n\n### #8: 분기는 상위로 — Early Return의 미학\n- 분기(조건문)는 상위 레이어에서 처리하는 게 일반적으로 좋다\n- 하위 함수는 하나의 경로만 알면 되고, 분기 책임은 호출자에게\n- 관련: SRP, 함수의 단일 책임, \"깊은 함수 vs 넓은 함수\" 트레이드오프\n\n## 리서치 아카이브",
+    "metadata": {
+      "type": "tastelog-series-plan",
+      "title": "Taste Log 시리즈 기획",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "cogni_tastelog-series-plan_2",
+    "content": "### 핵심 출처\n- Linus Torvalds TED 2016: good taste = 특수 케이스를 제거하는 눈\n- Paul Graham \"Taste for Makers\": taste는 주관이 아니라 수련된 판단\n- Sean Goedecke: bad taste = 맥락 무시하고 익숙한 해법 전도\n- Antonio Agudo: taste = 불확실성 속 트레이드오프 판단 (테스트 가능)\n- Vivian Qu: AI 시대 70% wall — 주니어는 AI 생성 코드 기술부채로 벽에 부딪힘\n- Addy Osmani: taste = 맞아 보이지만 틀린 것을 알아채는 능력\n- Designative (2026.02): \"taste is the new bottleneck\"\n- Steve Jobs: 좋은 것 만드는 데 더 많은 에너지가 아니라 약간 더 많은 시간\n- Dan Abramov \"The WET Codebase\": 왜 best practice가 존재하는지 이해가 맹목적 따르기보다 중요\n- Martin Fowler \"Tradable Quality Hypothesis\": 내부 품질을 거래 가능하다고 프레이밍하는 순간 진 것\n\n## 실행 도구\n\n- `/tastelog <회차>` 커맨드로 작성 시작\n- `tastelog` 스킬에 스타일 가이드, 구조 템플릿, 리뷰 체크리스트 포함\n\n## Related\n\n- [[ai-native-mindset]] — Taste 개념의 출발점\n- [[know-how-to-know-where-essay-idea]] — Know-Where 시대의 핵심 역량\n- [[workflow-studio-revival-strategy]] — 기존 기술 블로그 전략 (병행)\n",
+    "metadata": {
+      "type": "tastelog-series-plan",
+      "title": "Taste Log 시리즈 기획",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "blog_product-builder-in-ai-era_0",
+    "content": "# How를 아는 사람이 Why를 말할 때\n\nPM이 Why-What을 담당하고 엔지니어가 How를 담당하는 분업 모델은 낡아가고 있다. AI 시대에 필요한 건, Why-What-How를 모두 오갈 수 있으면서 상황에 따라 의식적으로 레이어를 선택하는 사람이다. 나는 이런 사람을 **제품 빌더**라고 부른다.\n\n이 생각은 PM들과 회의를 하면서 구체화됐다.\n\n\"사용자가 이탈하는 이유는 온보딩이 복잡해서예요.\" 왜 이탈하는지, 무엇을 바꿔야 하는지에 대한 이야기는 풍성하다. 그런데 논의가 일정 수준 이상으로 깊어지지 않는다. 표면에서 맴돈다.\n\n이유는 단순하다. **How를 모르기 때문이다.**\n\n---\n\n\n\n## Why-What의 천장\n\nPM의 전통적 역할은 Why와 What이다. 왜 만드는가, 무엇을 만드는가. 이건 여전히 중요하다. 하지만 How에 대한 감각이 없으면, Why와 What의 탐색 범위 자체가 좁아진다.\n\n\"실시간으로 사용자 행동을 분석해서 온보딩 플로우를 동적으로 바꿀 수 있다\"는 가능성을 모르면, \"온보딩 스텝을 3개에서 2개로 줄이자\"가 논의의 끝이다. 기술적 가능성의 지도가 없으면, 제품의 상상력도 그 지도 안에 갇힌다.\n\n리서치도 마찬가지다. 경쟁사의 기능 목록을 비교하는 건 할 수 있다. 하지만 \"저 기능이 기술적으로 어떤 트레이드오프 위에 서 있는가\", \"우리가 같은 걸 만든다면 어떤 제약이 생기는가\"를 파악하려면 How에 대한 이해가 필요하다.\n\n---",
+    "metadata": {
+      "type": "blog",
+      "title": "How를 아는 사람이 Why를 말할 때",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_product-builder-in-ai-era_1",
+    "content": "## AI 시대가 바꾸는 것\n\nAI가 구현을 가속화하면서, 역설적으로 How를 아는 것의 가치가 더 커졌다.\n\n예전에는 How를 안다는 건 곧 \"직접 만들 수 있다\"는 뜻이었다. 지금은 다르다. How를 안다는 건 **가능성의 공간을 넓게 볼 수 있다**는 뜻이다. AI가 구현을 도와주니까, \"이게 가능한가?\"라는 질문의 답이 대부분 \"가능하다\"로 바뀌었다. 그러면 진짜 질문은 \"가능한 것들 중에 뭘 할 것인가\"가 된다.\n\n이 질문에 답하려면 How의 지형을 읽을 수 있어야 한다.\n\n---",
+    "metadata": {
+      "type": "blog",
+      "title": "How를 아는 사람이 Why를 말할 때",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_product-builder-in-ai-era_2",
+    "content": "## 제품 빌더라는 역할\n\n나는 이런 사람을 \"소프트웨어 엔지니어\"보다 **제품 빌더**라고 부르고 싶다.\n\n제품 빌더의 특징은 두 가지다:\n\n**첫째, How까지 보면서 리서치한다.** 경쟁사 앱을 쓸 때 UX만 보는 게 아니라 네트워크 탭을 열어본다. 새로운 서비스를 만나면 \"이걸 어떻게 만들었을까\"를 생각한다. 일상의 모든 채널이 아이디어 소스다. 카페에서 주문 시스템을 보면서 상태 머신을 떠올리고, 게임을 하면서 온보딩 플로우를 분석한다. 기술과 제품의 경계를 넘나들며 흡수한다.\n\n**둘째, 제품을 논할 때는 의도적으로 How를 생략한다.** 이게 핵심이다. How를 *모르는* 것과 How를 *알면서 꺼내지 않는* 것은 완전히 다르다. How를 아는 사람이 의식적으로 Why와 What에 집중하면, 논의의 깊이가 달라진다. \"이건 기술적으로 어렵다\"는 말 대신 \"이 문제를 풀면 사용자에게 어떤 가치가 있는가\"를 먼저 탐색할 수 있다. 가능성을 알기 때문에 두려움 없이 Why에 몰입할 수 있다.\n\nHow를 모르는 사람의 Why는 천장이 있다. How를 아는 사람의 Why는 천장을 뚫는다.\n\n---",
+    "metadata": {
+      "type": "blog",
+      "title": "How를 아는 사람이 Why를 말할 때",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_product-builder-in-ai-era_3",
+    "content": "## 일상이 리서치가 되는 사람\n\n이건 회의실에서만 일어나는 일이 아니다.\n\n좋은 제품 빌더는 생활 자체가 리서치다. 배달 앱의 주문 추적 UX에서 실시간 시스템 설계를 읽고, 유튜브 추천 알고리즘의 변화에서 개인화 전략을 읽는다. 기술 블로그만 읽는 게 아니라, 비기술 분야의 문제 해결 방식에서 패턴을 발견한다.\n\n이 감각은 Why-What-How를 모두 볼 수 있는 사람만이 가질 수 있다. 왜냐하면 \"이게 왜 이렇게 동작하지?\"라는 호기심은 How에 대한 기본적인 이해가 있어야 작동하기 때문이다.\n\n---",
+    "metadata": {
+      "type": "blog",
+      "title": "How를 아는 사람이 Why를 말할 때",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_product-builder-in-ai-era_4",
+    "content": "## 엔지니어라는 이름을 넘어서\n\nAI가 타이핑을 대신하면서, 엔지니어의 본질적 가치는 코드 작성에서 **기술적 가능성의 공간을 탐색하고, 그 위에서 제품적 판단을 내리는 것**으로 이동하고 있다.\n\n분업의 벽이 낮아진 시대에, How를 아는 사람이 Why를 말할 때 — 그 Why는 다르다.\n\n---",
+    "metadata": {
+      "type": "blog",
+      "title": "How를 아는 사람이 Why를 말할 때",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "blog_product-builder-in-ai-era_5",
+    "content": "## Related\n\n- [[개발에 대한 생각들]] - AI 시대 개발자론, 목표 단위 사고\n- [[poc-to-production-what-survived]] - 구현을 아는 것이 설계를 바꾸는 사례",
+    "metadata": {
+      "type": "blog",
+      "title": "How를 아는 사람이 Why를 말할 때",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 5,
+      "totalChunks": 6
     }
   },
   {
@@ -5079,6 +5430,28 @@
       "source": "cogni",
       "chunkIndex": 5,
       "totalChunks": 6
+    }
+  },
+  {
+    "id": "cogni_hiring-evaluation-criteria-dwkim_0",
+    "content": "\n# 김동욱의 채용 면접 평가 기준\n\n면접 평가 코멘트에서 추출한, 평가자로서의 관점과 기준.\n\n---\n\n## 1. 진정성 > 완벽함\n\n- \"모르는 건 모른다\"를 긍정 평가함\n- 지식의 양보다 **자기 인식의 정확도**를 본다\n- 아는 것을 \"조리있게 설명\"할 수 있는지 — 깊이와 구조화 능력 중시\n\n→ [[personal-profile]] 의 \"이해 없이 개발하는 것을 가장 꺼림\"과 일맥상통. 본인이 중요하게 여기는 가치를 타인에게도 기대하는 패턴.\n\n## 2. Why-first 사고 탐지\n\n- \"How나 What보다 Why로부터 이야기를 시작하는 사람\"을 높이 평가\n- 면접에서 후보자의 **사고 출발점**을 관찰한다\n\n→ 본인의 First Principles Thinking이 평가 기준으로 투영됨. 자신의 사고방식을 단순히 선호가 아니라 **좋은 엔지니어의 조건**으로 본다.\n\n## 3. 일관성 (Consistency) 검증\n\n- 대학생 때부터 지금까지 \"불편함을 기술로 해결\"하는 행동의 일관성을 봄\n- 단발성 프로젝트가 아니라 **행동 패턴의 지속성**을 검증\n\n→ 패턴 중심 사고의 연장. 개별 사건보다 반복되는 패턴에서 사람의 본질을 읽으려 한다.\n\n## 4. adder(+) vs multiplier(x) 프레임\n\n- 연차/경험이 적은 후보자에 대해 **현실적 기대치**를 설정함\n- \"1년 정도는 adder\" → 즉시 퍼포먼스보다 **성장 궤적**에 베팅\n- 상향 조건을 명시하여, 기대를 닫지 않고 열어둠\n\n→ 단기 ROI가 아니라 잠재력 + 방향성으로 사람을 평가하는 관점.\n\n## 5. 상향 조건의 구체성\n\n- \"팀 효율성을 높이는 일\" + \"팀 내외부 AX를 돕는 일\" — 후보자 본인이 면접에서 먼저 말한 내용을 상향 조건으로 채택\n- 평가자가 일방적으로 기준을 부과하지 않고, **후보자의 자기선언을 기준으로 삼음**\n\n→ 약속을 스스로 정의하게 하고, 그 약속의 이행 여부로 판단하겠다는 접근. 자율성 존중 + 책임감 기대의 균형.\n\n---",
+    "metadata": {
+      "type": "hiring-evaluation-criteria-dwkim",
+      "title": "김동욱의 채용 면접 평가 기준",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 2
+    }
+  },
+  {
+    "id": "cogni_hiring-evaluation-criteria-dwkim_1",
+    "content": "## 요약: 김동욱이 미래의 동료의 역량을 가늠하는 방법\n\n| 우선순위 | 기준                   | 반대급부            |\n| -------- | ---------------------- | ------------------- |\n| 1        | 자기 인식의 정확도     | 과대 포장           |\n| 2        | Why-first 사고방식     | How/What만 나열     |\n| 3        | 행동 패턴의 일관성     | 단발성 경험         |\n| 4        | 성장 궤적과 방향성     | 현재 스킬셋만       |\n| 5        | 자기선언에 대한 책임감 | 외부 기준 수동 수용 |\n\n---\n\n## Related\n\n- [[personal-profile]] - 본인의 사고방식과 평가 기준의 연결\n- [[agent-based-fe-hiring-assignment-design-retrospective]] - 채용 과제 설계 회고\n",
+    "metadata": {
+      "type": "hiring-evaluation-criteria-dwkim",
+      "title": "김동욱의 채용 면접 평가 기준 — 평가자로서의 관점",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 2
     }
   },
   {
@@ -7232,6 +7605,54 @@
     }
   },
   {
+    "id": "blog_blog-idea-always-write-plans_0",
+    "content": "## 핵심 메시지\n\nLLM에게 바로 코드를 짜달라고 하지 마라. **먼저 플랜을 세우게 하라.**",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 언제나 플랜을 써라",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "blog_blog-idea-always-write-plans_1",
+    "content": "## 왜 플랜이 중요한가\n\n- LLM은 한 번에 모든 걸 잘 하려다 맥락을 놓친다\n- 플랜을 먼저 세우면: 전체 구조 파악 → 빠진 부분 발견 → 수정 비용 감소\n- 사람도 마찬가지 — 설계 없이 코딩하면 삽질한다\n- 플랜은 \"LLM과의 정렬 도구\"다. 내가 원하는 방향과 LLM이 이해한 방향이 맞는지 확인",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 언제나 플랜을 써라",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "blog_blog-idea-always-write-plans_2",
+    "content": "## 다룰 포인트들\n\n- Claude Code의 plan mode 활용 사례\n- 플랜 → 리뷰 → 실행 워크플로우\n- Plannotator 소개 및 추천 (플랜을 인터랙티브하게 관리)\n- \"플랜 없는 프롬프트\" vs \"플랜 있는 프롬프트\" 비교 예시\n- 플랜의 granularity — 너무 세밀해도, 너무 추상적이어도 안 됨",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 언제나 플랜을 써라",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "blog_blog-idea-always-write-plans_3",
+    "content": "## 연결\n\n- [[prompting-philosophy]] — 프롬프팅 철학 시리즈\n- [[know-how-to-know-where-essay-idea]] — Know-Where 관점에서, 플랜은 \"어디로 갈지 아는 것\"",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 언제나 플랜을 써라",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 4
+    }
+  },
+  {
     "id": "blog_orchestrator-role_0",
     "content": "# The Orchestrator's Role\n\nProduct Engineer의 일은 이제 **패션 하우스의 수석 디자이너, 대형 잡지사의 에디터, 무대 총감독, 헤드 셰프**의 일과 비슷하다.\n\n직접 원단을 자르거나 박음질하지 않는다. 스케치조차 직접 안 하는 경우도 있다. 글을 타이핑하거나 직접 취재하는 일도 적다. 조명을 들고 있거나 배우를 쫓아다니지도 않고, 당근을 썰거나 수프를 끓이지 않는다.\n\n대신 이런 일을 한다:\n- **트렌드를 읽는다**\n- **사람들을 만나고 신인을 발굴한다**\n- **결과를 리뷰하고 피드백한다**\n- **잘한 성과를 선택해서 promotion 한다**\n- **한두 번의 결과가 아닌, 시즌들을 설계한다**\n\n---\n\n\n\n## 실제 사례들\n\n### 1. Virgil Abloh - \"3% 접근법\"\n\nOff-White 창립자이자 Louis Vuitton 크리에이티브 디렉터였던 Virgil Abloh는 \"3% 접근법\"을 주창했다. 기존 것에서 3%만 바꿔도 새로운 것이 된다.\n\n> \"그에게서 패션 스케치를 많이 받지 않는다. 그는 항상 아이디어로 온다 - 종종 그냥 단어들. 종이에 적거나 iMessage나 Instagram DM으로 보낸다. 그리고 무대에 올라가 즉흥으로 한다.\"\n> — Jonathan Cheung, Levi's 디자인 헤드\n\n그의 채용 기준도 독특했다: \"Instagram 계정이 멋지면 팔로우하고 DM으로 '일할래?'라고 물어본다.\"\n\n**교훈**: 실행은 위임하고, 방향과 에너지를 주입한다.\n\n### 2. Anna Wintour - 마이크로 매니징을 하지 않는다\n\n37년간 Vogue 편집장을 지낸 Anna Wintour (2025년 6월 편집장에서 물러남, 글로벌 Chief Content Officer로 유지).\n\n> \"매일 밤 mock-up을 Post-it 노트로 코멘트하고, 다음날 아침 아트 디렉터와 에디터들에게 피드백한다. 마이크로 매니징을 믿지 않는다. 함께 일하는 사람들에게 권한을 부여하는 것이 중요하다.\"\n\n그녀의 일과:\n- 새벽 4-5시 기상, 신문 읽기\n- 오전 8-8:30 출근\n- 2-3시간 미팅 (작은 미팅 선호)\n- 오후 5시 퇴근, \"마법 상자\" 가방에 리뷰할 것들 담아감\n- 밤 10시 취침\n\n**교훈**: 피드백 루프를 빠르게, 권한 위임은 확실하게.\n\n### 3. René Redzepi - \"퍼포먼스 아트로서의 레스토랑\"\n\n세계 최고의 레스토랑 Noma를 이끈 René Redzepi는 2025년부터 레스토랑을 **퍼포먼스 아트 모델**로 전환했다.\n\n> \"1년 준비, 필드 트립, 아티스트와의 콜라보. 잠깐 열고 사라진다. 거의 퍼포먼스 아트처럼.\"\n\n> \"내 인생의 일은 Noma가 René Redzepi 없이도 Noma일 수 있게 되면 완성될 것이다.\"\n\n현재 Noma의 헤드 셰프는 Kenneth Foong. Redzepi는 직접 요리하는 것보다 **시스템과 비전**을 만드는 데 집중한다.\n\n**교훈**: 자신이 없어도 돌아가는 시스템을 만드는 것이 목표. 즉, **나를 대신할 에이전트를 정의하는 것**도 오케스트레이터의 일이다. 오케스트레이션과 동시에.\n\n> 사실 이건 원래 (진짜) 개발자들이 하던 일이다. 코드 자체가 \"나를 대신해서 일하는 에이전트\"를 정의하는 것. 자동화, 추상화, 시스템 설계 - 전부 그 일이었다. AI 시대가 새로운 역할을 만든 게 아니라, **원래 있던 본질을 더 선명하게 드러낸 것**.\n\n### 4. Massimo Bottura - \"레시피의 합 이상\"\n\n3-미슐랭 스타 Osteria Francescana의 Massimo Bottura:\n\n> \"2023년의 셰프는 레시피의 합 이상이다. 주방 밖으로 나가 더 큰 목소리를 내고, 모든 사람과 아이디어를 공유해야 한다. 윤리와 미학을 같은 수준에 놓아야 한다.\"\n\n15년간 함께한 코어 팀과 \"유기적으로 성장\"했다. 그는 셰프들이 **액티비스트**가 되어야 한다고 믿는다.\n\n**교훈**: 기술자를 넘어 사회적 영향력을 가진 존재로.\n\n---",
     "metadata": {
@@ -7751,6 +8172,28 @@
     }
   },
   {
+    "id": "cogni_grading-playbook-as-hiring-filter_0",
+    "content": "\n## 배경\n\n프론트엔드 사전과제 채점을 자동화해봤다. PLAYBOOK.md (채점 시나리오 + 배점표) + setup.sh (환경 셋업 + 유닛테스트) + SCORECARD.md (결과 템플릿) 세 파일이 전부.\n\nClaude Code에서 멀티에이전트로 7명 병렬 채점 → Phase 1 (유닛테스트 + 코드리뷰) 병렬, Phase 2 (E2E 브라우저 테스트) 순차. 약 40분 만에 전원 채점 완료.\n\n## 핵심 교훈\n\n### 1. PLAYBOOK이 강력한 이유\n\n채점 기준을 **시나리오 + 체크포인트 + 배점표**로 구조화하면, 사람이든 AI든 동일한 기준으로 채점할 수 있다. 주관이 끼어들 여지가 줄어든다.\n\n- 7개 E2E 시나리오, 각각 구체적 조작 순서와 체크포인트\n- 부분 점수 기준까지 명시 (예: CP1-1만 통과 = 3점, 전부 통과 = 10점)\n- 정성 평가도 \"무엇을 볼 것인가\"를 미리 정의\n\n### 2. AI_USAGE.md + 커밋 히스토리 = 절반 필터\n\n정량 점수(유닛테스트 + E2E)는 7명 중 6명이 만점. 변별력이 없었다. 진짜 차이는 정성 지표에서 갈렸다:\n\n- **AI_USAGE.md 미작성**: 과제 요구사항 미충족. 명확한 탈락 근거.\n- **커밋 7개, 69분 만에 핵심 기능 완료**: 비현실적 타임라인. AI 의존도 높은 정황.\n- **테스트 스펙 자체를 수정해서 통과**: 의도를 파악 못했거나, 구현을 못 맞추고 우회.\n- **Dead code 방치**: 컴포넌트를 만들어두고 안 쓰면서 정리 안 함.\n\n이 기준만으로 7명 중 3~4명이 추려진다. **코드 품질이 아니라 \"일하는 방식\"이 드러나는 지표**가 더 변별력이 높다.\n\n### 3. 자동 채점의 한계와 보완\n\nE2E 자동 채점은 \"동작하는가\"만 검증한다. \"어떻게 동작하는가\"는 코드 리뷰에서 봐야 한다.",
+    "metadata": {
+      "type": "grading-playbook-as-hiring-filter",
+      "title": "PLAYBOOK.md 하나로 사전과제 채점 자동화한 교훈",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 2
+    }
+  },
+  {
+    "id": "cogni_grading-playbook-as-hiring-filter_1",
+    "content": "- useSyncExternalStore vs useState — 둘 다 E2E는 통과하지만 아키텍처 수준이 다름\n- useReducer + discriminated union vs 상태 10개 나열 — 둘 다 동작하지만 유지보수성이 다름\n- SSE onerror 핸들러 유무 — happy path E2E에서는 안 드러남\n\n**정량 채점으로 하한선을 긋고, 정성 평가로 상한선을 본다.**\n\n## 실용 팁\n\n- PLAYBOOK은 \"AI 에이전트가 읽고 실행할 수 있는 수준\"으로 작성하면 사람도 읽기 좋다\n- setup.sh로 환경을 완전 자동화하면 \"내 환경에서는 되는데요\" 문제가 사라진다\n- SCORECARD 템플릿을 미리 만들어두면 채점자 간 편차가 줄어든다\n- 커밋 빈도/분량 기준은 \"최소 3일, 15+ 커밋\" 정도가 리즈너블한 하한선\n",
+    "metadata": {
+      "type": "grading-playbook-as-hiring-filter",
+      "title": "PLAYBOOK.md 하나로 사전과제 채점 자동화한 교훈",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 2
+    }
+  },
+  {
     "id": "cogni_presentation-prep-taming-fast-horse-claude-code_0",
     "content": "\n# 빠른 말 길들이기 - Claude Code 활용법\n\n## 세션 개요\n- **가제**: 빠른 말 길들이기\n- **주제**: 코딩 분야 SOTA AI 하네스인 Claude Code를 잘 활용하는 방법, 도구들 소개\n- **작업 디렉토리**: `/Users/dwkim/dev/presentations`\n\n## 핵심 메타포\n\n**\"빠른 말 길들이기\"**\n- 말(Claude Code) = 강력하지만 길들여야 하는 SOTA AI\n- 하네스(CLAUDE.md, hooks, skills) = 제어 도구\n- 기수(엔지니어) = \"파일럿\"에서 \"네비게이터\"로 역할 변화\n\n### 명사들의 인용\n\n**Lee Robinson** (Cursor Head of AI Education)\n> \"They vibe code their app in a few days, but then next week they're in a **death spiral of errors** with no path to escape.\"\n\n**Linus Torvalds** (Linux, Git 창시자)\n> \"Vibe coding은 프로덕션에서 **horrible to maintain**\"\n> \"As AI tools become widespread, **traditional best practices will become MORE valuable**\"\n\n**Martin Fowler** (리팩토링 저자)\n> \"AI 결과물은 **의심스러운 동료의 PR**처럼 다뤄라\"\n\n**Kent Beck** (TDD, XP 창시자)\n> \"AI assistants **lack taste**\"\n> \"Augmented coding **deprecates** language expertise while **amplifying** vision, strategy, and feedback loops\"\n\n→ 제어 없이 AI를 쓰면 결국 막힌다 = 빠른 말을 길들여야 하는 이유\n\n---\n\n## 발표 구조",
     "metadata": {
@@ -7800,6 +8243,61 @@
     "metadata": {
       "type": "presentation-prep-taming-fast-horse-claude-code",
       "title": "발표준비: 빠른 말 길들이기 - Claude Code 활용법",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_design-ui-thin-tool-research_0",
+    "content": "\n# design_ui Thin Tool 리서치\n\nWorkflow Studio의 Copilot `design_ui` 도구가 LLM에 의해 호출되지 않는 문제를 해결하기 위한 리서치. Fat Tool(LLM이 전체 FlatSpec JSON 생성) → Thin Tool(LLM이 intent만 전달, 서버가 spec 생성) 전환 검토.\n\n## 1. LLM Tool Call 복잡도 한계\n\n### Anthropic (Claude) 구체적 한계치\n- **Union 타입**: 요청당 strict 스키마 전체에서 최대 16개\n- **Optional 파라미터**: 각 optional이 grammar state space를 약 2배 증가\n- **중첩 깊이**: 3-4 레벨 이하 권장. 5+ 레벨은 exponential grammar growth\n- **스키마 JSON 크기**: 10KB 미만 유지 권장\n- **컴파일 타임아웃**: 180초\n\n### OpenAI 가이드라인\n- 도구 수 ~100개 미만, 도구당 인자 ~20개 미만\n- **Flat schema 우선**, deeply layered argument tree는 성능/신뢰성 저하\n- `strict: true` 항상 활성화 권장\n\n### Workflow Studio 현황\n- `flatSpecSchema`: 4단계 중첩 + JSON string props + optional 필드 다수 → 한계에 근접\n- LLM이 FlatSpec 생성을 회피하고 텍스트로 옵션 설명하는 행동 관찰\n\n## 2. Intent-First 패턴 (Thin Tool)\n\n### Martin Fowler — Function Calling using LLMs\n- LLM은 함수를 실행하지 않음. 적절한 함수를 식별하고 필요한 파라미터를 structured JSON으로 제공\n- LLM = \"intelligent router\", Server = \"deterministic execution layer\"\n- 파라미터는 lean하게, 서버가 heavy lifting 담당",
+    "metadata": {
+      "type": "design-ui-thin-tool-research",
+      "title": "design_ui Thin Tool 리서치",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_design-ui-thin-tool-research_1",
+    "content": "### Anthropic 공식 — Writing Tools for Agents\n- **\"Choose tools with high leverage\"** — API를 얇게 감싸지 말고 의미 있는 워크플로우 단위로 설계\n- Consolidate multi-step operations\n- Response format 파라미터로 LLM이 정보 수준 선택\n- Tool 결과도 high-signal 정보만 반환\n\n### Vercel json-render\n- 개발자가 AI guardrail 정의 (사용 가능한 components, actions, data bindings)\n- 사용자가 자연어로 요청 → AI가 JSON 생성 → progressive rendering\n- LLM이 생성하는 것은 component 코드가 아니라 structured JSON spec\n- **Workflow Studio의 artifact spec 패턴과 매우 유사**\n\n### Vercel AI SDK Generative UI\n- LLM은 UI를 생성하지 않음 — tool을 선택(invoke)할 뿐\n- Tool의 execute 함수가 서버에서 실행, 데이터 반환\n- 클라이언트가 tool name + state에 따라 pre-built React component 렌더링\n\n## 3. AI UI Proposal UX 트렌드\n\n### 시장 동향\n- **v0**: 초기 3-option에서 \"단일 생성 + 대화 반복\"으로 전환 (Generate-one, refine-many)\n- **Lovable**: Select & Edit — 코드가 아닌 시각적 요소 단위 인터랙션\n- **Cursor**: Diff-based proposal — LLM이 변경 의도 설명, 시스템이 적용 위치 찾아 반영\n- **Galileo AI**: 기본 2개 변형 생성, 후속 대화로 수정",
+    "metadata": {
+      "type": "design-ui-thin-tool-research",
+      "title": "design_ui thin tool 리서치 - LLM tool call 복잡도 한계, intent-first 패턴, AI UI proposal UX 트렌드",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_design-ui-thin-tool-research_2",
+    "content": "### Multi-Option 비교 UX\n- **2-3개 옵션이 최적** — 5개 이상은 선택 마비 유발\n- 차이점 강조: 단순 나열보다 각 옵션의 차별점(pros/cons) 명시적 표시\n- 점진적 공개: 처음에 핵심 차이만, 상세는 확장 가능하게\n\n### Microsoft Copilot UX 가이드라인\n- Review-Before-Apply: 변경 사항은 반드시 사용자 승인 후 적용\n- 출력 편집 허용: AI 출력이 완벽하지 않을 수 있으므로 직접 수정 UI 제공\n- 출력 이력 보존: 이전 출력에 접근 가능하게\n\n## 4. Trade-off: Fat Tool vs Thin Tool\n\n| 차원 | Fat Tool (현재) | Thin Tool + Server Gen |\n|---|---|---|\n| LLM 부담 | FlatSpec 2-3개 직접 생성 (매우 무거움) | title+description만 (가벼움) |\n| 호출 신뢰도 | 낮음 (텍스트 설명으로 회피) | 높음 (간단한 파라미터) |\n| Spec 품질 | Copilot LLM 의존 (불안정) | 전용 generateObject (안정적) |\n| 레이턴시 | Copilot streaming에 포함 | +2-4초 (병렬 생성) |\n| 비용 | 1회 호출 | 추가 LLM 호출 |\n| 유연성 | LLM 자유 조합 | 서버 생성 로직 의존 |\n\n**결론**: 추가 레이턴시(2-4초)는 현재 아예 동작 안 하는 것 대비 충분히 수용 가능. 업계 컨센서스도 Thin Tool 패턴.\n\n## 5. 구현 방향",
+    "metadata": {
+      "type": "design-ui-thin-tool-research",
+      "title": "design_ui thin tool 리서치 - LLM tool call 복잡도 한계, intent-first 패턴, AI UI proposal UX 트렌드",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_design-ui-thin-tool-research_3",
+    "content": "1. `design_ui` 스키마에서 `spec` optional로 변경\n2. spec 없으면 기존 `generateSingleStepSpec` 재사용해서 서버가 생성\n3. 옵션별 다른 approach를 prompt에 반영하는 래퍼 추가\n4. Copilot 프롬프트를 thin-call 패턴에 맞게 조정\n5. 기존 인프라: `composition-bootstrap.ts`의 `generateSingleStepSpec`, `buildBatchDesignPrompt` 재사용\n\n## 참고 링크",
+    "metadata": {
+      "type": "design-ui-thin-tool-research",
+      "title": "design_ui thin tool 리서치 - LLM tool call 복잡도 한계, intent-first 패턴, AI UI proposal UX 트렌드",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_design-ui-thin-tool-research_4",
+    "content": "- [Writing effective tools for AI agents (Anthropic)](https://www.anthropic.com/engineering/writing-tools-for-agents)\n- [Building effective agents (Anthropic)](https://www.anthropic.com/research/building-effective-agents)\n- [Anthropic SDK Issue #1185: Grammar complexity limits](https://github.com/anthropics/anthropic-sdk-python/issues/1185)\n- [OpenAI Function Calling Guide](https://platform.openai.com/docs/guides/function-calling)\n- [Function calling using LLMs (Martin Fowler)](https://martinfowler.com/articles/function-call-LLM.html)\n- [Vercel AI SDK: Generative UI](https://ai-sdk.dev/docs/ai-sdk-ui/generative-user-interfaces)\n- [Vercel json-render (The New Stack)](https://thenewstack.io/vercels-json-render-a-step-toward-generative-ui/)\n- [Intent-First Architecture (VentureBeat)](https://venturebeat.com/orchestration/conversational-ai-doesnt-understand-users-intent-first-architecture-does)\n- [Intent Prototyping Guide (Smashing Magazine)](https://www.smashingmagazine.com/2025/10/intent-prototyping-practical-guide-building-clarity/)\n- [Microsoft Copilot UX Guidance](https://learn.microsoft.com/en-us/microsoft-cloud/dev/copilot/isv/ux-guidance)\n- [3 Patterns That Fix LLM API Calling (DEV.to)](https://dev.to/docat0209/3-patterns-that-fix-llm-api-calling-stop-getting-hallucinated-parameters-4n3b)\n",
+    "metadata": {
+      "type": "design-ui-thin-tool-research",
+      "title": "design_ui thin tool 리서치 - LLM tool call 복잡도 한계, intent-first 패턴, AI UI proposal UX 트렌드",
       "source": "cogni",
       "chunkIndex": 4,
       "totalChunks": 5
@@ -7946,6 +8444,39 @@
       "source": "cogni",
       "chunkIndex": 6,
       "totalChunks": 7
+    }
+  },
+  {
+    "id": "cogni_artifact-prompt-design-interview-insights_0",
+    "content": "\n# Artifact-Prompt 설계 인터뷰 인사이트\n\nPortal E2E 테스트에서 Agent가 빈 `{}`를 받고 무의미한 결과를 생성한 사건을 기점으로, artifact 시스템과 Copilot 프롬프트를 근본부터 재검토한 인터뷰 기록.\n\n## 1. Artifact의 재정의\n\n**이전**: Artifact = Step Agent 설정 양식 (파라미터 + 도구 설정 + 맥락)\n**이후**: Artifact = 실무자 ↔ Step Agent 간의 데이터 공유 표면\n\n판정 기준이 매우 단순해짐:\n> **\"유저가 이 UI에서 키보드를 칠 일이 있는가?\"**\n> Yes → artifact, No → result\n\n- 실무자 → Agent: form, file-upload (실행에 필요한 데이터 전달)\n- Agent → 실무자: editable-table, comparison (중간 결과 첨삭)\n- 읽기만 하는 것 (summary, chart, 읽기전용 table): result 영역\n\n이전의 \"맥락 주입\"이라는 모호한 개념이 artifact에 읽기전용 위젯을 끌어들인 원인이었다. 이제 맥락은 두 곳으로 분리:\n- 행동을 가이드하는 맥락 (form description, Callout) → artifact 안에 OK\n- 판단을 위한 독립 맥락 (Summary, KPI) → result 영역\n\n## 2. 프롬프트-레지스트리 모순의 발견\n\n프롬프트는 \"결과를 넣지 마\"라고 하면서, 레지스트리는 결과 표시용 delegate를 7개 제공. 18개 중 39%가 result용. \"금연하세요 하면서 담배 7갑을 건네는 격.\"\n\nLLM은 **도구가 있으면 쓰려고 한다**. 금지 규칙보다 도구 존재가 더 강한 신호.\n\n## 3. 프롬프트 개편 방향\n\n### 금지형 → 의도 프레이밍\n- Before: \"결과 대시보드를 아티팩트에 넣지 마세요\" (하지 마)\n- After: \"아티팩트는 실무자의 수작업이 있는 공간입니다\" (이렇게 해)",
+    "metadata": {
+      "type": "artifact-prompt-design-interview-insights",
+      "title": "Artifact-Prompt 설계 인터뷰 인사이트",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "cogni_artifact-prompt-design-interview-insights_1",
+    "content": "### 3축 → 2축\n- Before: 설정? 도구 설정? 맥락?\n- After: 유저가 입력/편집할 것은? 첨삭이 필요한 것은?\n- \"도구 설정\" 축은 agentConfig 맥락 자동 주입으로 대체\n\n### Context Starvation 해결 — JIT 그래프 맥락 주입\n`propose_step_ui` 호출 시 step의 label/purpose만 전달되고 **워크플로우 맥락이 전혀 없었음**.\n\n해결: 인접 step 맥락을 자동 주입 (~150 토큰, 무시 가능한 비용).\n```\n\"워크플로우: [뉴스 크롤링] → [★ 데이터 분석] → [뉴스레터 작성]\n 이전 step: 뉴스 크롤링 (purpose: 주요 뉴스 소스에서 기사 수집)\"\n```\n\nLLM이 자발적으로 `read_graph`를 호출하도록 하는 Prompt-driven 방식(B)은 건너뛸 수 있고 latency도 추가됨. Eager injection(A)이 명백히 우월.\n\n### Purpose Enrichment\npurpose가 모호하면 Copilot이 clarify + 워크플로우 맥락으로 추론 후 빌더에게 확인받음. Intent classification(수집형/분석형/승인형)은 내부 reasoning으로는 의미 있지만 UI에 노출하지 않는 게 좋음.\n\n## 4. Artifact ↔ Agent Mode 동치\n\nartifact에 유저 수작업이 있다 = Agent가 autonomous가 아니다.\n\n이 등식에서 mode를 하드코딩 파생보다 **LLM이 판단**하게 하는 방향이 좋음. Step Agent의 instructions(\"사용자 확인 후 진행하라\")도 mode 신호이기 때문. 상세 설계는 추가 논의 필요.\n\n## 5. UI 위젯에 대한 관점\n\n**위젯은 풍부하게 제공되어도 된다.** 줄이자는 게 아님. 핵심은 **어떻게 합성할지에 대한 프롬프트 속 의도·맥락 전달**.",
+    "metadata": {
+      "type": "artifact-prompt-design-interview-insights",
+      "title": "Artifact-Prompt 설계 인터뷰 — 빌더와 프롬프팅에 대한 이해도 상승",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "cogni_artifact-prompt-design-interview-insights_2",
+    "content": "composed/delegate 구분 = UI 레이아웃 시스템(composed) / 콘텐츠 유형(delegate). 이 아키텍처 자체는 건전. 문제는 프롬프트가 \"왜 이 위젯을 쓰는가\"를 충분히 전달하지 못한 것.\n\n## 6. 학습 패턴\n\n| 패턴 | 내용 |\n|---|---|\n| Context Starvation | LLM에게 판단을 요구하면서 필요한 맥락을 안 줌 |\n| JIT Context Injection | 도구 호출 시점에 시스템이 맥락 자동 주입 (resolveArgs 패턴) |\n| 금지 < 도구 존재 | \"하지 마\" 규칙보다 도구가 있다는 사실이 더 강한 신호 |\n| 의도 프레이밍 > 금지 규칙 | \"이렇게 해\"가 \"하지 마\"보다 LLM에 효과적 |\n| Actionability 기준 | 유저가 행동하면 artifact, 읽기만 하면 result — 단순하고 판정 쉬움 |\n",
+    "metadata": {
+      "type": "artifact-prompt-design-interview-insights",
+      "title": "Artifact-Prompt 설계 인터뷰 — 빌더와 프롬프팅에 대한 이해도 상승",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 3
     }
   },
   {
@@ -8134,6 +8665,66 @@
       "source": "cogni",
       "chunkIndex": 7,
       "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_blog-idea-llm-as-web-researcher_0",
+    "content": "## 핵심 메시지\n\nLLM은 대화 상대만이 아니다. **고성능 웹 리서처**이기도 하다. 웹 검색 + 크롤링 + 요약을 한 번에 해주는 도구로 활용하라.",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 웹리서치를 적극 활용하라 — LLM은 고성능 크롤러다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "blog_blog-idea-llm-as-web-researcher_1",
+    "content": "## 왜 웹리서치 활용이 중요한가\n\n- LLM의 학습 데이터에는 한계가 있다 (cutoff date)\n- 웹리서치를 붙이면 실시간 정보 접근 가능\n- 단순 검색이 아니라 \"검색 → 읽기 → 요약 → 비교\"를 한 흐름으로",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 웹리서치를 적극 활용하라 — LLM은 고성능 크롤러다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "blog_blog-idea-llm-as-web-researcher_2",
+    "content": "## 다룰 포인트들\n\n- **논문 리서치**: arxiv 논문 찾고 요약하기, 관련 논문 체인 따라가기\n- **커뮤니티 팁**: Reddit, HN, Discord 등에서 실전 사용기 크롤링\n- **커뮤니티 후기**: 라이브러리/도구 비교 시 실사용자 의견 수집\n- **기술 블로그 서베이**: 특정 주제에 대한 블로그 글 모아서 비교 분석\n- **최신 트렌드 파악**: \"2026년 현재 X의 best practice는?\" 류의 질문\n- Claude Code의 WebSearch/WebFetch 활용 실전 예시\n- \"직접 구글링 30분\" vs \"LLM 웹리서치 5분\" 비교",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 웹리서치를 적극 활용하라 — LLM은 고성능 크롤러다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "blog_blog-idea-llm-as-web-researcher_3",
+    "content": "## 주의할 점도 다루기\n\n- hallucination 리스크: 웹에서 읽은 것도 확인 필요\n- 출처 명시 습관\n- 크롤링 실패 시 대응",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 웹리서치를 적극 활용하라 — LLM은 고성능 크롤러다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "blog_blog-idea-llm-as-web-researcher_4",
+    "content": "## 연결\n\n- [[prompting-philosophy]] — 프롬프팅 철학 시리즈",
+    "metadata": {
+      "type": "blog",
+      "title": "글 아이디어: 웹리서치를 적극 활용하라 — LLM은 고성능 크롤러다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 5
     }
   },
   {
@@ -9606,7 +10197,7 @@
   },
   {
     "id": "cogni_resume-en_1",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## Summary\n\nSoftware engineer with 6+ years building SaaS products, evolved from frontend specialist to agent systems architect. Currently leading Agent Builder as Product Lead at Coxwave, where I designed and shipped a multi-agent Workflow Studio for an enterprise client in 24 days using AI coding agents. I build LangGraph-based orchestration systems with HITL patterns.\n\n### Key Qualifications\n- **AI-Assisted Development Methodology**: Built a 4-app + 11-package system in 24 days through systematic AI agent collaboration — parallel session orchestration, iterative feedback loops, and multi-layer verification propagated across team\n- **Agent Systems Architecture**: LangGraph multi-agent orchestration, HITL interrupt patterns — designed and shipped for enterprise client\n- **Technical Decisions**: Structure alternatives → design evaluation criteria → document rationale → verify outcomes\n- **AI Workflow Propagation**: Standardized AI tooling across teams, built agentic evaluation system for hiring",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## Summary\n\nSoftware engineer with 6+ years building SaaS products, evolved from frontend specialist to agent systems architect. Currently leading Agent Builder as Product Lead at Coxwave, where I designed and shipped a multi-agent Workflow Studio for an enterprise client in 24 days using AI coding agents. I build LangGraph-based orchestration systems with HITL patterns.\n\n### Key Qualifications\n- **AI-Assisted Development Methodology**: Built a 4-app + 11-package system in 24 days through systematic AI agent collaboration — parallel session orchestration, iterative feedback loops, and multi-layer verification propagated across team\n- **Agent Systems Architecture**: LangGraph multi-agent orchestration, HITL interrupt patterns — designed and shipped for enterprise client\n- **Technical Decision Records**: ADR per major design decision — alternatives compared, rationale documented, trade-offs shared with team\n- **AI Workflow Propagation**: Standardized AI tooling across teams, built agentic evaluation system for hiring",
     "metadata": {
       "type": "resume-en",
       "title": "Summary",
@@ -9694,7 +10285,7 @@
   },
   {
     "id": "cogni_resume_1",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 소개\n\n6년간 SaaS 제품을 설계하고 출시한 소프트웨어 엔지니어입니다. 프론트엔드에서 시작해 SDK 아키텍처, LLM 파이프라인, 멀티에이전트 오케스트레이션으로 영역을 확장했습니다. 현재 콕스웨이브에서 Agent Builder Product Lead로서 4인 팀을 리드하며, AI 코딩 에이전트와의 협업으로 Workflow Studio를 24일 만에 설계·납품했습니다.\n\n### 핵심 역량\n- **AI-Assisted 개발 방법론**: AI 코딩 에이전트 협업으로 24일 만에 4앱+11패키지 시스템 설계·납품 — 병렬 세션 오케스트레이션, 다층 검증 체계 수립 후 팀 전파\n- **에이전트 시스템 설계**: LangGraph 기반 멀티에이전트 오케스트레이션, HITL interrupt 패턴 설계 및 납품\n- **기술 의사결정**: 대안 비교 → 평가 기준 설계 → 선택 근거 문서화 → 결과 검증\n- **AI 워크플로우 전파**: 팀 내 AI 도구 표준화, 채용 평가 시스템에 AI 워크플로우 적용",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 소개\n\n6년간 SaaS 제품을 설계하고 출시한 소프트웨어 엔지니어입니다. 프론트엔드에서 시작해 SDK 아키텍처, LLM 파이프라인, 멀티에이전트 오케스트레이션으로 영역을 확장했습니다. 현재 콕스웨이브에서 Agent Builder Product Lead로서 4인 팀을 리드하며, AI 코딩 에이전트와의 협업으로 Workflow Studio를 24일 만에 설계·납품했습니다.\n\n### 핵심 역량\n\n- **AI-Assisted 개발 방법론**: AI 코딩 에이전트 협업으로 24일 만에 4앱+11패키지 시스템 설계·납품 — 병렬 세션 오케스트레이션, 다층 검증 체계 수립 후 팀 전파\n- **에이전트 시스템 설계**: LangGraph 기반 멀티에이전트 오케스트레이션, HITL interrupt 패턴 설계 및 납품\n- **기술 의사결정 문서화**: 주요 설계 결정마다 ADR 작성 — 대안 비교, 선택 근거, 트레이드오프 기록 후 팀 공유\n- **AI 워크플로우 전파**: 팀 내 AI 도구 표준화, 채용 평가 시스템에 AI 워크플로우 적용",
     "metadata": {
       "type": "resume",
       "title": "소개",
@@ -9705,7 +10296,7 @@
   },
   {
     "id": "cogni_resume_2",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 경력\n\n### 주식회사 콕스웨이브 (2025.09 - 현재)\n\n#### Agent Builder Product Lead (2026.03 ~ 현재)\n**AX팀 | 팀 구성: 엔지니어 2, PM 1, 디자이너 1**\n\nWorkflow Studio PoC 성과를 기반으로 Agent Builder 제품화를 리드. 제품 로드맵 수립, 기술 아키텍처 의사결정, 팀 빌딩을 담당.\n\n- Workflow Studio PoC → 정식 제품 전환을 위한 아키텍처 리팩토링 및 제품 로드맵 수립\n- 엔지니어 채용을 위한 Agentic Playbook 기반 FE 평가 시스템 설계\n  - Claude Code 활용 자동화 (setup.sh + PLAYBOOK.md + SCORECARD.md)\n  - 6단계 테이크홈 과제 포트폴리오: 상태관리, 비동기 데이터, 동적 렌더링, AI 투명성 프레임워크\n  - 객관 테스트(15%) + 주관 평가(85%) 혼합 루브릭\n\n#### Workflow Studio PoC (2025.11 ~ 2026.02)\n**Technical Lead | 현대글로비스 납품향 SaaS — 멀티에이전트 워크플로우 빌더**\n\nAI 코딩 에이전트(Claude Code)와의 협업으로 24일간 4개 앱(api, web, admin, portal) + 11개 패키지 + 13개 외부 서비스 통합 시스템을 설계·구현·납품.\n\nAI-Assisted 개발 방법론 — Steerer로서의 역할 (AI가 실행하고, 내가 설계·조율·검증):\n- **아키텍처 의사결정 (본인 판단)**: WinterTC 런타임 선택, DAG 실행 전략, 에이전트 간 상태 스키마 설계\n- **피드백 루프**: 아키텍처 규칙·실수 패턴·코딩 컨벤션을 프로젝트 컨텍스트로 축적, PR마다 반영\n- **병렬 세션 오케스트레이션**: 모노레포 Subtree 기반으로 복수 AI 에이전트를 병렬 운영, Plan 모드로 설계 확정 후 자동 구현 전환\n- **다층 검증 체계**: 유닛/통합 테스트(결정론적 검증) + E2E 테스트(사용자 시나리오) + 코드베이스 오디트 사이클(아키텍처 정합성·보안·엣지 케이스)\n\n핵심 시스템 설계:\n- **멀티에이전트 오케스트레이션**: LangGraph StateGraph 기반 에이전트 시스템. Discovery, Builder, Step Agent로 역할 분리한 3-tier 구조\n- **HITL(Human-in-the-Loop)**: interrupt 패턴 설계 — 자동 실행 / 리뷰 요청 / 에스컬레이션 단계 분리\n- **크로스 런타임 호환**: Web Standards만 사용하는 WinterTC-compatible 워크플로우 엔진 (Bun, Node.js, Cloudflare Workers, Deno)\n- **DAG 실행 엔진**: Kahn's algorithm 기반 워크플로우 실행기, pause/resume 지원\n- **OSS 기여**: @ai-sdk/langchain 라이브러리 버그를 직접 패치하여 LangGraph 통합 완수\n\n성과:\n- PoC 성공 납품 → Agent Builder Product Lead 승진의 직접 근거\n- AI 코딩 에이전트 협업 방법론, HITL 패턴을 팀에 전파\n\n기술: LangGraph, Vercel AI SDK, Bun, Elysia, React 19, Zustand, SQLite, Turborepo\n\n#### edutap.ai SDK 설계/구현 (2025.09 ~ 2025.10)\n**SDK Engineer**\n\n프로토타입 코드를 프로덕션 SDK로 재설계. 고객사 환경 다양성(nodejs, php)과 빈번한 업데이트에 대응하는 아키텍처 구축.\n\n- Dynamic Loader 패턴: npm 패키지(~2.8KB) 경량 래퍼 + CDN 런타임 로드, 고객사 배포 없이 자동 업데이트\n- Stub + Queue Replay: SDK 로드 전 호출을 큐에 저장, 로드 후 순차 실행\n- iframe Bridge 통신: postMessage 기반 Request-Response, Nonce 매칭, TypeScript 제네릭 양방향 타입 안전\n- Turborepo 기반 8개 패키지 모노레포 단독 설계, Playwright E2E, 자동 배포/롤백\n- **결과**: 고객 연동 코드 3줄, npm/CDN 두 방식 지원, 핫픽스 배포 수일→수분 단축\n\n#### 팀 문화 기여\n- SDK-Web-API 통합 Playground 구축 → 팀 전체 테스트 도구로 확산\n- Good-to-know 공유 세션 → 정기 도구모임으로 발전\n- OpenAI 협력 해커톤 기술자문: LLM 기반 평가 에이전트 설계\n\n---\n\n### 주식회사 비에이치에스엔 (2024.01 - 2025.09, 1년 9개월)\n**Software Engineer** — allibee(앨리비) 클라우드 기반 계약생애주기(CLM) 솔루션\n\n- 조직 계층 구조 API 성능 최적화: Materialized Path, Nested Set, Recursive CTE 등 트리 구조 패턴 비교 분석 후 Materialized Path 선택, 80-90% 성능 개선 (Kotlin, Spring Boot)\n- SvelteKit + Turborepo 기반 CLM SaaS 웹앱 개발, PDF 전자서명 에디터 구현 — 오픈소스(documenso, tldraw) core 분석/적용으로 개발 일정 50% 단축\n- 프론트엔드 공통 코드 패키지 분리로 UI/utils 코드라인수 85% 감소\n- 배포 알림 UX 개선: vite-plugin-pwa 소스코드 분석하여 Service Worker 교체 버그 직접 수정, 불편 피드백 17→0건\n\n---\n\n### 주식회사 모두싸인 (2021.04 - 2023.12, 2년 9개월)\n**Frontend Engineer** — React/Next.js 기반 전자계약 엔터프라이즈 SaaS\n\n- 9인 팀 내 프론트엔드 기술결정 주도: 일정 산정, QA 범위, API 설계 논의 발제\n- 배포 파이프라인 개선: CloudFront 캐싱 이슈 해결로 사용자 에러 80% 감소, Datadog RUM 도입으로 Web Vitals/UX 지표 공유\n- 리액트 기반 디자인 시스템 설계/구현: Compound 컴포넌트, theme 타입으로 디자이너-개발자 간 커뮤니케이션 오류 해결\n- React 18 업그레이드 길드 조직/수행(FE 3명), Playwright E2E 도입 제안, TS 4.2→5.1 업그레이드\n- '실용주의 프로그래머' 독서모임 진행(5인, 11회), 사내 개발 문화 기여\n\n---",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 경력\n\n### 주식회사 콕스웨이브 (2025.09 - 현재)\n\n#### Agent Builder Product Lead (2026.03 ~ 현재)\n\n**AX팀 | 팀 구성: 엔지니어 2, PM 1, 디자이너 1**\n\nWorkflow Studio PoC 성과를 기반으로 Agent Builder 제품화를 리드. 제품 로드맵 수립, 기술 아키텍처 의사결정, 팀 빌딩을 담당.\n\n- Workflow Studio PoC → 정식 제품 전환을 위한 아키텍처 리팩토링 및 제품 로드맵 수립\n- 엔지니어 채용을 위한 Agentic Playbook 기반 FE 평가 시스템 설계\n  - Claude Code 활용 자동화 (setup.sh + PLAYBOOK.md + SCORECARD.md)\n  - 6단계 테이크홈 과제 포트폴리오: 상태관리, 비동기 데이터, 동적 렌더링, AI 투명성 프레임워크\n  - 객관 테스트(15%) + 주관 평가(85%) 혼합 루브릭\n\n#### Workflow Studio PoC (2025.11 ~ 2026.02)\n\n**Technical Lead | 현대글로비스 납품향 SaaS — 멀티에이전트 워크플로우 빌더**\n\nAI 코딩 에이전트(Claude Code)와의 협업으로 24일간 4개 앱(api, web, admin, portal) + 11개 패키지 + 13개 외부 서비스 통합 시스템을 설계·구현·납품.\n\nAI-Assisted 개발 방법론 — Steerer로서의 역할 (AI가 실행하고, 내가 설계·조율·검증):\n\n- **아키텍처 의사결정 (본인 판단)**: WinterTC 런타임 선택, DAG 실행 전략, 에이전트 간 상태 스키마 설계\n- **피드백 루프**: 아키텍처 규칙·실수 패턴·코딩 컨벤션을 프로젝트 컨텍스트로 축적, PR마다 반영\n- **병렬 세션 오케스트레이션**: 모노레포 Subtree 기반으로 복수 AI 에이전트를 병렬 운영, Plan 모드로 설계 확정 후 자동 구현 전환\n- **다층 검증 체계**: 유닛/통합 테스트(결정론적 검증) + E2E 테스트(사용자 시나리오) + 코드베이스 오디트 사이클(아키텍처 정합성·보안·엣지 케이스)\n\n핵심 시스템 설계:\n\n- **멀티에이전트 오케스트레이션**: LangGraph StateGraph 기반 에이전트 시스템. Discovery, Builder, Step Agent로 역할 분리한 3-tier 구조\n- **HITL(Human-in-the-Loop)**: interrupt 패턴 설계 — 자동 실행 / 리뷰 요청 / 에스컬레이션 단계 분리\n- **크로스 런타임 호환**: Web Standards만 사용하는 WinterTC-compatible 워크플로우 엔진 (Bun, Node.js, Cloudflare Workers, Deno)\n- **DAG 실행 엔진**: Kahn's algorithm 기반 워크플로우 실행기, pause/resume 지원\n- **OSS 기여**: @ai-sdk/langchain 라이브러리 버그를 직접 패치하여 LangGraph 통합 완수\n\n성과:\n\n- PoC 성공 납품 → Agent Builder Product Lead 승진의 직접 근거\n- AI 코딩 에이전트 협업 방법론, HITL 패턴을 팀에 전파\n\n기술: LangGraph, Vercel AI SDK, Bun, Elysia, React 19, Zustand, SQLite, Turborepo\n\n#### edutap.ai SDK 설계/구현 (2025.09 ~ 2025.10)\n\n**SDK Engineer**\n\n프로토타입 코드를 프로덕션 SDK로 재설계. 고객사 환경 다양성(nodejs, php)과 빈번한 업데이트에 대응하는 아키텍처 구축.\n\n- Dynamic Loader 패턴: npm 패키지(~2.8KB) 경량 래퍼 + CDN 런타임 로드, 고객사 배포 없이 자동 업데이트\n- Stub + Queue Replay: SDK 로드 전 호출을 큐에 저장, 로드 후 순차 실행\n- iframe Bridge 통신: postMessage 기반 Request-Response, Nonce 매칭, TypeScript 제네릭 양방향 타입 안전\n- Turborepo 기반 8개 패키지 모노레포 단독 설계, Playwright E2E, 자동 배포/롤백\n- **결과**: 고객 연동 코드 3줄, npm/CDN 두 방식 지원, 핫픽스 배포 수일→수분 단축\n\n#### 팀 문화 기여\n\n- SDK-Web-API 통합 Playground 구축 → 팀 전체 테스트 도구로 확산\n- Good-to-know 공유 세션 → 정기 도구모임으로 발전\n- OpenAI 협력 해커톤 기술자문: LLM 기반 평가 에이전트 설계\n\n---\n\n### 주식회사 비에이치에스엔 (2024.01 - 2025.09, 1년 9개월)\n\n**Software Engineer** — allibee(앨리비) 클라우드 기반 계약생애주기(CLM) 솔루션\n\n- 조직 계층 구조 API 성능 최적화: Materialized Path, Nested Set, Recursive CTE 등 트리 구조 패턴 비교 분석 후 Materialized Path 선택, 80-90% 성능 개선 (Kotlin, Spring Boot)\n- SvelteKit + Turborepo 기반 CLM SaaS 웹앱 개발, PDF 전자서명 에디터 구현 — 오픈소스(documenso, tldraw) core 분석/적용으로 개발 일정 50% 단축\n- 프론트엔드 공통 코드 패키지 분리로 UI/utils 코드라인수 85% 감소\n- 배포 알림 UX 개선: vite-plugin-pwa 소스코드 분석하여 Service Worker 교체 버그 직접 수정, 불편 피드백 17→0건\n\n---\n\n### 주식회사 모두싸인 (2021.04 - 2023.12, 2년 9개월)\n\n**Frontend Engineer** — React/Next.js 기반 전자계약 엔터프라이즈 SaaS\n\n- 9인 팀 내 프론트엔드 기술결정 주도: 일정 산정, QA 범위, API 설계 논의 발제\n- 배포 파이프라인 개선: CloudFront 캐싱 이슈 해결로 사용자 에러 80% 감소, Datadog RUM 도입으로 Web Vitals/UX 지표 공유\n- 리액트 기반 디자인 시스템 설계/구현: Compound 컴포넌트, theme 타입으로 디자이너-개발자 간 커뮤니케이션 오류 해결\n- React 18 업그레이드 길드 조직/수행(FE 3명), Playwright E2E 도입 제안, TS 4.2→5.1 업그레이드\n- '실용주의 프로그래머' 독서모임 진행(5인, 11회), 사내 개발 문화 기여\n\n---",
     "metadata": {
       "type": "resume",
       "title": "경력",
@@ -9727,7 +10318,7 @@
   },
   {
     "id": "cogni_resume_4",
-    "content": "[컨텍스트: 김동욱의 기술 스택, 사용 기술]\n\n## 사이드 프로젝트 & 오픈소스\n\n**dwkim CLI** (`npx dwkim`)\n터미널에서 실행하는 개인 AI 에이전트. LangGraph RAG 백엔드 + TUI 클라이언트 + Astro 블로그 모노레포.\n- Qdrant Hybrid Search (Dense + BM25 RRF), SEU 불확실성 측정, SSE 스트리밍\n- npm 배포, Fly.io 운영, semantic-release 자동화\n\n**오픈소스 기여**\n- @ai-sdk/langchain: LangGraph 통합 패치\n- react-hook-form, svelte-toast 타입 정의 개선\n- svelte.dev 공식문서 파싱 로직 개선",
+    "content": "[컨텍스트: 김동욱의 기술 스택, 사용 기술]\n\n## 사이드 프로젝트 & 오픈소스\n\n**dwkim CLI** (`npx dwkim`)\n터미널에서 실행하는 개인 AI 에이전트. LangGraph RAG 백엔드 + TUI 클라이언트 + Astro 블로그 모노레포.\n\n- Qdrant Hybrid Search (Dense + BM25 RRF), SEU 불확실성 측정, SSE 스트리밍\n- npm 배포, Fly.io 운영, semantic-release 자동화\n\n**오픈소스 기여**\n\n- @ai-sdk/langchain: LangGraph 통합 패치\n- react-hook-form, svelte-toast 타입 정의 개선\n- svelte.dev 공식문서 파싱 로직 개선",
     "metadata": {
       "type": "resume",
       "title": "사이드 프로젝트 & 오픈소스",
@@ -9749,7 +10340,7 @@
   },
   {
     "id": "cogni_resume_6",
-    "content": "## 학력\n\n- 홍익대학교 경영학과 학사 (2012.03 - 2018.08)\n- 서울대학교 데이터사이언스 대학원 빅데이터-핀테크 과정 수료 (2019.06 - 2020.06)\n  - 기초통계학, 선형대수학, 파이썬 ML, SQL\n\n**비기술 배경**\n- SparkLabs 인턴 (2018): 스타트업 엑셀러레이팅 전 과정 지원, 투자심의 참여 → 제품-시장 적합성 평가 관점 형성\n- 백지장 (2017-2018): 문화공간 대여 사업 운영, 4개 지점 확장, 연 6,600명 방문자 달성",
+    "content": "## 학력\n\n- 홍익대학교 경영학과 학사 (2012.03 - 2018.08)\n- 서울대학교 데이터사이언스 대학원 빅데이터-핀테크 과정 수료 (2019.06 - 2020.06)\n  - 기초통계학, 선형대수학, 파이썬 ML, SQL\n\n**비기술 배경**\n\n- SparkLabs 인턴 (2018): 스타트업 엑셀러레이팅 전 과정 지원, 투자심의 참여 → 제품-시장 적합성 평가 관점 형성\n- 백지장 (2017-2018): 문화공간 대여 사업 운영, 4개 지점 확장, 연 6,600명 방문자 달성",
     "metadata": {
       "type": "resume",
       "title": "학력",
@@ -9760,7 +10351,7 @@
   },
   {
     "id": "cogni_resume_7",
-    "content": "## 수상\n- 홍익대학교 창업경진대회 창업실행부문 우수상 (2017.05)",
+    "content": "## 수상\n\n- 홍익대학교 창업경진대회 창업실행부문 우수상 (2017.05)",
     "metadata": {
       "type": "resume",
       "title": "수상",
@@ -9771,7 +10362,7 @@
   },
   {
     "id": "cogni_resume_8",
-    "content": "## 언어\n- 영어: 일상 회화 (토익 910점)",
+    "content": "## 언어\n\n- 영어: 일상 회화 (토익 910점)",
     "metadata": {
       "type": "resume",
       "title": "언어",
