@@ -11,7 +11,7 @@ BLOG_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$BLOG_DIR"
 
 echo "🔄 Syncing Cogni notes..."
-pnpm sync-cogni
+bun run sync-cogni
 
 # 변경사항 확인 (posts와 about 둘 다)
 if git diff --quiet src/content/posts/ src/content/about/; then
