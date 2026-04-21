@@ -1,3 +1,8 @@
+# ⚠️ DEV-ONLY. Not used by Fly.io deployment.
+# Referenced by docker-compose.dev.yml for local development only.
+# Production image is built from ./Dockerfile (Bun-based, referenced in fly.toml).
+# If unused by docker-compose.dev.yml, this file is safe to delete.
+
 FROM node:18-alpine
 
 WORKDIR /app
