@@ -1,6 +1,7 @@
 # persona-api — Deployment Runbook
 
-> Fly.io 호스팅, 수동 `fly deploy`. Region `nrt` (Tokyo). 512MB/shared-cpu, auto-stop.
+> Fly.io 호스팅. Region `nrt` (Tokyo). 512MB/shared-cpu, auto-stop.
+> **기본 경로**: GitHub Actions 자동 배포 (`deploy-persona-api.yml`). 수동 `fly deploy` 는 fallback.
 
 ## 1. Overview
 
@@ -8,7 +9,7 @@
 - **URL**: https://persona-api.fly.dev
 - **Region**: `nrt` (Tokyo) — 한국 사용자 레이턴시 최소
 - **Machine**: `shared-cpu-1x`, 512MB RAM
-- **Trigger**: **수동** — `fly deploy` (CI 없음)
+- **Trigger**: `main` 브랜치에 `packages/persona-api/**` 변경 포함된 푸시 → `.github/workflows/deploy-persona-api.yml` 자동 실행. `workflow_dispatch` 로 수동 트리거도 가능. 수동 `fly deploy` 는 비상시 fallback.
 - **Scaling**: `auto_stop_machines = "stop"`, `auto_start_machines = true`, `min_machines_running = 0` (비용 최적)
 - **Sister app**: `persona-qdrant` (`packages/persona-api/qdrant/fly.toml`) — `min_machines_running = 1` (벡터 DB, always-on)
 
@@ -61,7 +62,22 @@ fly secrets set \
 
 ## 4. Deploy Procedure
 
-### 4.1 기본 배포
+### 4.1 기본 배포 (CI 자동)
+```bash
+# conventional commit + push to main
+cd <workspace-root>
+git commit -m "feat(persona-api): ..."
+git push origin main
+# → deploy-persona-api.yml 자동 실행: typecheck → flyctl deploy --remote-only → /health 검증
+gh run watch $(gh run list -w deploy-persona-api.yml -L 1 --json databaseId -q '.[0].databaseId')
+```
+
+### 4.1b 수동 트리거 (CI)
+```bash
+gh workflow run deploy-persona-api.yml
+```
+
+### 4.1c 수동 배포 (fallback, CI 장애 시)
 ```bash
 cd packages/persona-api
 fly deploy

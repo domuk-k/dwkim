@@ -2,6 +2,12 @@
 
 > 값은 절대 여기 기록 금지. 키 이름, 출처, 저장 위치만.
 
+## GitHub Secrets (CI 배포용)
+
+| Key | 저장 | 사용처 | 획득 | 로테이션 |
+|-----|------|--------|------|----------|
+| `FLY_API_TOKEN` | GitHub repo Secrets | `.github/workflows/deploy-persona-api.yml` | `fly tokens create deploy --app persona-api --expiry 8760h` (1년) | 만료 임박 시 `gh secret set FLY_API_TOKEN` 재업로드 |
+
 ## Runtime Secrets (Fly.io)
 
 저장: `fly secrets set KEY=value` → Fly.io encrypted vault (플랫폼 레벨 암호화).

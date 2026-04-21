@@ -211,14 +211,12 @@ feat(persona-api): add new RAG endpoint
 
 **자동 배포 (push to main):**
 - **dwkim CLI**: semantic-release → npm publish (packages/dwkim/** 변경 시)
+- **persona-api**: GH Actions `deploy-persona-api.yml` → `flyctl deploy --remote-only` + `/health` 검증 (packages/persona-api/** 변경 시)
 - **blog**: Vercel 자동 빌드
 
-**수동 배포:**
+**수동 배포 (fallback):**
 - **persona-api**: `fly deploy` from packages/persona-api/
-
-**Deployment Order (API 변경 시):**
-1. persona-api 먼저 배포 (`fly deploy`)
-2. git push → dwkim, blog 자동 배포
+- **persona-api** (CI 재실행): `gh workflow run deploy-persona-api.yml`
 
 **Production Info:**
 - **Rate Limiting**: 8 req/min (fly.toml `RATE_LIMIT_MAX=100` 에 따라 분당 100 — 인스턴스별)
