@@ -1,0 +1,48 @@
+name: Deploy persona-api
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/persona-api/**'
+      - '.github/workflows/deploy-persona-api.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-persona-api
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install
+      - name: Type check
+        working-directory: packages/persona-api
+        run: bun run type-check
+
+  deploy:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy to Fly.io
+        working-directory: packages/persona-api
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify health
+        run: |
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://persona-api.fly.dev/health --max-time 30)
+            echo "attempt $i: HTTP $CODE"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 5
+          done
+          echo "Health check failed after 5 attempts" >&2
+          exit 1
