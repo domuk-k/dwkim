@@ -7,7 +7,7 @@
 | Package | Target | Trigger | Automation |
 |---------|--------|---------|------------|
 | [`packages/dwkim`](./packages/dwkim/DEPLOY.md) | npm registry (`dwkim`) | push to `main` + paths filter | ✅ semantic-release via GH Actions |
-| [`packages/persona-api`](./packages/persona-api/DEPLOY.md) | Fly.io (`persona-api`, region `nrt`) | 수동 (`fly deploy`) | ❌ manual |
+| [`packages/persona-api`](./packages/persona-api/DEPLOY.md) | Fly.io (`persona-api`, region `nrt`) | push to `main` + paths filter | ✅ GH Actions (`deploy-persona-api.yml`) |
 | [`packages/blog`](./packages/blog/DEPLOY.md) | Vercel | push to `main` | ✅ Vercel GitHub integration |
 
 추가 infra: Fly.io sister app `persona-qdrant` (벡터 DB, `min_machines_running = 1` → cold start 없음).
@@ -17,10 +17,12 @@
 ```mermaid
 flowchart LR
     Dev[Developer] -->|git push main| GH[GitHub]
-    Dev -->|fly deploy| Fly[Fly.io<br/>persona-api]
 
-    GH -->|paths: packages/dwkim/| GHA[GH Actions<br/>publish.yml]
-    GHA -->|semantic-release<br/>OIDC| NPM[npm registry]
+    GH -->|paths: packages/dwkim/| GHA_Publish[GH Actions<br/>publish.yml]
+    GHA_Publish -->|semantic-release<br/>OIDC| NPM[npm registry]
+
+    GH -->|paths: packages/persona-api/| GHA_Deploy[GH Actions<br/>deploy-persona-api.yml]
+    GHA_Deploy -->|flyctl deploy --remote-only| Fly[Fly.io<br/>persona-api]
 
     GH -->|webhook| Vercel[Vercel<br/>blog]
 
@@ -72,7 +74,7 @@ gh pr merge --squash   # main 에 squash
 # 4. 배포 트리거
 #    - dwkim:     push 자동 (publish.yml)
 #    - blog:      push 자동 (Vercel)
-#    - persona-api: 수동 'fly deploy' (packages/persona-api/)
+#    - persona-api: push 자동 (deploy-persona-api.yml, 'fly deploy --remote-only' + /health 검증)
 ```
 
 ## Post-Deploy Verification (공통)
