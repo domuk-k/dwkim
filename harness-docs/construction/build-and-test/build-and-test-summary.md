@@ -25,13 +25,11 @@
 | SECURITY-01 Encryption at Rest/Transit | ✅ Compliant | Fly HTTPS force, `rediss://` TLS, Neon TLS default |
 | SECURITY-02 Access Logging on Intermediaries | ✅ Compliant | Fly proxy logs + Vercel logs 대시보드 링크 |
 | SECURITY-03 Application-Level Logging | ✅ Compliant | Pino + Logtail, PII 금지 명시, correlation via request |
-| SECURITY-04 HTTP Security Headers | ⚠️ **Non-blocking gap** | HSTS/nosniff/frame 은 Vercel 기본 제공. **CSP 부재** 확인됨 (IT-5). `packages/blog/DEPLOY.md §7` 에 Known Issue 로 기재됨. 본 unit 의 Out of Scope (FR-1) — 후속 태스크. |
+| SECURITY-04 HTTP Security Headers | ✅ Compliant | `packages/blog/vercel.json` 의 `headers` 블록에 CSP + HSTS(preload) + X-Content-Type-Options(nosniff) + X-Frame-Options(DENY) + Referrer-Policy(strict-origin-when-cross-origin) + Permissions-Policy 명시. CSP 는 default-src 'self' 기반, Vercel Analytics / 임베드 / GitHub API allowlist. 배포 후 `curl -sI` 로 IT-5 재실행 예정. |
 | SECURITY-05 Secrets Management | ✅ Compliant | 3 manifest + 3 .env.example, 값 커밋 0, 플랫폼 분리 |
 
 **Blocking findings**: 0
-**Non-blocking observations**: 1 (SECURITY-04 CSP) — 팔로우업 이슈 제안:
-- 제목: "feat(blog): add CSP + explicit security headers via vercel.json"
-- 변경: `packages/blog/vercel.json` 에 `headers` 배열 추가
+**Non-blocking observations**: 0 (SECURITY-04 CSP 패치 2026-04-21 적용 완료. `packages/blog/vercel.json` 에 `headers` 배열 추가.)
 
 ## Integration & Performance — Deferred Execution
 
@@ -62,6 +60,6 @@
 Harness 워크플로우상 Operations 단계는 플레이스홀더. 본 작업 완료.
 
 **권장 후속**:
-1. (follow-up 1) SECURITY-04 CSP 패치 — blog `vercel.json` 에 headers 추가
+1. ~~(follow-up 1) SECURITY-04 CSP 패치~~ — 완료 2026-04-21
 2. (follow-up 2) persona-api 배포 자동화 GH Actions — 현재 수동 `fly deploy` 를 `FLY_API_TOKEN` secret 기반 CI 로 이전
 3. (follow-up 3) 첫 실제 배포 시 IT-1~5, PT-1~3 실행 및 결과 타임스탬프 기록
