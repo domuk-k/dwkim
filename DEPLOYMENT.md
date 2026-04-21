@@ -31,6 +31,29 @@ flowchart LR
     Fly --> UserCLI
 ```
 
+## Cogni SSOT Flow
+
+`~/.cogni/notes/**` (개인 노트 저장소, **git 추적 안 됨**) 가 콘텐츠의 단일 진실. 각 패키지는 태그로 필터해 자신의 리포지토리 안에 synced 파일을 **커밋해두고** 그걸 배포한다. 즉 배포는 **개발자 로컬 머신이 sync 타이밍의 기준**.
+
+```mermaid
+flowchart LR
+    Cogni[("~/.cogni/notes/**<br/>(local SSOT, not in git)")]
+
+    Cogni -->|tags: persona<br/>bun run build:index| Idx[packages/persona-api/<br/>data/searchIndex.json]
+    Cogni -->|tags: blog<br/>bun run sync-cogni| Posts[packages/blog/<br/>src/content/posts/]
+
+    Idx -->|git commit| Repo[git main]
+    Posts -->|git commit| Repo
+
+    Repo -->|CI| Fly[Fly.io / Vercel]
+```
+
+**암묵 규칙**:
+- **persona-api**: 노트 변경 → `cd packages/persona-api && bun run build:index` → `searchIndex.json` diff 커밋 → push. 누락 시 RAG 가 stale 인덱스로 응답 (silent staleness).
+- **blog**: 노트 변경 → `cd packages/blog && bun run sync-cogni` → `src/content/posts/` diff 커밋 → push. 누락 시 새 글이 사이트에 안 나타남.
+- **CI 는 Cogni 가 없음** → 커밋 안 된 최신 노트는 절대 배포되지 않음. 로컬 sync 스텝이 **인간 게이트**.
+- `deploy-persona-api.yml` 은 빌드 전에 `searchIndex.json` 존재를 검증해 명시적 실패로 끊음. 최신성까지는 CI 로 강제 불가 (Cogni 원본이 CI 에 없어서).
+
 ## Global Prerequisites
 
 다음 도구와 계정이 모든 배포에 공통 필요:
