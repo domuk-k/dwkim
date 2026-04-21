@@ -221,6 +221,8 @@ feat(persona-api): add new RAG endpoint
 2. git push → dwkim, blog 자동 배포
 
 **Production Info:**
-- **Rate Limiting**: 8 req/min
+- **Rate Limiting**: 8 req/min (fly.toml `RATE_LIMIT_MAX=100` 에 따라 분당 100 — 인스턴스별)
 - **Health Check**: `/health` endpoint
 - **Streaming**: `/api/v2/chat/stream` (AI SDK Data Stream Protocol)
+
+> **상세 runbook**: [`DEPLOYMENT.md`](./DEPLOYMENT.md) + 각 패키지의 `DEPLOY.md` (`packages/dwkim/DEPLOY.md`, `packages/persona-api/DEPLOY.md`, `packages/blog/DEPLOY.md`)
