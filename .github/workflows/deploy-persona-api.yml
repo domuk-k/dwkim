@@ -24,6 +24,20 @@ jobs:
         working-directory: packages/persona-api
         run: bun run type-check
 
+      - name: Verify BM25 index exists
+        working-directory: packages/persona-api
+        run: |
+          if [ ! -f data/searchIndex.json ]; then
+            echo "::error::data/searchIndex.json missing. Run 'bun run build:index' locally after Cogni note changes and commit." >&2
+            exit 1
+          fi
+          AGE_DAYS=$(( ( $(date +%s) - $(stat -c %Y data/searchIndex.json 2>/dev/null || stat -f %m data/searchIndex.json) ) / 86400 ))
+          SIZE=$(wc -c < data/searchIndex.json)
+          echo "searchIndex.json: ${SIZE} bytes, last modified ${AGE_DAYS} days ago"
+          if [ "$AGE_DAYS" -gt 30 ]; then
+            echo "::warning::searchIndex.json is ${AGE_DAYS} days old. Consider rebuilding: 'bun run build:index'"
+          fi
+
   deploy:
     needs: typecheck
     runs-on: ubuntu-latest
