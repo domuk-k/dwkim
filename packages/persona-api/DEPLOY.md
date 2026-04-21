@@ -160,7 +160,7 @@ fly releases rollback <version> -a persona-api
 | 429 rate limit | `RATE_LIMIT_MAX` 확인 | `fly secrets set RATE_LIMIT_MAX=200` 후 redeploy |
 | 503 / OpenRouter 에러 | `fly logs | /usr/bin/grep OpenRouter` | API 키 확인, OpenRouter 상태페이지 확인, fallback model 설정 |
 | Redis 연결 실패 | 로그에 `Redis connect ECONNREFUSED` | in-memory fallback 자동 활성화 (UX 영향 있음). `REDIS_URL` 재확인 |
-| 벡터 검색 결과 없음 | `data/search-index.json` 존재 확인 | 이미지에 포함 안 됨 → `bun run build:index` 후 `.dockerignore` 확인하여 재배포 |
+| 벡터 검색 결과 없음 | `data/searchIndex.json` 존재 확인 | 이미지에 포함 안 됨 → `bun run build:index` 후 `.dockerignore` 확인하여 재배포 |
 | 메모리 OOM | `fly status` 에서 메모리 점유율 | `fly scale memory 1024` (주의: 비용↑) |
 | Qdrant 연결 실패 (사용 시) | `QDRANT_URL` 확인 | sister app 상태 `fly status -a persona-qdrant` |
 
@@ -195,7 +195,7 @@ fly releases rollback <version> -a persona-api
 
 ### BM25 인덱스
 - `scripts/buildSearchIndex.ts` 가 `~/.cogni/notes/**` 중 `tags: [persona]` 파일을 JSON 인덱스로 빌드
-- **컨테이너 빌드 시 `~/.cogni` 없음** → 로컬에서 `bun run build:index` 로 `data/search-index.json` 생성 후 커밋해야 이미지에 포함
+- **컨테이너 빌드 시 `~/.cogni` 없음** → 로컬에서 `bun run build:index` 로 `data/searchIndex.json` 생성 후 커밋해야 이미지에 포함
 - `.dockerignore` 에서 `data/` 가 제외되지 않는지 확인 필요
 
 ### 환경변수 이중화
