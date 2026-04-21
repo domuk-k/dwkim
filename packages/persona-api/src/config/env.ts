@@ -21,8 +21,8 @@ const envSchema = z
     // Search
     MOCK_MODE: z.string().optional(),
 
-    // Redis
-    REDIS_URL: z.string().optional(),
+    // KV store (bun:sqlite). Path, default :memory:.
+    KV_DB_PATH: z.string().optional(),
 
     // Discord
     DISCORD_WEBHOOK_URL: z.string().url().optional(),
