@@ -1,5 +1,16 @@
-import Redis from 'ioredis'
+import { Database } from 'bun:sqlite'
+import { and, asc, eq, gte, lte, notInArray, sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/bun-sqlite'
+import * as schema from './schema'
 
+type DB = ReturnType<typeof drizzle<typeof schema>>
+
+/**
+ * Key-Value store interface (historically Redis-shaped).
+ *
+ * Backing: bun:sqlite via Drizzle ORM (zero-dep runtime, in-process).
+ * Path from KV_DB_PATH env, default `:memory:`.
+ */
 export interface IRedisClient {
   // Basic operations
   get(key: string): Promise<string | null>
@@ -35,314 +46,348 @@ export interface IRedisClient {
   quit(): Promise<void>
 }
 
-// Redis 구현
-export class RedisClient implements IRedisClient {
-  private client: Redis
-
-  constructor(url: string) {
-    this.client = new Redis(url)
-  }
-
-  async get(key: string): Promise<string | null> {
-    return this.client.get(key)
-  }
-
-  async setex(key: string, seconds: number, value: string): Promise<void> {
-    await this.client.setex(key, seconds, value)
-  }
-
-  async incr(key: string): Promise<number> {
-    return this.client.incr(key)
-  }
-
-  async expire(key: string, seconds: number): Promise<void> {
-    await this.client.expire(key, seconds)
-  }
-
-  async del(key: string): Promise<void> {
-    await this.client.del(key)
-  }
-
-  async ttl(key: string): Promise<number> {
-    return this.client.ttl(key)
-  }
-
-  async keys(pattern: string): Promise<string[]> {
-    return this.client.keys(pattern)
-  }
-
-  async lpush(key: string, ...values: string[]): Promise<number> {
-    return this.client.lpush(key, ...values)
-  }
-
-  async lrange(key: string, start: number, stop: number): Promise<string[]> {
-    return this.client.lrange(key, start, stop)
-  }
-
-  async ltrim(key: string, start: number, stop: number): Promise<void> {
-    await this.client.ltrim(key, start, stop)
-  }
-
-  async sismember(key: string, member: string): Promise<number> {
-    return this.client.sismember(key, member)
-  }
-
-  async sadd(key: string, member: string): Promise<number> {
-    return this.client.sadd(key, member)
-  }
-
-  async srem(key: string, member: string): Promise<number> {
-    return this.client.srem(key, member)
-  }
-
-  async hget(key: string, field: string): Promise<string | null> {
-    return this.client.hget(key, field)
-  }
-
-  async hset(key: string, field: string, value: string): Promise<number> {
-    return this.client.hset(key, field, value)
-  }
-
-  async hgetall(key: string): Promise<Record<string, string> | null> {
-    const result = await this.client.hgetall(key)
-    return Object.keys(result).length > 0 ? result : null
-  }
-
-  async hincrby(key: string, field: string, increment: number): Promise<number> {
-    return this.client.hincrby(key, field, increment)
-  }
-
-  async zrangebyscore(key: string, min: string | number, max: string | number): Promise<string[]> {
-    return this.client.zrangebyscore(key, min, max)
-  }
-
-  async zrange(key: string, start: number, stop: number, ...args: string[]): Promise<string[]> {
-    if (args.length === 0) {
-      return this.client.zrange(key, start, stop)
-    }
-    // WITHSCORES 옵션이 있는 경우
-    if (args.includes('WITHSCORES')) {
-      return this.client.zrange(key, start, stop, 'WITHSCORES')
-    }
-    return this.client.zrange(key, start, stop)
-  }
-
-  async zadd(key: string, score: number, member: string): Promise<number> {
-    return this.client.zadd(key, score, member)
-  }
-
-  async quit(): Promise<void> {
-    await this.client.quit()
-  }
+function ensureSchema(sqlite: Database) {
+  sqlite.run('PRAGMA journal_mode = WAL')
+  sqlite.run('PRAGMA synchronous = NORMAL')
+  sqlite.run(`
+    CREATE TABLE IF NOT EXISTS kv (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      expires_at INTEGER
+    )
+  `)
+  sqlite.run(`
+    CREATE TABLE IF NOT EXISTS lists (
+      key TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (key, position)
+    )
+  `)
+  sqlite.run(`
+    CREATE TABLE IF NOT EXISTS sets (
+      key TEXT NOT NULL,
+      member TEXT NOT NULL,
+      PRIMARY KEY (key, member)
+    )
+  `)
+  sqlite.run(`
+    CREATE TABLE IF NOT EXISTS hashes (
+      key TEXT NOT NULL,
+      field TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (key, field)
+    )
+  `)
+  sqlite.run(`
+    CREATE TABLE IF NOT EXISTS sorted_sets (
+      key TEXT NOT NULL,
+      member TEXT NOT NULL,
+      score REAL NOT NULL,
+      PRIMARY KEY (key, member)
+    )
+  `)
 }
 
-// 메모리 폴백 구현
-export class MemoryClient implements IRedisClient {
-  private store = new Map<string, { value: string; expiresAt?: number }>()
-  private lists = new Map<string, string[]>()
-  private sets = new Map<string, Set<string>>()
-  private sortedSets = new Map<string, Map<string, number>>() // member -> score
-  private hashes = new Map<string, Map<string, string>>() // key -> field -> value
+// ─────────────────────────────────────────────────────────────
+// Drizzle (bun:sqlite) implementation
+// ─────────────────────────────────────────────────────────────
+export class SqliteClient implements IRedisClient {
+  private sqlite: Database
+  private db: DB
 
+  constructor(path: string = ':memory:') {
+    this.sqlite = new Database(path, { create: true })
+    ensureSchema(this.sqlite)
+    this.db = drizzle(this.sqlite, { schema })
+  }
+
+  // ─── Basic ops ──────────────────────────────────────────────
   async get(key: string): Promise<string | null> {
-    const item = this.store.get(key)
-    if (!item) return null
-    if (item.expiresAt && Date.now() > item.expiresAt) {
-      this.store.delete(key)
+    const [row] = this.db
+      .select({ value: schema.kv.value, expiresAt: schema.kv.expiresAt })
+      .from(schema.kv)
+      .where(eq(schema.kv.key, key))
+      .all()
+    if (!row) return null
+    if (row.expiresAt != null && row.expiresAt < Date.now()) {
+      this.db.delete(schema.kv).where(eq(schema.kv.key, key)).run()
       return null
     }
-    return item.value
+    return row.value
   }
 
   async setex(key: string, seconds: number, value: string): Promise<void> {
-    this.store.set(key, { value, expiresAt: Date.now() + seconds * 1000 })
+    const expiresAt = Date.now() + seconds * 1000
+    this.db
+      .insert(schema.kv)
+      .values({ key, value, expiresAt })
+      .onConflictDoUpdate({
+        target: schema.kv.key,
+        set: { value, expiresAt }
+      })
+      .run()
   }
 
   async incr(key: string): Promise<number> {
-    const current = await this.get(key)
-    const newValue = (parseInt(current || '0', 10) + 1).toString()
-    this.store.set(key, { value: newValue })
-    return parseInt(newValue, 10)
+    const now = Date.now()
+    const [row] = this.db
+      .select({ value: schema.kv.value, expiresAt: schema.kv.expiresAt })
+      .from(schema.kv)
+      .where(eq(schema.kv.key, key))
+      .all()
+    const expired = row?.expiresAt != null && row.expiresAt < now
+    const current = row && !expired ? parseInt(row.value, 10) || 0 : 0
+    const next = current + 1
+    const keepExpiry = expired ? null : (row?.expiresAt ?? null)
+    this.db
+      .insert(schema.kv)
+      .values({ key, value: String(next), expiresAt: keepExpiry })
+      .onConflictDoUpdate({
+        target: schema.kv.key,
+        set: { value: String(next), expiresAt: keepExpiry }
+      })
+      .run()
+    return next
   }
 
   async expire(key: string, seconds: number): Promise<void> {
-    const item = this.store.get(key)
-    if (item) {
-      item.expiresAt = Date.now() + seconds * 1000
-    }
+    this.db
+      .update(schema.kv)
+      .set({ expiresAt: Date.now() + seconds * 1000 })
+      .where(eq(schema.kv.key, key))
+      .run()
   }
 
   async del(key: string): Promise<void> {
-    this.store.delete(key)
-    this.lists.delete(key)
-    this.sets.delete(key)
-    this.sortedSets.delete(key)
+    this.sqlite.transaction(() => {
+      this.db.delete(schema.kv).where(eq(schema.kv.key, key)).run()
+      this.db.delete(schema.lists).where(eq(schema.lists.key, key)).run()
+      this.db.delete(schema.sets).where(eq(schema.sets.key, key)).run()
+      this.db.delete(schema.hashes).where(eq(schema.hashes.key, key)).run()
+      this.db.delete(schema.sortedSets).where(eq(schema.sortedSets.key, key)).run()
+    })()
   }
 
   async ttl(key: string): Promise<number> {
-    const item = this.store.get(key)
-    if (!item || !item.expiresAt) return -1
-    const remaining = Math.ceil((item.expiresAt - Date.now()) / 1000)
+    const [row] = this.db
+      .select({ expiresAt: schema.kv.expiresAt })
+      .from(schema.kv)
+      .where(eq(schema.kv.key, key))
+      .all()
+    if (!row) return -2
+    if (row.expiresAt == null) return -1
+    const remaining = Math.ceil((row.expiresAt - Date.now()) / 1000)
     return remaining > 0 ? remaining : -2
   }
 
   async keys(pattern: string): Promise<string[]> {
-    // 간단한 glob 패턴 지원 (* -> .*)
-    const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.')
-    const regex = new RegExp(`^${regexPattern}$`)
-
-    const allKeys = [
-      ...Array.from(this.store.keys()),
-      ...Array.from(this.lists.keys()),
-      ...Array.from(this.sets.keys()),
-      ...Array.from(this.sortedSets.keys())
+    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*').replace(/\?/g, '.')}$`)
+    const rows = [
+      ...this.db.selectDistinct({ key: schema.kv.key }).from(schema.kv).all(),
+      ...this.db.selectDistinct({ key: schema.lists.key }).from(schema.lists).all(),
+      ...this.db.selectDistinct({ key: schema.sets.key }).from(schema.sets).all(),
+      ...this.db.selectDistinct({ key: schema.hashes.key }).from(schema.hashes).all(),
+      ...this.db.selectDistinct({ key: schema.sortedSets.key }).from(schema.sortedSets).all()
     ]
-
-    return Array.from(new Set(allKeys)).filter((key) => regex.test(key))
+    return [...new Set(rows.map((r) => r.key))].filter((k) => regex.test(k))
   }
 
+  // ─── Lists ──────────────────────────────────────────────────
   async lpush(key: string, ...values: string[]): Promise<number> {
-    const list = this.lists.get(key) || []
-    list.unshift(...values)
-    this.lists.set(key, list)
-    return list.length
+    const [minRow] = this.db
+      .select({ min: sql<number | null>`MIN(${schema.lists.position})` })
+      .from(schema.lists)
+      .where(eq(schema.lists.key, key))
+      .all()
+    let pos = (minRow?.min ?? 1) - 1
+    this.sqlite.transaction(() => {
+      for (const v of values) {
+        this.db.insert(schema.lists).values({ key, position: pos, value: v }).run()
+        pos -= 1
+      }
+    })()
+    const [countRow] = this.db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(schema.lists)
+      .where(eq(schema.lists.key, key))
+      .all()
+    return countRow?.c ?? 0
   }
 
   async lrange(key: string, start: number, stop: number): Promise<string[]> {
-    const list = this.lists.get(key) || []
-    return list.slice(start, stop === -1 ? undefined : stop + 1)
+    const rows = this.db
+      .select({ value: schema.lists.value })
+      .from(schema.lists)
+      .where(eq(schema.lists.key, key))
+      .orderBy(asc(schema.lists.position))
+      .all()
+    const len = rows.length
+    const s = start < 0 ? Math.max(0, len + start) : start
+    const e = stop < 0 ? len + stop : stop
+    return rows.slice(s, e + 1).map((r) => r.value)
   }
 
   async ltrim(key: string, start: number, stop: number): Promise<void> {
-    const list = this.lists.get(key)
-    if (!list) return
-
-    const trimmed = list.slice(start, stop === -1 ? undefined : stop + 1)
-    this.lists.set(key, trimmed)
+    const rows = this.db
+      .select({ position: schema.lists.position })
+      .from(schema.lists)
+      .where(eq(schema.lists.key, key))
+      .orderBy(asc(schema.lists.position))
+      .all()
+    const len = rows.length
+    const s = start < 0 ? Math.max(0, len + start) : start
+    const e = stop < 0 ? len + stop : stop
+    const keep = rows.slice(s, e + 1).map((r) => r.position)
+    if (keep.length === 0) {
+      this.db.delete(schema.lists).where(eq(schema.lists.key, key)).run()
+      return
+    }
+    this.db
+      .delete(schema.lists)
+      .where(and(eq(schema.lists.key, key), notInArray(schema.lists.position, keep)))
+      .run()
   }
 
+  // ─── Sets ───────────────────────────────────────────────────
   async sismember(key: string, member: string): Promise<number> {
-    const set = this.sets.get(key)
-    return set?.has(member) ? 1 : 0
+    const [row] = this.db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(schema.sets)
+      .where(and(eq(schema.sets.key, key), eq(schema.sets.member, member)))
+      .all()
+    return row?.c ? 1 : 0
   }
 
   async sadd(key: string, member: string): Promise<number> {
-    let set = this.sets.get(key)
-    if (!set) {
-      set = new Set<string>()
-      this.sets.set(key, set)
-    }
-
-    const sizeBefore = set.size
-    set.add(member)
-    return set.size > sizeBefore ? 1 : 0
+    const existed = await this.sismember(key, member)
+    if (existed) return 0
+    this.db.insert(schema.sets).values({ key, member }).run()
+    return 1
   }
 
   async srem(key: string, member: string): Promise<number> {
-    const set = this.sets.get(key)
-    if (!set) return 0
-
-    const existed = set.has(member)
-    if (existed) {
-      set.delete(member)
-      // Clean up empty sets
-      if (set.size === 0) {
-        this.sets.delete(key)
-      }
-    }
-    return existed ? 1 : 0
+    const existed = await this.sismember(key, member)
+    if (!existed) return 0
+    this.db
+      .delete(schema.sets)
+      .where(and(eq(schema.sets.key, key), eq(schema.sets.member, member)))
+      .run()
+    return 1
   }
 
+  // ─── Hashes ─────────────────────────────────────────────────
   async hget(key: string, field: string): Promise<string | null> {
-    const hash = this.hashes.get(key)
-    return hash?.get(field) ?? null
+    const [row] = this.db
+      .select({ value: schema.hashes.value })
+      .from(schema.hashes)
+      .where(and(eq(schema.hashes.key, key), eq(schema.hashes.field, field)))
+      .all()
+    return row?.value ?? null
   }
 
   async hset(key: string, field: string, value: string): Promise<number> {
-    let hash = this.hashes.get(key)
-    if (!hash) {
-      hash = new Map<string, string>()
-      this.hashes.set(key, hash)
-    }
-    const isNew = !hash.has(field)
-    hash.set(field, value)
-    return isNew ? 1 : 0
+    const existing = await this.hget(key, field)
+    this.db
+      .insert(schema.hashes)
+      .values({ key, field, value })
+      .onConflictDoUpdate({
+        target: [schema.hashes.key, schema.hashes.field],
+        set: { value }
+      })
+      .run()
+    return existing === null ? 1 : 0
   }
 
   async hgetall(key: string): Promise<Record<string, string> | null> {
-    const hash = this.hashes.get(key)
-    if (!hash || hash.size === 0) return null
-    return Object.fromEntries(hash)
+    const rows = this.db
+      .select({ field: schema.hashes.field, value: schema.hashes.value })
+      .from(schema.hashes)
+      .where(eq(schema.hashes.key, key))
+      .all()
+    if (rows.length === 0) return null
+    return Object.fromEntries(rows.map((r) => [r.field, r.value]))
   }
 
   async hincrby(key: string, field: string, increment: number): Promise<number> {
-    let hash = this.hashes.get(key)
-    if (!hash) {
-      hash = new Map<string, string>()
-      this.hashes.set(key, hash)
-    }
-    const current = parseInt(hash.get(field) || '0', 10)
-    const newValue = current + increment
-    hash.set(field, newValue.toString())
-    return newValue
+    const current = await this.hget(key, field)
+    const next = (parseInt(current ?? '0', 10) || 0) + increment
+    this.db
+      .insert(schema.hashes)
+      .values({ key, field, value: String(next) })
+      .onConflictDoUpdate({
+        target: [schema.hashes.key, schema.hashes.field],
+        set: { value: String(next) }
+      })
+      .run()
+    return next
   }
 
+  // ─── Sorted sets ────────────────────────────────────────────
   async zrangebyscore(key: string, min: string | number, max: string | number): Promise<string[]> {
-    const sortedSet = this.sortedSets.get(key)
-    if (!sortedSet) return []
-
     const minScore = min === '-inf' ? -Infinity : typeof min === 'string' ? parseFloat(min) : min
     const maxScore = max === '+inf' ? Infinity : typeof max === 'string' ? parseFloat(max) : max
-
-    return Array.from(sortedSet.entries())
-      .filter(([, score]) => score >= minScore && score <= maxScore)
-      .sort(([, a], [, b]) => a - b)
-      .map(([member]) => member)
+    const rows = this.db
+      .select({ member: schema.sortedSets.member })
+      .from(schema.sortedSets)
+      .where(
+        and(
+          eq(schema.sortedSets.key, key),
+          gte(schema.sortedSets.score, minScore),
+          lte(schema.sortedSets.score, maxScore)
+        )
+      )
+      .orderBy(asc(schema.sortedSets.score))
+      .all()
+    return rows.map((r) => r.member)
   }
 
   async zrange(key: string, start: number, stop: number, ...args: string[]): Promise<string[]> {
-    const sortedSet = this.sortedSets.get(key)
-    if (!sortedSet) return []
-
-    const withScores = args.includes('WITHSCORES')
-    const sorted = Array.from(sortedSet.entries()).sort(([, a], [, b]) => a - b)
-
-    const sliced = sorted.slice(start, stop === -1 ? undefined : stop + 1)
-
-    if (withScores) {
-      return sliced.flatMap(([member, score]) => [member, score.toString()])
+    const rows = this.db
+      .select({ member: schema.sortedSets.member, score: schema.sortedSets.score })
+      .from(schema.sortedSets)
+      .where(eq(schema.sortedSets.key, key))
+      .orderBy(asc(schema.sortedSets.score))
+      .all()
+    const len = rows.length
+    const s = start < 0 ? Math.max(0, len + start) : start
+    const e = stop < 0 ? len + stop : stop
+    const sliced = rows.slice(s, e + 1)
+    if (args.includes('WITHSCORES')) {
+      return sliced.flatMap((r) => [r.member, String(r.score)])
     }
-
-    return sliced.map(([member]) => member)
+    return sliced.map((r) => r.member)
   }
 
   async zadd(key: string, score: number, member: string): Promise<number> {
-    let sortedSet = this.sortedSets.get(key)
-    if (!sortedSet) {
-      sortedSet = new Map<string, number>()
-      this.sortedSets.set(key, sortedSet)
-    }
-
-    const existed = sortedSet.has(member)
-    sortedSet.set(member, score)
-    return existed ? 0 : 1
+    const [existing] = this.db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(schema.sortedSets)
+      .where(and(eq(schema.sortedSets.key, key), eq(schema.sortedSets.member, member)))
+      .all()
+    this.db
+      .insert(schema.sortedSets)
+      .values({ key, member, score })
+      .onConflictDoUpdate({
+        target: [schema.sortedSets.key, schema.sortedSets.member],
+        set: { score }
+      })
+      .run()
+    return existing?.c ? 0 : 1
   }
 
   async quit(): Promise<void> {
-    this.store.clear()
-    this.lists.clear()
-    this.sets.clear()
-    this.sortedSets.clear()
-    this.hashes.clear()
+    this.sqlite.close()
   }
 }
 
-// 팩토리 함수
-export function createRedisClient(url?: string): IRedisClient {
-  if (url) {
-    console.log('🔴 Using Redis client')
-    return new RedisClient(url)
-  }
-  console.log('📦 Using in-memory fallback (no Redis URL)')
-  return new MemoryClient()
+/**
+ * Factory. bun:sqlite + Drizzle. Path from KV_DB_PATH env, default `:memory:`.
+ * The `url` parameter is ignored; kept for backwards compatibility with the
+ * previous Redis-shaped signature.
+ */
+export function createRedisClient(_url?: string): IRedisClient {
+  const path = process.env.KV_DB_PATH || ':memory:'
+  console.log(`📦 Using bun:sqlite (Drizzle) KV store (${path})`)
+  return new SqliteClient(path)
 }

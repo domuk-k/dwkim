@@ -48,21 +48,8 @@ function rateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
 // Server Factory
 // ─────────────────────────────────────────────────────────────
 export async function createServer() {
-  // Redis 초기화
-  let serviceRedisClient: IRedisClient
-
-  if (env.REDIS_URL) {
-    try {
-      serviceRedisClient = createRedisClient(env.REDIS_URL)
-      console.log('✅ Redis connected successfully')
-    } catch (error) {
-      console.warn('⚠️  Redis connection failed, using memory fallback:', error)
-      serviceRedisClient = createRedisClient()
-    }
-  } else {
-    console.log('ℹ️  No REDIS_URL provided, using memory fallback')
-    serviceRedisClient = createRedisClient()
-  }
+  // KV store: bun:sqlite (in-process). Path via KV_DB_PATH env, default :memory:.
+  const serviceRedisClient: IRedisClient = createRedisClient()
 
   // 서비스 초기화
   initConversationStore(serviceRedisClient)
