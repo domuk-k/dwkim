@@ -13,3 +13,6 @@ dist
 .vercel
 backup
 .env*.local
+
+# Harness workflow local-only files (audit trail contains verbatim prompts)
+harness-docs/audit.md
