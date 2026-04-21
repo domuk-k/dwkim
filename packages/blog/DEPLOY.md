@@ -113,7 +113,7 @@ git push origin main
 | Link 무결성 | postbuild `scripts/check-links.ts` 출력 (빌드 로그에 표시) |
 
 > **SECURITY-02**: Vercel 은 기본 HTTP access log 제공 (대시보드 → Logs).
-> **SECURITY-04**: HTTP 보안 헤더는 Vercel 기본 일부 제공 (`X-Content-Type-Options`, `X-Frame-Options` 등) + `Strict-Transport-Security` 는 자동 적용. CSP 는 **현재 미적용** — `vercel.json` 의 `headers` 필드로 추가 가능. 개선 대상.
+> **SECURITY-04**: HTTP 보안 헤더는 `vercel.json` 의 `headers` 블록에서 명시 관리. CSP, HSTS (`max-age=63072000; includeSubDomains; preload`), X-Content-Type-Options, X-Frame-Options (`DENY`), Referrer-Policy, Permissions-Policy 포함. CSP 는 `'self' + unsafe-inline`(Astro hydration), Vercel Analytics, YouTube/Vimeo/Twitter 임베드, GitHub API 를 허용. 수정 시 배포 후 `curl -sI https://blog.dwkim.me` 로 재검증.
 
 ## 8. Incident Response
 
