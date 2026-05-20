@@ -11,6 +11,7 @@
 import fs from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
+import matter from 'gray-matter'
 
 const COGNI_NOTES_DIR = path.join(homedir(), '.cogni', 'notes')
 const OUTPUT_PATH = path.join(import.meta.dir, '..', 'data', 'searchIndex.json')
@@ -68,35 +69,38 @@ function chunkBySection(text: string): string[] {
   return filtered
 }
 
-function parseFrontmatter(content: string): {
+const INDEXABLE_TAGS = ['persona', 'blog', 'rag'] as const
+
+/**
+ * 공개 인덱스 대상 여부 — 정확한 배열 멤버십으로 판정.
+ *
+ * 과거 버그: 자체 frontmatter 파서가 YAML 비인용 배열(`[a, b, personal]`)을
+ * 문자열로 남겨 `"...personal".includes("persona")`가 true가 됐고, `personal`
+ * 태그의 사적 노트가 공개 인덱스로 유출됐다. 정확한 멤버십으로 동음이의어 차단.
+ */
+export function isIndexable(tags: unknown): boolean {
+  if (!Array.isArray(tags)) return false
+  return tags.some((t) => INDEXABLE_TAGS.includes(t as (typeof INDEXABLE_TAGS)[number]))
+}
+
+/**
+ * 본문에서 비공개 구간을 제거. cogni 노트 원문은 보존하되 공개 인덱스에서만
+ * 빠지도록, 다음 마커로 감싼 구간을 청킹 전에 삭제한다:
+ *
+ *   <!-- persona:private -->
+ *   ...공개 인덱스 제외 내용...
+ *   <!-- /persona:private -->
+ */
+export function stripPrivateSections(body: string): string {
+  return body.replace(/<!--\s*persona:private\s*-->[\s\S]*?<!--\s*\/persona:private\s*-->\n?/g, '')
+}
+
+export function parseFrontmatter(content: string): {
   frontmatter: Record<string, unknown>
   body: string
 } {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-  if (!match) return { frontmatter: {}, body: content }
-
-  const frontmatter: Record<string, unknown> = {}
-  match[1].split('\n').forEach((line) => {
-    const colonIndex = line.indexOf(':')
-    if (colonIndex === -1) return
-
-    const key = line.slice(0, colonIndex).trim()
-    let value: unknown = line.slice(colonIndex + 1).trim()
-
-    if (typeof value === 'string' && value.startsWith('[')) {
-      try {
-        value = JSON.parse(value.replace(/'/g, '"'))
-      } catch {
-        // parse fail
-      }
-    } else if (typeof value === 'string' && (value.startsWith("'") || value.startsWith('"'))) {
-      value = value.slice(1, -1)
-    }
-
-    frontmatter[key] = value
-  })
-
-  return { frontmatter, body: match[2] }
+  const { data, content: body } = matter(content)
+  return { frontmatter: data as Record<string, unknown>, body }
 }
 
 function extractTitle(text: string): string | null {
@@ -192,12 +196,13 @@ async function processTaggedNotes(): Promise<ChunkResult[]> {
 
   for (const filePath of mdFiles) {
     const content = await fs.readFile(filePath, 'utf-8')
-    const { frontmatter, body } = parseFrontmatter(content)
+    const { frontmatter, body: rawBody } = parseFrontmatter(content)
 
-    const tags = (frontmatter.tags as string[]) || []
-    const hasIndexableTag =
-      tags.includes('blog') || tags.includes('rag') || tags.includes('persona')
-    if (!hasIndexableTag) continue
+    const tags = Array.isArray(frontmatter.tags) ? (frontmatter.tags as string[]) : []
+    if (!isIndexable(tags)) continue
+
+    // 비공개 구간(<!-- persona:private -->)은 청킹 전에 제거
+    const body = stripPrivateSections(rawBody)
 
     if (frontmatter.rag === false || frontmatter.rag === 'false') {
       console.log(`  ⏭️  ${path.basename(filePath)}: skipped (rag: false)`)
@@ -326,7 +331,9 @@ async function main() {
   console.log(`   파일 크기: ${((await fs.stat(OUTPUT_PATH)).size / 1024).toFixed(1)} KB\n`)
 }
 
-main().catch((error) => {
-  console.error('❌ 빌드 실패:', error)
-  process.exit(1)
-})
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error('❌ 빌드 실패:', error)
+    process.exit(1)
+  })
+}
