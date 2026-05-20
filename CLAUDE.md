@@ -224,3 +224,19 @@ feat(persona-api): add new RAG endpoint
 - **Streaming**: `/api/v2/chat/stream` (AI SDK Data Stream Protocol)
 
 > **상세 runbook**: [`DEPLOYMENT.md`](./DEPLOYMENT.md) + 각 패키지의 `DEPLOY.md` (`packages/dwkim/DEPLOY.md`, `packages/persona-api/DEPLOY.md`, `packages/blog/DEPLOY.md`)
+
+## Agent skills
+
+This repo uses [`mattpocock/skills`](https://github.com/mattpocock/skills) for the engineering workflow — `grill-with-docs`, `to-prd`, `to-issues`, `triage`, `tdd`, `diagnose`, `improve-codebase-architecture`, `zoom-out`. The config below tells those skills how this repo works.
+
+### Issue tracker
+
+GitHub Issues on `domuk-k/dwkim`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, using the default label strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context monorepo: root `CONTEXT-MAP.md` points to a per-package `CONTEXT.md`. See `docs/agents/domain.md`.
