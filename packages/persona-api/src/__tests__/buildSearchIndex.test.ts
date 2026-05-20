@@ -3,7 +3,7 @@ import { isIndexable, parseFrontmatter, stripPrivateSections } from '../../scrip
 
 describe('parseFrontmatter', () => {
   it('parses YAML inline arrays as real arrays (not strings)', () => {
-    const md = '---\ntitle: "관계 Todos"\ntags: [relationship, todo, personal]\n---\n\n# body\n'
+    const md = '---\ntitle: "Private Note"\ntags: [relationship, todo, personal]\n---\n\n# body\n'
     const { frontmatter } = parseFrontmatter(md)
     expect(Array.isArray(frontmatter.tags)).toBe(true)
     expect(frontmatter.tags).toEqual(['relationship', 'todo', 'personal'])
