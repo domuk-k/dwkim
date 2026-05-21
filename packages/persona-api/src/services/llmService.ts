@@ -120,7 +120,12 @@ export class LLMService {
 
 컨텍스트 기반으로 답변하세요.`
 
-  async chat(messages: ChatMessage[], context?: string): Promise<ChatResponse> {
+  async chat(
+    messages: ChatMessage[],
+    context?: string,
+    options: { temperature?: number } = {}
+  ): Promise<ChatResponse> {
+    const temperature = options.temperature ?? 0.3
     // LLM 미설정 시 안내 메시지
     if (this.llmProvider === 'none') {
       return {
@@ -150,7 +155,7 @@ export class LLMService {
         const response = await this.openRouterClient.chat.completions.create({
           model: this.model,
           messages: llmMessages,
-          temperature: 0.3
+          temperature
         })
 
         const content = response.choices[0]?.message?.content || ''
