@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit",
     "eval": "evalite watch",
     "eval:run": "evalite run",
+    "baseline": "LLM_GENERATION_TEMPERATURE=0 bun run evals/baseline/capture.ts",
     "init-data": "bun scripts/initData.ts",
     "init-neon": "bun scripts/initNeonData.ts",
     "init-neon:clean": "bun scripts/initNeonData.ts --clean",
