@@ -1,0 +1,112 @@
+{
+  "case": "cogni-stack-followup",
+  "branch": "multi-turn",
+  "query": "cogni 프로젝트는 어떤 기술 스택을 사용했나요?",
+  "runs": [
+    {
+      "answer": "cogni 프로젝트는 개인 노트 시스템으로, 블로그 글을 보면 Claude Code를 활용해서 PKM 에이전트를 만들었다고 되어 있어요. 정확한 기술 스택은 직접 여쭤보시는 게 좋을 것 같아요.",
+      "sourceIds": [
+        "cogni_personal-profile_7",
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "cogni_100-questions_48",
+        "blog_cogni-pkm-agent_3"
+      ],
+      "tokens": 3274,
+      "ms": 3521,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 0.7
+    },
+    {
+      "answer": "cogni 프로젝트는 개인 노트 시스템으로, 블로그 글을 보면 Claude Code를 활용해서 PKM 에이전트를 만들었다고 되어 있어요. 정확한 기술 스택은 직접 여쭤보시는 게 좋을 것 같아요.",
+      "sourceIds": [
+        "cogni_personal-profile_7",
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "cogni_100-questions_48",
+        "blog_cogni-pkm-agent_3"
+      ],
+      "tokens": 3274,
+      "ms": 3035,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 0.7
+    },
+    {
+      "answer": "cogni 프로젝트는 개인 노트 시스템으로, 블로그 글을 보면 Claude Code를 활용해서 PKM 에이전트를 만들었다고 되어 있어요. 정확한 기술 스택은 직접 여쭤보시는 게 좋을 것 같아요.",
+      "sourceIds": [
+        "cogni_personal-profile_7",
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "cogni_100-questions_48",
+        "blog_cogni-pkm-agent_3"
+      ],
+      "tokens": 3274,
+      "ms": 3369,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 0.7
+    },
+    {
+      "answer": "cogni 프로젝트는 개인 노트 시스템으로, 블로그 글을 보면 Claude Code를 활용해서 PKM 에이전트를 만들었다고 되어 있어요. 정확한 기술 스택은 직접 여쭤보시는 게 좋을 것 같아요.",
+      "sourceIds": [
+        "cogni_personal-profile_7",
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "cogni_100-questions_48",
+        "blog_cogni-pkm-agent_3"
+      ],
+      "tokens": 3274,
+      "ms": 4202,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 0.7
+    },
+    {
+      "answer": "cogni 프로젝트는 개인 노트 시스템으로, 블로그 글을 보면 Claude Code를 활용해서 PKM 에이전트를 만들었다고 되어 있어요. 정확한 기술 스택은 직접 여쭤보시는 게 좋을 것 같아요.",
+      "sourceIds": [
+        "cogni_personal-profile_7",
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "cogni_100-questions_48",
+        "blog_cogni-pkm-agent_3"
+      ],
+      "tokens": 3274,
+      "ms": 3670,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 0.7
+    }
+  ]
+}

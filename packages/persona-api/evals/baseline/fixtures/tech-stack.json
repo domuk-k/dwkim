@@ -1,0 +1,112 @@
+{
+  "case": "tech-stack",
+  "branch": "factual-persona",
+  "query": "주로 어떤 기술 스택을 사용하나요?",
+  "runs": [
+    {
+      "answer": "동욱은 Node.js와 TypeScript를 메인으로 사용하고, 프론트엔드는 React/Next.js로 개발해요. 최근에는 AI/ML 관련 프로젝트에 집중하면서 LangGraph, OpenAI/Anthropic/Gemini API, RAG 시스템, 벡터 데이터베이스 등을 많이 다루고 있어요.\n\n특히 TypeScript에 가장 자신 있어 하고, 프론트엔드에서는 서버 상태/캐시 관리, URL 상태, Form 관리, 에디터, 애니메이션, UX 같은 분야에 관심이 많다고 해요. 이런 기술적인 부분 외에도 인지과학이나 정보이론처럼 효율적인 정보 표현에도 관심이 많다고 하네요.",
+      "sourceIds": [
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_resume_4",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_100-questions_16",
+        "cogni_rag-improvement-research_2",
+        "cogni_100-questions_14",
+        "cogni_100-questions_8",
+        "cogni_personal-profile_7",
+        "cogni_100-questions_5"
+      ],
+      "tokens": 3108,
+      "ms": 4389,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "동욱은 Node.js와 TypeScript를 메인으로 사용하고, 프론트엔드는 React/Next.js로 개발해요. 최근에는 AI/ML 관련 프로젝트에 집중하면서 LangGraph, OpenAI/Anthropic/Gemini API, RAG 시스템, 벡터 데이터베이스 등을 많이 다루고 있어요.\n\n특히 TypeScript에 가장 자신 있어 하고, 프론트엔드에서는 서버 상태/캐시 관리, URL 상태, Form 관리, 에디터, 애니메이션, UX 같은 분야에 관심이 많다고 해요. 이런 기술적인 부분 외에도 인지과학이나 정보이론처럼 효율적인 정보 표현에도 관심이 많다고 하네요.",
+      "sourceIds": [
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_resume_4",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_100-questions_16",
+        "cogni_rag-improvement-research_2",
+        "cogni_100-questions_14",
+        "cogni_100-questions_8",
+        "cogni_personal-profile_7",
+        "cogni_100-questions_5"
+      ],
+      "tokens": 3108,
+      "ms": 3547,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "동욱은 Node.js와 TypeScript를 메인으로 사용하고, 프론트엔드는 React/Next.js로 개발해요. 최근에는 AI/ML 관련 프로젝트에 집중하면서 LangGraph, OpenAI/Anthropic/Gemini API, RAG 시스템, 벡터 데이터베이스 등을 많이 다루고 있어요.\n\n특히 TypeScript에 가장 자신 있어 하고, 프론트엔드에서는 서버 상태/캐시 관리, URL 상태, Form 관리, 에디터, 애니메이션, UX 같은 분야에 관심이 많다고 해요. 이런 기술적인 부분 외에도 인지과학이나 정보이론처럼 효율적인 정보 표현에도 관심이 많다고 하네요.",
+      "sourceIds": [
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_resume_4",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_100-questions_16",
+        "cogni_rag-improvement-research_2",
+        "cogni_100-questions_14",
+        "cogni_100-questions_8",
+        "cogni_personal-profile_7",
+        "cogni_100-questions_5"
+      ],
+      "tokens": 3108,
+      "ms": 5205,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "",
+      "sourceIds": [
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_resume_4",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_100-questions_16",
+        "cogni_rag-improvement-research_2",
+        "cogni_100-questions_14",
+        "cogni_100-questions_8",
+        "cogni_personal-profile_7",
+        "cogni_100-questions_5"
+      ],
+      "tokens": 0,
+      "ms": 3756,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "동욱은 Node.js와 TypeScript를 메인으로 사용하고, 프론트엔드는 React/Next.js로 개발해요. 최근에는 AI/ML 관련 프로젝트에 집중하면서 LangGraph, OpenAI/Anthropic/Gemini API, RAG 시스템, 벡터 데이터베이스 등을 많이 다루고 있어요.\n\n특히 TypeScript에 가장 자신 있어 하고, 프론트엔드에서는 서버 상태/캐시 관리, URL 상태, Form 관리, 에디터, 애니메이션, UX 같은 분야에 관심이 많다고 해요. 이런 기술적인 부분 외에도 인지과학이나 정보이론처럼 효율적인 정보 표현에도 관심이 많다고 하네요.",
+      "sourceIds": [
+        "cogni_faq_0",
+        "cogni_resume_3",
+        "cogni_resume_4",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_100-questions_16",
+        "cogni_rag-improvement-research_2",
+        "cogni_100-questions_14",
+        "cogni_100-questions_8",
+        "cogni_personal-profile_7",
+        "cogni_100-questions_5"
+      ],
+      "tokens": 3108,
+      "ms": 6431,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    }
+  ]
+}

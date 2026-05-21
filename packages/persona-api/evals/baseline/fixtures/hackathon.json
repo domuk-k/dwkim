@@ -1,0 +1,112 @@
+{
+  "case": "hackathon",
+  "branch": "factual-persona",
+  "query": "동욱이 해커톤 경험이 있어?",
+  "runs": [
+    {
+      "answer": "네, 동욱은 해커톤 경험이 있어요.\n\n데이원컴퍼니에서 프론트엔드 스쿨 매니저로 일할 때, 수강생 20명을 리드하며 해커톤을 직접 주관한 경험이 있고요. 최근에는 OpenAI 협력 해커톤에서 LLM 기반 평가 에이전트 설계에 대한 기술 자문을 해주기도 했어요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_40",
+        "cogni_100-questions_54",
+        "cogni_resume_5",
+        "cogni_100-questions_42",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_22",
+        "cogni_100-questions_96",
+        "cogni_personal-profile_7",
+        "cogni_resume-en_0"
+      ],
+      "tokens": 3423,
+      "ms": 3467,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "네, 동욱은 해커톤 경험이 있어요.\n\n데이원컴퍼니에서 프론트엔드 스쿨 매니저로 일할 때, 수강생 20명을 리드하며 해커톤을 직접 주관한 경험이 있고요. 최근에는 OpenAI 협력 해커톤에서 LLM 기반 평가 에이전트 설계에 대한 기술 자문을 해주기도 했어요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_40",
+        "cogni_100-questions_54",
+        "cogni_resume_5",
+        "cogni_100-questions_42",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_22",
+        "cogni_100-questions_96",
+        "cogni_personal-profile_7",
+        "cogni_resume-en_0"
+      ],
+      "tokens": 3423,
+      "ms": 3101,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "네, 동욱은 해커톤 경험이 있어요.\n\n데이원컴퍼니에서 프론트엔드 스쿨 매니저로 일할 때, 수강생 20명을 리드하며 해커톤을 직접 주관한 경험이 있고요. 최근에는 OpenAI 협력 해커톤에서 LLM 기반 평가 에이전트 설계에 대한 기술 자문을 해주기도 했어요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_40",
+        "cogni_100-questions_54",
+        "cogni_resume_5",
+        "cogni_100-questions_42",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_22",
+        "cogni_100-questions_96",
+        "cogni_personal-profile_7",
+        "cogni_resume-en_0"
+      ],
+      "tokens": 3423,
+      "ms": 2956,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "네, 동욱은 해커톤 경험이 있어요.\n\n데이원컴퍼니에서 프론트엔드 스쿨 매니저로 일할 때, 수강생 20명을 리드하며 해커톤을 직접 주관한 경험이 있고요. 최근에는 OpenAI 협력 해커톤에서 LLM 기반 평가 에이전트 설계에 대한 기술 자문을 해주기도 했어요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_40",
+        "cogni_100-questions_54",
+        "cogni_resume_5",
+        "cogni_100-questions_42",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_22",
+        "cogni_100-questions_96",
+        "cogni_personal-profile_7",
+        "cogni_resume-en_0"
+      ],
+      "tokens": 3423,
+      "ms": 3091,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "네, 동욱은 해커톤 경험이 있어요.\n\n데이원컴퍼니에서 프론트엔드 스쿨 매니저로 일할 때, 수강생 20명을 리드하며 해커톤을 직접 주관한 경험이 있고요. 최근에는 OpenAI 협력 해커톤에서 LLM 기반 평가 에이전트 설계에 대한 기술 자문을 해주기도 했어요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_40",
+        "cogni_100-questions_54",
+        "cogni_resume_5",
+        "cogni_100-questions_42",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_22",
+        "cogni_100-questions_96",
+        "cogni_personal-profile_7",
+        "cogni_resume-en_0"
+      ],
+      "tokens": 3423,
+      "ms": 3598,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    }
+  ]
+}

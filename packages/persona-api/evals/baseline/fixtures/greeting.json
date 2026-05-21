@@ -1,0 +1,47 @@
+{
+  "case": "greeting",
+  "branch": "simple",
+  "query": "안녕",
+  "runs": [
+    {
+      "answer": "안녕하세요! 저는 김동욱의 AI 프로필 에이전트예요. 커리어, 기술 스택, 프로젝트 등 궁금한 게 있으시면 편하게 물어보세요!",
+      "sourceIds": [],
+      "tokens": 0,
+      "ms": 15,
+      "assertionScore": 1,
+      "hallucination": false
+    },
+    {
+      "answer": "반갑습니다! 동욱의 경력, 스킬, 블로그 글 등에 대해 답변해 드릴 수 있어요. 뭐가 궁금하세요?",
+      "sourceIds": [],
+      "tokens": 0,
+      "ms": 5,
+      "assertionScore": 1,
+      "hallucination": false
+    },
+    {
+      "answer": "안녕하세요! 저는 김동욱의 AI 프로필 에이전트예요. 커리어, 기술 스택, 프로젝트 등 궁금한 게 있으시면 편하게 물어보세요!",
+      "sourceIds": [],
+      "tokens": 0,
+      "ms": 3,
+      "assertionScore": 1,
+      "hallucination": false
+    },
+    {
+      "answer": "반갑습니다! 동욱의 경력, 스킬, 블로그 글 등에 대해 답변해 드릴 수 있어요. 뭐가 궁금하세요?",
+      "sourceIds": [],
+      "tokens": 0,
+      "ms": 2,
+      "assertionScore": 1,
+      "hallucination": false
+    },
+    {
+      "answer": "반갑습니다! 동욱의 경력, 스킬, 블로그 글 등에 대해 답변해 드릴 수 있어요. 뭐가 궁금하세요?",
+      "sourceIds": [],
+      "tokens": 0,
+      "ms": 2,
+      "assertionScore": 1,
+      "hallucination": false
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "case": "blood-type-out-of-scope",
+  "branch": "out-of-scope",
+  "query": "김동욱 혈액형이 뭐야?",
+  "runs": [
+    {
+      "answer": "음, 동욱의 혈액형에 대한 정보는 제가 가지고 있지 않아요. 직접 물어보시면 알려줄 거예요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_교육-챗봇의-정답-문제-생성이-아니라-전달이다_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_education-chatbot-design-from-exact-match-to-rag_3",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_why-education-chatbots-should-say-i-dont-know_0",
+        "cogni_100-questions_57",
+        "cogni_chatbot-is-adoption-layer_1"
+      ],
+      "tokens": 3344,
+      "ms": 3415,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    },
+    {
+      "answer": "음, 동욱의 혈액형에 대한 정보는 제가 가지고 있지 않아요. 직접 물어보시면 알려줄 거예요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_교육-챗봇의-정답-문제-생성이-아니라-전달이다_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_education-chatbot-design-from-exact-match-to-rag_3",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_why-education-chatbots-should-say-i-dont-know_0",
+        "cogni_100-questions_57",
+        "cogni_chatbot-is-adoption-layer_1"
+      ],
+      "tokens": 3344,
+      "ms": 2883,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    },
+    {
+      "answer": "음, 동욱의 혈액형에 대한 정보는 제가 가지고 있지 않아요. 직접 물어보시면 알려줄 거예요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_교육-챗봇의-정답-문제-생성이-아니라-전달이다_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_education-chatbot-design-from-exact-match-to-rag_3",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_why-education-chatbots-should-say-i-dont-know_0",
+        "cogni_100-questions_57",
+        "cogni_chatbot-is-adoption-layer_1"
+      ],
+      "tokens": 3344,
+      "ms": 2897,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    },
+    {
+      "answer": "음, 동욱의 혈액형에 대한 정보는 제가 가지고 있지 않아요. 직접 물어보시면 알려줄 거예요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_교육-챗봇의-정답-문제-생성이-아니라-전달이다_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_education-chatbot-design-from-exact-match-to-rag_3",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_why-education-chatbots-should-say-i-dont-know_0",
+        "cogni_100-questions_57",
+        "cogni_chatbot-is-adoption-layer_1"
+      ],
+      "tokens": 3344,
+      "ms": 2937,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    },
+    {
+      "answer": "음, 동욱의 혈액형에 대한 정보는 제가 가지고 있지 않아요. 직접 물어보시면 알려줄 거예요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_교육-챗봇의-정답-문제-생성이-아니라-전달이다_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_education-chatbot-design-from-exact-match-to-rag_3",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_why-education-chatbots-should-say-i-dont-know_0",
+        "cogni_100-questions_57",
+        "cogni_chatbot-is-adoption-layer_1"
+      ],
+      "tokens": 3344,
+      "ms": 2804,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    }
+  ]
+}

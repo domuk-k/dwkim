@@ -1,0 +1,112 @@
+{
+  "case": "contact-email",
+  "branch": "contact-intent",
+  "query": "이메일로 연락하려면 어떻게 해?",
+  "runs": [
+    {
+      "answer": "이메일로 연락하시려면 dannyworks102@gmail.com으로 보내주시면 돼요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_48",
+        "cogni_100-questions_34",
+        "cogni_100-questions_97",
+        "cogni_personal-profile_7",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_7",
+        "cogni_100-questions_6",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_mock-engine-100x-faster-preview_0"
+      ],
+      "tokens": 3242,
+      "ms": 1811,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "이메일로 연락하시려면 dannyworks102@gmail.com으로 보내주시면 돼요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_48",
+        "cogni_100-questions_34",
+        "cogni_100-questions_97",
+        "cogni_personal-profile_7",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_7",
+        "cogni_100-questions_6",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_mock-engine-100x-faster-preview_0"
+      ],
+      "tokens": 3242,
+      "ms": 2093,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "이메일로 연락하시려면 dannyworks102@gmail.com으로 보내주시면 돼요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_48",
+        "cogni_100-questions_34",
+        "cogni_100-questions_97",
+        "cogni_personal-profile_7",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_7",
+        "cogni_100-questions_6",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_mock-engine-100x-faster-preview_0"
+      ],
+      "tokens": 3242,
+      "ms": 1771,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "이메일로 연락하시려면 dannyworks102@gmail.com으로 보내주시면 돼요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_48",
+        "cogni_100-questions_34",
+        "cogni_100-questions_97",
+        "cogni_personal-profile_7",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_7",
+        "cogni_100-questions_6",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_mock-engine-100x-faster-preview_0"
+      ],
+      "tokens": 3242,
+      "ms": 2534,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "이메일로 연락하시려면 dannyworks102@gmail.com으로 보내주시면 돼요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_100-questions_48",
+        "cogni_100-questions_34",
+        "cogni_100-questions_97",
+        "cogni_personal-profile_7",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_7",
+        "cogni_100-questions_6",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_mock-engine-100x-faster-preview_0"
+      ],
+      "tokens": 3242,
+      "ms": 1691,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    }
+  ]
+}
