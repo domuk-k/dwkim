@@ -2,7 +2,7 @@
   "adapter": "mastra",
   "capturedAt": "2026-05-21T04:51:44.798Z",
   "runs": 3,
-  "temperature": "0",
+  "temperature": "default",
   "generationModel": null,
   "judgeModel": "anthropic/claude-sonnet-4",
   "cases": [

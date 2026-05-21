@@ -124,7 +124,10 @@ async function main() {
     adapter: ADAPTER,
     capturedAt: new Date().toISOString(),
     runs: RUNS,
-    temperature: process.env.LLM_GENERATION_TEMPERATURE ?? null,
+    // Honest recording: only the LangGraph path reads LLM_GENERATION_TEMPERATURE.
+    // The Mastra agent ignores it and runs at the model's default temperature.
+    temperature:
+      ADAPTER === 'mastra' ? 'default' : (process.env.LLM_GENERATION_TEMPERATURE ?? null),
     generationModel: process.env.LLM_GENERATION_MODEL ?? null,
     judgeModel: JUDGE_MODEL,
     cases: perCase
