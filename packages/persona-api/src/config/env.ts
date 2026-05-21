@@ -11,6 +11,7 @@ const envSchema = z
     // If not set, uses MODEL_PROFILES based on NODE_ENV
     LLM_GENERATION_MODEL: z.string().optional(), // User-facing responses (e.g., anthropic/claude-sonnet-4)
     LLM_UTILITY_MODEL: z.string().optional(), // Internal processing (e.g., google/gemini-2.5-flash-lite)
+    LLM_GENERATION_TEMPERATURE: z.coerce.number().optional(), // Override generation temperature (set 0 for deterministic eval/baseline runs)
 
     /** @deprecated Use LLM_GENERATION_MODEL instead */
     OPENROUTER_MODEL: z.string().optional(),

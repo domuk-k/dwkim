@@ -302,20 +302,31 @@ export class LLMService {
           model: this.model,
           messages: llmMessages,
           stream: true,
-          temperature: 0.3
+          temperature: env.LLM_GENERATION_TEMPERATURE ?? 0.3,
+          stream_options: { include_usage: true }
         })
 
+        let usage: ChatResponse['usage'] = {
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0
+        }
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || ''
           if (content) {
             yield { type: 'content', content }
           }
+          // The final usage chunk (include_usage) carries real token counts.
+          if (chunk.usage) {
+            usage = {
+              promptTokens: chunk.usage.prompt_tokens ?? 0,
+              completionTokens: chunk.usage.completion_tokens ?? 0,
+              totalTokens: chunk.usage.total_tokens ?? 0
+            }
+          }
         }
 
-        yield {
-          type: 'done',
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
-        }
+        yield { type: 'done', usage }
         return
       }
 

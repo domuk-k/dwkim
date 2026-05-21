@@ -664,13 +664,17 @@ async function generateNode(
     }
 
     let fullAnswer = ''
-    let tokenCount = 0
+    let chunkCount = 0
+    let usageTokens = 0
 
     for await (const chunk of generationLLM.chatStream(messages, contextWithPersonalization)) {
       if (chunk.type === 'content' && chunk.content) {
         fullAnswer += chunk.content
-        tokenCount += 1
+        chunkCount += 1
         config.writer?.({ type: 'content', content: chunk.content })
+      } else if (chunk.type === 'done' && chunk.usage) {
+        // Real token usage from the provider (see llmService stream_options.include_usage).
+        usageTokens = chunk.usage.totalTokens
       } else if (chunk.type === 'error' && chunk.error) {
         config.writer?.({ type: 'error', error: chunk.error })
         return {
@@ -684,13 +688,16 @@ async function generateNode(
     const completedProgress = updateProgress(progress, 'generate', 'completed')
     config.writer?.({ type: 'progress', items: completedProgress })
 
+    // Prefer real provider usage; fall back to streamed-chunk count if unreported (e.g. Gemini path).
+    const tokens = usageTokens > 0 ? usageTokens : chunkCount
+
     return {
       answer: fullAnswer,
       progress: completedProgress,
       metrics: {
         ...state.metrics,
         nodeExecutions: state.metrics.nodeExecutions + 1,
-        totalTokens: state.metrics.totalTokens + tokenCount
+        totalTokens: state.metrics.totalTokens + tokens
       }
     }
   } catch (error) {
