@@ -1,30 +1,32 @@
 /**
- * Mastra adapter (slice domuk-k/dwkim#24) — SCAFFOLD.
+ * Mastra adapter (slice domuk-k/dwkim#24).
  *
- * This implements the SAME `RunAgent` contract as the LangGraph adapter so the eval
- * harness compares apples-to-apples. The search tool below is wired (it reuses the
- * existing local BM25 search, so both agents retrieve from the identical Sources).
+ * Implements the SAME `RunAgent` contract as the LangGraph adapter so the eval
+ * harness compares apples-to-apples. The search tool reuses the existing local
+ * BM25 search, so both agents ground on the identical Sources; the model
+ * (openrouter/anthropic/claude-sonnet-4) is the same one the baseline used, so the
+ * before/after isolates orchestration (LangGraph vs Mastra), not the model.
  *
- * ⚠️ The Agent definition + Memory + the result→AgentOutput mapping are LEFT FOR YOU —
- * that is the learning core of #24. TODOs mark each spot. Verify every Mastra API
- * against the installed docs, not memory:
- *   node_modules/.bun/…/@mastra/core/dist/docs/references/
- *     - docs-agents-overview.md   (new Agent({ id, name, instructions, model, tools }))
- *     - docs-agents-using-tools.md
- *     - docs-memory-overview.md    (new Memory({ storage: new LibSQLStore({ url }) }))
- * Debug interactively in Mastra Studio: `npm run dev` → http://localhost:4111
+ * APIs verified against installed docs (@mastra/core@1.36): Agent ctor, createTool,
+ * Memory + LibSQLStore, agent.generate() -> { text, toolResults, usage }.
  */
 
-import type { Agent } from '@mastra/core/agent'
+import { Agent } from '@mastra/core/agent'
 import { createTool } from '@mastra/core/tools'
+import { LibSQLStore } from '@mastra/libsql'
+import { Memory } from '@mastra/memory'
 import { z } from 'zod'
-import { getVectorStore } from '../../src/services/vectorStore'
-import type { RunAgent } from './runAgent'
+import type { Document } from '../../src/services/vectorStore'
+import { getVectorStore, initVectorStore } from '../../src/services/vectorStore'
+import type { AgentInput, AgentOutput, RunAgent } from './runAgent'
 
 /**
- * Search tool — DONE. Wraps the existing BM25 `searchHybrid`, so the Mastra agent
- * grounds on the same Documents the LangGraph baseline used. Keep this as-is.
+ * Search tool — wraps the existing BM25 `searchHybrid`. We also stash the retrieved
+ * Documents per call so the adapter can surface the real Document[] for scoring
+ * (the tool's own output payload is summarised text).
  */
+let lastSources: Document[] = []
+
 export const personaSearchTool = createTool({
   id: 'persona-search',
   description:
@@ -41,53 +43,73 @@ export const personaSearchTool = createTool({
   execute: async (inputData) => {
     const { query, topK } = inputData
     const docs = await getVectorStore().searchHybrid(query, topK)
+    lastSources = docs
     return {
       sources: docs.map((d) => ({ id: d.id, title: d.metadata.title, content: d.content }))
     }
   }
 })
 
-/**
- * TODO(#24): define the Mastra persona Agent — the learning core.
- *
- * Model: use 'openrouter/anthropic/claude-sonnet-4' — the SAME model + gateway the
- *   LangGraph baseline used (OPENROUTER_API_KEY), so the before/after isolates
- *   orchestration, not the model.
- * Wire: instructions (port the persona-system prompt from Langfuse), tools:
- *   { personaSearchTool }, and memory (new Memory({ storage: new LibSQLStore(...) }))
- *   — Memory is the lever for the multi-turn weakness the baseline exposed
- *   (cogni follow-up: assertion 0/1, relevance 0.70).
- */
+const INSTRUCTIONS = `너는 김동욱(dwkim)의 AI 프로필 에이전트다.
+질문이 들어오면 먼저 persona-search 도구로 김동욱의 노트를 검색하고, 검색된 내용에 근거해서만 답하라.
+이전 대화 맥락(예: "그 프로젝트", "거기서 쓴 스택")을 이어받아 무엇을 묻는지 해석하라.
+노트에 근거가 없으면 모른다고 솔직히 말하고, 정보를 지어내지 마라.
+간결하고 자연스러운 한국어로 답하라.`
+
 export function createPersonaAgent(): Agent {
-  throw new Error('TODO(#24): define the Mastra persona Agent (instructions + tools + memory)')
-  // return new Agent({
-  //   id: 'persona',
-  //   name: 'Persona',
-  //   model: 'openrouter/anthropic/claude-sonnet-4',
-  //   instructions: '…', // port persona-system
-  //   tools: { personaSearchTool },
-  //   memory: new Memory({ storage: new LibSQLStore({ url: ':memory:' }) })
-  // })
+  return new Agent({
+    id: 'persona',
+    name: 'Persona',
+    model: 'openrouter/anthropic/claude-sonnet-4',
+    instructions: INSTRUCTIONS,
+    tools: { personaSearchTool },
+    memory: new Memory({ storage: new LibSQLStore({ id: 'persona-eval', url: ':memory:' }) })
+  })
 }
 
-/**
- * Adapter — SAME contract as `langGraphAgent`. The shell is here; fill the marked
- * gaps once `createPersonaAgent` exists.
- */
 let agent: Agent | null = null
+let vectorStoreReady = false
+let threadSeq = 0
 
-export const mastraAgent: RunAgent = async ({ query, history = [] }) => {
+async function ensureAgent(): Promise<Agent> {
+  // The search tool reads getVectorStore(); it must be initialised first (the
+  // LangGraph path does this via PersonaEngine.initialize()), else it returns mocks.
+  if (!vectorStoreReady) {
+    await initVectorStore()
+    vectorStoreReady = true
+  }
   if (!agent) agent = createPersonaAgent()
+  return agent
+}
+
+export const mastraAgent: RunAgent = async ({
+  query,
+  history = []
+}: AgentInput): Promise<AgentOutput> => {
+  const agent = await ensureAgent()
+  lastSources = []
   const start = performance.now()
 
-  // TODO(#24): pass `history` as Mastra messages (and/or a memory thread), and
-  // capture the Sources returned by personaSearchTool from the agent's tool results.
-  const res = await agent.generate(query)
+  // Prior turns as messages so multi-turn follow-ups resolve in context; a unique
+  // thread keeps Memory isolated per eval case.
+  const messages = [...history, { role: 'user' as const, content: query }]
+  const res = await agent.generate(messages, {
+    memory: { resource: 'eval', thread: `case-${threadSeq++}` }
+  })
+
+  if (process.env.MASTRA_DEBUG) {
+    console.log('[mastra debug] keys:', Object.keys(res))
+    console.log('[mastra debug] usage:', JSON.stringify(res.usage))
+    console.log('[mastra debug] toolResults:', JSON.stringify(res.toolResults)?.slice(0, 300))
+  }
+
+  const usage = res.usage as Record<string, number> | undefined
+  const tokens = usage?.totalTokens ?? (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0)
 
   return {
     answer: res.text,
-    sources: [], // TODO(#24): surface tool-retrieved Sources (from res tool results)
-    tokens: res.usage?.totalTokens ?? 0, // TODO(#24): verify usage shape against docs
+    sources: lastSources,
+    tokens,
     ms: Math.round(performance.now() - start)
   }
 }
