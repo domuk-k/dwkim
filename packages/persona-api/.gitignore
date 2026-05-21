@@ -9,4 +9,8 @@ yarn-error.log*
 coverage
 .nyc_output
 .DS_Store
-*.log 
+*.log
+
+# Evalite (result DB lives in node_modules/.evalite; this is the HTML export bundle)
+eval-report/
+.evalite/ 
