@@ -1,0 +1,16 @@
+{
+  "// note": "ES2022 config for the eval + Mastra code, which Bun runs directly. Kept separate from ../tsconfig.json (ES2020/commonjs, the prod server build) so Mastra's ESM-only types resolve in the IDE without touching the production build. The full src→ES2022 migration happens at the real server cutover, not here.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "types": ["bun"]
+  },
+  "include": ["**/*.ts"]
+}
