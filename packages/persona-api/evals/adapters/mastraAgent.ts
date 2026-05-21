@@ -3,9 +3,9 @@
  *
  * Implements the SAME `RunAgent` contract as the LangGraph adapter so the eval
  * harness compares apples-to-apples. The search tool reuses the existing local
- * BM25 search, so both agents ground on the identical Sources; the model
- * (openrouter/anthropic/claude-sonnet-4) is the same one the baseline used, so the
- * before/after isolates orchestration (LangGraph vs Mastra), not the model.
+ * BM25 search, so both agents ground on the identical Sources; the model is kept
+ * in sync with the LangGraph side via LLM_GENERATION_MODEL (Haiku by default for
+ * cheap eval runs), so the before/after isolates orchestration, not the model.
  *
  * APIs verified against installed docs (@mastra/core@1.36): Agent ctor, createTool,
  * Memory + LibSQLStore, agent.generate() -> { text, toolResults, usage }.
@@ -60,7 +60,10 @@ export function createPersonaAgent(): Agent {
   return new Agent({
     id: 'persona',
     name: 'Persona',
-    model: 'openrouter/anthropic/claude-sonnet-4',
+    // Synced to the LangGraph side via LLM_GENERATION_MODEL so both agents use the
+    // same model; defaults to Haiku (cheap) for eval runs. The model router needs
+    // the `openrouter/` prefix; LLM_GENERATION_MODEL is the bare `provider/model`.
+    model: `openrouter/${process.env.LLM_GENERATION_MODEL ?? 'anthropic/claude-haiku-4.5'}`,
     instructions: INSTRUCTIONS,
     tools: { personaSearchTool },
     memory: new Memory({ storage: new LibSQLStore({ id: 'persona-eval', url: ':memory:' }) })

@@ -131,7 +131,7 @@ export function makeJudgeScorers(judge: JudgeFn): {
  * The judge model. A distinct strong model from the Gemini generator to avoid
  * self-preference bias (ADR-0002). Overridable via env for cost control.
  */
-export const JUDGE_MODEL = process.env.LLM_JUDGE_MODEL || 'anthropic/claude-sonnet-4'
+export const JUDGE_MODEL = process.env.LLM_JUDGE_MODEL || 'anthropic/claude-haiku-4.5'
 
 /**
  * Build the judge prompt. Embeds the query, the answer under test, every retrieved

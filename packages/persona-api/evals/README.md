@@ -18,12 +18,15 @@ evals/
 
 ## Prerequisites
 
-`packages/persona-api/.env` with `OPENROUTER_API_KEY` (generation + judge both use
-`anthropic/claude-sonnet-4` via OpenRouter), `GOOGLE_API_KEY`, and the `LANGFUSE_*`
-keys. Search is local BM25 (`data/searchIndex.json`, committed) — no API.
+`packages/persona-api/.env` with `OPENROUTER_API_KEY` (generation + judge default to
+`anthropic/claude-haiku-4.5` for eval runs — cheap; the prod server stays on
+sonnet-4), `GOOGLE_API_KEY`, and the `LANGFUSE_*` keys. Search is local BM25
+(`data/searchIndex.json`, committed) — no API. Override models with
+`LLM_GENERATION_MODEL` / `LLM_JUDGE_MODEL`.
 
 > **Cost**: every command below except `bun test` makes real LLM calls billed to the
-> OpenRouter key. A full before/after (`baseline` + `baseline:mastra`) is ~150 calls.
+> OpenRouter key. A full before/after (`baseline` + `baseline:mastra`) is ~150 calls
+> — a few cents on Haiku 4.5 (was ~$0.85 when this ran on Sonnet-4, lesson learned).
 
 ## Commands
 
@@ -59,9 +62,9 @@ Result artifacts:
 
 ## Credibility notes (read before quoting numbers)
 
-- The judge (`claude-sonnet-4`) shares a family with both generators → absolute scores
-  are likely inflated, but equally on both sides, so the *relative* comparison holds.
-  Use a neutral `LLM_JUDGE_MODEL` to tighten absolutes.
+- The judge (Anthropic, Haiku by default) shares a family with both generators →
+  absolute scores are likely inflated, but equally on both sides, so the *relative*
+  comparison holds. Use a non-Anthropic `LLM_JUDGE_MODEL` to tighten absolutes.
 - LangGraph runs at temp=0; the Mastra agent runs at its model default (non-zero σ).
 - Freeze the baseline (`snapshot.json`) and commit it **before** changing the agent,
   so the before/after can't be accused of moving the goalposts.
