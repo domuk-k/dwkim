@@ -12,10 +12,12 @@
 import 'dotenv/config'
 import { evalite } from 'evalite'
 import { langGraphAgent } from './adapters/runAgent'
-import { skeletonCases } from './golden/cases'
+import { goldenCases } from './golden/cases'
 
+// Smoke only: first case (greeting, fast-path). The full per-branch baseline run
+// with real scorers is wired in slice #23.
 evalite('persona-skeleton (LangGraph)', {
-  data: async () => skeletonCases.map((c) => ({ input: c.input })),
+  data: async () => goldenCases.slice(0, 1).map((c) => ({ input: c.input })),
   task: async (input) => langGraphAgent(input),
   scorers: [
     {
