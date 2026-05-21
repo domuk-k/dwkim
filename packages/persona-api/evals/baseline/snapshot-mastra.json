@@ -1,0 +1,241 @@
+{
+  "adapter": "mastra",
+  "capturedAt": "2026-05-21T04:51:44.798Z",
+  "runs": 3,
+  "temperature": "0",
+  "generationModel": null,
+  "judgeModel": "anthropic/claude-sonnet-4",
+  "cases": [
+    {
+      "name": "greeting",
+      "branch": "simple",
+      "metrics": {
+        "assertionScore": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        },
+        "tokens": {
+          "n": 3,
+          "mean": 5979.666666666667,
+          "stddev": 31.255221785949445,
+          "min": 5937,
+          "max": 6011
+        },
+        "ms": {
+          "n": 3,
+          "mean": 8287.666666666666,
+          "stddev": 230.07873048637552,
+          "min": 7975,
+          "max": 8522
+        }
+      },
+      "hallucinationRate": 0
+    },
+    {
+      "name": "tech-stack",
+      "branch": "factual-persona",
+      "metrics": {
+        "assertionScore": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        },
+        "tokens": {
+          "n": 3,
+          "mean": 7181.666666666667,
+          "stddev": 328.7292029754717,
+          "min": 6746,
+          "max": 7540
+        },
+        "ms": {
+          "n": 3,
+          "mean": 8682.666666666666,
+          "stddev": 391.10214636190494,
+          "min": 8130,
+          "max": 8978
+        },
+        "faithfulness": {
+          "n": 3,
+          "mean": 0.9166666666666666,
+          "stddev": 0.023570226039551553,
+          "min": 0.9,
+          "max": 0.95
+        },
+        "relevance": {
+          "n": 3,
+          "mean": 0.9666666666666667,
+          "stddev": 0.04714045207910316,
+          "min": 0.9,
+          "max": 1
+        }
+      },
+      "hallucinationRate": 0
+    },
+    {
+      "name": "hackathon",
+      "branch": "factual-persona",
+      "metrics": {
+        "assertionScore": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        },
+        "tokens": {
+          "n": 3,
+          "mean": 6249,
+          "stddev": 34.18576701884378,
+          "min": 6201,
+          "max": 6278
+        },
+        "ms": {
+          "n": 3,
+          "mean": 9025,
+          "stddev": 1039.0178054297241,
+          "min": 7796,
+          "max": 10337
+        },
+        "faithfulness": {
+          "n": 3,
+          "mean": 0.9333333333333332,
+          "stddev": 0.04714045207910316,
+          "min": 0.9,
+          "max": 1
+        },
+        "relevance": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        }
+      },
+      "hallucinationRate": 0
+    },
+    {
+      "name": "cogni-stack-followup",
+      "branch": "multi-turn",
+      "metrics": {
+        "assertionScore": {
+          "n": 3,
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0
+        },
+        "tokens": {
+          "n": 3,
+          "mean": 6875.333333333333,
+          "stddev": 56.84090858606053,
+          "min": 6795,
+          "max": 6918
+        },
+        "ms": {
+          "n": 3,
+          "mean": 8413,
+          "stddev": 2590.0954937350607,
+          "min": 6129,
+          "max": 12035
+        },
+        "faithfulness": {
+          "n": 3,
+          "mean": 0.9,
+          "stddev": 0.14142135623730953,
+          "min": 0.7,
+          "max": 1
+        },
+        "relevance": {
+          "n": 3,
+          "mean": 0.9,
+          "stddev": 0.08164965809277258,
+          "min": 0.8,
+          "max": 1
+        }
+      },
+      "hallucinationRate": 0
+    },
+    {
+      "name": "contact-email",
+      "branch": "contact-intent",
+      "metrics": {
+        "assertionScore": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        },
+        "tokens": {
+          "n": 3,
+          "mean": 7448,
+          "stddev": 205.77819774375192,
+          "min": 7300,
+          "max": 7739
+        },
+        "ms": {
+          "n": 3,
+          "mean": 5510.333333333333,
+          "stddev": 2091.2339791509594,
+          "min": 3271,
+          "max": 8303
+        },
+        "faithfulness": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        },
+        "relevance": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        }
+      },
+      "hallucinationRate": 0
+    },
+    {
+      "name": "blood-type-out-of-scope",
+      "branch": "out-of-scope",
+      "metrics": {
+        "assertionScore": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        },
+        "tokens": {
+          "n": 3,
+          "mean": 4323.666666666667,
+          "stddev": 20.885933597094056,
+          "min": 4306,
+          "max": 4353
+        },
+        "ms": {
+          "n": 3,
+          "mean": 4392.333333333333,
+          "stddev": 489.0953099572947,
+          "min": 3843,
+          "max": 5031
+        },
+        "relevance": {
+          "n": 3,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1
+        }
+      },
+      "hallucinationRate": 0
+    }
+  ]
+}

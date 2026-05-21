@@ -17,6 +17,7 @@
 import 'dotenv/config'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { mastraAgent } from '../adapters/mastraAgent'
 import { langGraphAgent } from '../adapters/runAgent'
 import { goldenCases } from '../golden/cases'
 import { evaluateAssertions } from '../scorers/assertions'
@@ -25,8 +26,12 @@ import { type Summary, summarize } from './stats'
 
 const RUNS = Number(process.env.BASELINE_RUNS ?? 3)
 const LIMIT = process.env.BASELINE_LIMIT ? Number(process.env.BASELINE_LIMIT) : undefined
+// ADAPTER=langgraph writes the frozen baseline; ADAPTER=mastra writes the "after".
+const ADAPTER = (process.env.ADAPTER ?? 'langgraph') as 'langgraph' | 'mastra'
+const runAgent = ADAPTER === 'mastra' ? mastraAgent : langGraphAgent
+const SUFFIX = ADAPTER === 'mastra' ? '-mastra' : ''
 const OUT_DIR = import.meta.dir
-const FIX_DIR = join(OUT_DIR, 'fixtures')
+const FIX_DIR = join(OUT_DIR, `fixtures${SUFFIX}`)
 
 interface RunResult {
   answer: string
@@ -49,7 +54,7 @@ interface CaseSummary {
 async function main() {
   const cases = LIMIT ? goldenCases.slice(0, LIMIT) : goldenCases
   console.log(
-    `Baseline: ${cases.length} cases × ${RUNS} runs @ temp=${process.env.LLM_GENERATION_TEMPERATURE ?? 'default'}\n`
+    `[${ADAPTER}] ${cases.length} cases × ${RUNS} runs @ temp=${process.env.LLM_GENERATION_TEMPERATURE ?? 'default'}\n`
   )
   mkdirSync(FIX_DIR, { recursive: true })
 
@@ -59,7 +64,7 @@ async function main() {
     const runs: RunResult[] = []
 
     for (let i = 0; i < RUNS; i++) {
-      const out = await langGraphAgent(c.input)
+      const out = await runAgent(c.input)
       const assertion = evaluateAssertions(out, c.assertions ?? {})
 
       let faithfulness: number | undefined
@@ -116,6 +121,7 @@ async function main() {
   }
 
   const snapshot = {
+    adapter: ADAPTER,
     capturedAt: new Date().toISOString(),
     runs: RUNS,
     temperature: process.env.LLM_GENERATION_TEMPERATURE ?? null,
@@ -123,9 +129,11 @@ async function main() {
     judgeModel: JUDGE_MODEL,
     cases: perCase
   }
-  writeFileSync(join(OUT_DIR, 'snapshot.json'), JSON.stringify(snapshot, null, 2))
+  writeFileSync(join(OUT_DIR, `snapshot${SUFFIX}.json`), JSON.stringify(snapshot, null, 2))
 
-  console.log('\n✓ Baseline written: evals/baseline/snapshot.json (+ fixtures/)\n')
+  console.log(
+    `\n✓ ${ADAPTER} written: evals/baseline/snapshot${SUFFIX}.json (+ fixtures${SUFFIX}/)\n`
+  )
   for (const c of perCase) {
     const f = c.metrics.faithfulness
     const r = c.metrics.relevance

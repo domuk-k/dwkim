@@ -1,0 +1,70 @@
+{
+  "case": "hackathon",
+  "branch": "factual-persona",
+  "query": "동욱이 해커톤 경험이 있어?",
+  "runs": [
+    {
+      "answer": "네, 동욱이 해커톤 경험이 꽤 있어요!\n\n**주관/운영 측면에서:**\n- **데이원컴퍼니 FE 스쿨**에서 해커톤을 주관한 적이 있어요 (2020-2021)\n- **OpenAI x Coxwave 해커톤**에서 기술자문 역할을 맡아서 운영했어요\n  - 참가자 가이드, 심사 기준부터 Discord 서버 설계까지 운영 문서 15개 이상을 일주일 전에 다 준비했다고 하네요\n  - OpenAI 엔지니어가 \"여러 나라 해커톤 경험했는데 이런 열린 구조는 처음\"이라고 피드백할 정도로 체계적으로 운영했어요\n\n**개발 측면에서:**\n- Generative UI 연구에서 해커톤을 \"프로토타이핑에 적합한 환경\"으로 언급하는 걸 보면, 해커톤에서 빠른 프로토타이핑 경험도 있는 것 같아요\n\n주최자/운영자로서의 해커톤 경험이 더 두드러져 보이네요. 특히 OpenAI 협력 해커톤에서는 우승팀이 Krafton 본사 정식 발표까지 예정될 정도로 성공적이었다고 해요.",
+      "sourceIds": [
+        "cogni_resume_5",
+        "cogni_self-pr-hackathon-openai-coxwave_1",
+        "cogni_100-questions_53",
+        "cogni_100-questions_42",
+        "cogni_100-questions_38",
+        "cogni_100-questions_40",
+        "cogni_research-genui-agentic-ux_6",
+        "cogni_100-questions_24",
+        "cogni_gumloop-deep-dive_1",
+        "cogni_100-questions_51"
+      ],
+      "tokens": 6268,
+      "ms": 10337,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 1
+    },
+    {
+      "answer": "네, 김동욱은 여러 해커톤 경험이 있어요! \n\n주요 해커톤 경험들을 보면:\n\n**해커톤 운영 경험:**\n- **OpenAI x Coxwave 해커톤**에서 기술자문 역할을 했어요. LLM 기반 평가 에이전트 설계를 담당했고, OpenAI 엔지니어가 \"여러 나라 해커톤을 경험했는데, 이런 열린 구조는 처음\"이라고 평가할 정도로 체계적으로 운영했습니다.\n\n- **데이원컴퍼니 FE 스쿨 매니저** 시절(2020.10-2021.04)에도 해커톤을 주관한 경험이 있어요.\n\n**해커톤 운영에서 인상적인 점들:**\n- Claude Code cowork 모드로 D-7부터 운영 문서 15개 이상을 세팅\n- 참가자 가이드, 심사 루브릭, Google Apps Script 기반 심사 시스템 등 체계적인 산출물 준비\n- 우승팀이 Krafton 본사 정식 발표 예정일 정도로 높은 퀄리티의 결과물이 나왔다고 하네요\n\n단순 참가자가 아니라 기술자문과 운영 측면에서 해커톤에 깊이 관여한 경험을 가지고 있어요.",
+      "sourceIds": [
+        "cogni_resume_5",
+        "cogni_self-pr-hackathon-openai-coxwave_1",
+        "cogni_100-questions_53",
+        "cogni_100-questions_42",
+        "cogni_100-questions_38",
+        "cogni_100-questions_40",
+        "cogni_research-genui-agentic-ux_6",
+        "cogni_100-questions_24",
+        "cogni_gumloop-deep-dive_1",
+        "cogni_100-questions_51"
+      ],
+      "tokens": 6278,
+      "ms": 8942,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "네, 동욱이는 해커톤 경험이 있어요!\n\n**직접적인 해커톤 경험:**\n- **OpenAI x Coxwave Hackathon 운영 및 기술자문** - LLM 기반 평가 에이전트를 설계했고, 해커톤 전체 운영을 담당했어요. OpenAI 엔지니어가 \"여러 나라 해커톤을 경험했는데, 이런 열린 구조는 처음\"이라고 할 정도로 잘 기획했다고 하네요.\n\n**교육/멘토링에서의 해커톤:**\n- **(주)데이원컴퍼니 FE 스쿨 매니저** (2020-2021) - 수강생 20명을 리드하면서 해커톤을 직접 주관했어요.\n\n운영자 입장에서 해커톤을 기획하고 진행한 경험이 풍부한 것 같아요. 특히 최근 OpenAI 해커톤에서는 참가자 가이드, 심사 시스템, Discord 서버 설계 등 해커톤 운영의 모든 부분을 체계적으로 준비했다고 하네요.",
+      "sourceIds": [
+        "cogni_resume_5",
+        "cogni_self-pr-hackathon-openai-coxwave_1",
+        "cogni_100-questions_53",
+        "cogni_100-questions_42",
+        "cogni_100-questions_38",
+        "cogni_100-questions_40",
+        "cogni_research-genui-agentic-ux_6",
+        "cogni_100-questions_24",
+        "cogni_gumloop-deep-dive_1",
+        "cogni_100-questions_51"
+      ],
+      "tokens": 6201,
+      "ms": 7796,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 1
+    }
+  ]
+}

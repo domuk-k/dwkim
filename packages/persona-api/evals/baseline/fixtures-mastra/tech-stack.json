@@ -1,0 +1,70 @@
+{
+  "case": "tech-stack",
+  "branch": "factual-persona",
+  "query": "주로 어떤 기술 스택을 사용하나요?",
+  "runs": [
+    {
+      "answer": "김동욱이 주로 사용하는 기술 스택을 정리해드리면:\n\n## 메인 기술 스택\n- **TypeScript**: 가장 자신있어하는 메인 언어\n- **프론트엔드**: React, Next.js, Astro, Svelte 등\n- **백엔드**: Kotlin/Spring, Bun.serve + Elysia, Node.js\n\n## 관심 분야 및 전문성\n**프론트엔드 주요 관심사:**\n- 서버 상태/캐시 관리 \n- URL 상태 관리\n- Form 관리\n- 에디터 개발\n- 애니메이션\n- UX 설계\n\n**기타 기술:**\n- LangGraph (AI 에이전트 개발)\n- Qdrant (벡터 데이터베이스)\n- Python, Go, C++ (AI 도움으로 새로운 스택에도 진입)\n\n## 특징적인 접근 방식\n- **패턴 중심 학습**: 세부사항보다 패턴과 관계성을 먼저 익힘\n- **AI 활용**: ChatGPT, GitHub Copilot으로 새로운 기술 스택 진입 장벽을 낮춤\n- **프레임워크 탈출**: 필요시 프레임워크 추상화를 벗어나 런타임을 직접 다룸\n\nAI 도구 덕분에 \"언어를 몰라서 못한다\"는 핑계가 사라졌고, 이제는 **무엇을 만들지, 어떻게 설계할지**에 더 집중한다고 하네요.",
+      "sourceIds": [
+        "blog_tastelog-0-why-taste_1",
+        "blog_game-to-ai-creation-dopamine-loop_4",
+        "cogni_thoughts_2",
+        "cogni_agent-outcome-structured-signal-pattern_0",
+        "cogni_spec-ui-research_0",
+        "cogni_100-questions_47",
+        "blog_blog-decision-agent_3",
+        "cogni_100-questions_16",
+        "cogni_escaping-framework-abstractions_5",
+        "cogni_resume_4"
+      ],
+      "tokens": 6746,
+      "ms": 8978,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 1
+    },
+    {
+      "answer": "김동욱이 주로 사용하는 기술 스택을 검색 결과를 바탕으로 정리해드릴게요.\n\n## 주요 기술 스택\n\n**백엔드:**\n- **Node.js & TypeScript** - 메인 개발 언어\n- **Kotlin/Spring** - 백엔드 개발에 활용\n\n**프론트엔드:**\n- **React/Next.js** - 주력 프론트엔드 스택\n\n**AI/ML 관련:**\n- **OpenAI API** - AI 기능 구현\n- **LangChain, LangGraph** - Agent 개발\n- **RAG 시스템** - 지식 검색 시스템\n- **Vector Database** (Qdrant, Neon) - 벡터 저장소\n- **스트리밍 SSE** - 실시간 데이터 처리\n\n**개발 도구:**\n- **Claude Code, GitHub Copilot** - AI 코딩 도구 적극 활용\n- **Docker** - 컨테이너화\n- **Git, GitHub/GitLab** - 버전 관리 및 코드 리뷰\n\n**개발 철학:**\n- **Interface First, TDD, Docker First** 개발 방식 선호\n- **클린 아키텍처** 지향\n- **SOLID 원칙** 적용 (Interface Segregation, Open/Closed, Dependency Inversion 등)\n\n최근에는 특히 AI 에이전트 개발과 RAG 기반 시스템에 집중하고 있으며, 새로운 기술 스택을 배울 때 AI 도구의 도움으로 진입 장벽을 낮춰 빠르게 학습하는 스타일이네요.",
+      "sourceIds": [
+        "cogni_thoughts_2",
+        "blog_tastelog-0-why-taste_1",
+        "cogni_agent-outcome-structured-signal-pattern_0",
+        "cogni_workflow-studio-10day-retrospective_6",
+        "cogni_spec-ui-research_0",
+        "cogni_100-questions_17",
+        "cogni_faq_0",
+        "blog_game-to-ai-creation-dopamine-loop_4",
+        "blog_blog-decision-agent_3",
+        "cogni_research-genui-agentic-ux_6"
+      ],
+      "tokens": 7540,
+      "ms": 8940,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 0.9,
+      "relevance": 1
+    },
+    {
+      "answer": "김동욱이 주로 사용하는 기술 스택은 **TypeScript**를 중심으로 한 프론트엔드 기술들입니다.\n\n## 메인 기술 스택\n- **TypeScript** - 가장 자신있는 언어\n- **React** (최신 버전 포함 React 19)\n- **Node.js/Bun** - 백엔드\n- **Next.js** - 풀스택 개발\n\n## 세부 기술 영역\n\n**프론트엔드 관심사:**\n- 서버 상태/캐시 관리\n- URL 상태 관리\n- Form 관리\n- 에디터 개발\n- 애니메이션\n- UX\n\n**최근 프로젝트에서 사용한 기술:**\n- **모노레포**: Turborepo, pnpm workspace\n- **빌드**: Vite, tsup\n- **상태관리**: Zustand\n- **스타일링**: Vanilla Extract (Zero-runtime CSS)\n- **테스트**: Vitest, Playwright\n- **배포**: Vercel, Fly.io, AWS S3/CloudFront\n\n**백엔드:**\n- **Bun.serve + Elysia** (성능 최적화)\n- **LangGraph** (AI 에이전트)\n- **Spring/Kotlin** (필요시)\n\nAI 도구 덕분에 언어나 프레임워크의 진입 장벽이 낮아져서, 필요에 따라 다양한 스택을 활용하되 **패턴과 설계**에 더 집중하는 방식으로 개발한다고 하네요.",
+      "sourceIds": [
+        "cogni_thoughts_2",
+        "cogni_100-questions_47",
+        "blog_tastelog-0-why-taste_1",
+        "cogni_spec-ui-research_0",
+        "cogni_research-genui-agentic-ux_6",
+        "cogni_100-questions_16",
+        "cogni_escaping-framework-abstractions_5",
+        "cogni_resume_4",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_coxwave-project_0"
+      ],
+      "tokens": 7259,
+      "ms": 8130,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 0.95,
+      "relevance": 0.9
+    }
+  ]
+}

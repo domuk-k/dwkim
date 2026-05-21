@@ -1,0 +1,67 @@
+{
+  "case": "blood-type-out-of-scope",
+  "branch": "out-of-scope",
+  "query": "김동욱 혈액형이 뭐야?",
+  "runs": [
+    {
+      "answer": "검색해봤는데 김동욱의 노트에서 혈액형 정보는 찾을 수 없네요. 이메일, GitHub 계정, 회사, 취미 등은 기록되어 있지만 혈액형 관련 내용은 없습니다. 죄송하지만 모른다고 답해야겠어요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_100-questions_57",
+        "cogni_100-questions_82",
+        "rag_빠른말-스터디-제안서-팀용_8",
+        "cogni_100-questions_83",
+        "cogni_100-questions_80"
+      ],
+      "tokens": 4306,
+      "ms": 3843,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    },
+    {
+      "answer": "검색한 결과를 보니 김동욱의 혈액형에 대한 정보는 노트에 기록되어 있지 않네요. 개인적인 신체적 특징보다는 개발자로서의 경력, 사고방식, 업무 스타일 등에 대한 내용이 주로 기록되어 있습니다.\n\n혈액형 정보는 김동욱의 노트에서 찾을 수 없어서 답변드릴 수 없습니다.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_100-questions_57",
+        "cogni_100-questions_82",
+        "rag_빠른말-스터디-제안서-팀용_8",
+        "cogni_100-questions_83",
+        "cogni_100-questions_80"
+      ],
+      "tokens": 4353,
+      "ms": 4303,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    },
+    {
+      "answer": "김동욱의 노트를 검색해보았지만, 혈액형에 대한 정보는 찾을 수 없습니다. 제가 가지고 있는 김동욱의 개인 프로필, 이력서, 100가지 질문 답변 등에서도 혈액형 관련 내용은 기록되어 있지 않네요.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_92",
+        "cogni_personal-profile_0",
+        "cogni_100-questions_66",
+        "cogni_100-questions_57",
+        "cogni_100-questions_82",
+        "rag_빠른말-스터디-제안서-팀용_8",
+        "cogni_100-questions_83",
+        "cogni_100-questions_80"
+      ],
+      "tokens": 4312,
+      "ms": 5031,
+      "assertionScore": 1,
+      "hallucination": false,
+      "relevance": 1
+    }
+  ]
+}

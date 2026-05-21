@@ -1,0 +1,70 @@
+{
+  "case": "cogni-stack-followup",
+  "branch": "multi-turn",
+  "query": "cogni 프로젝트는 어떤 기술 스택을 사용했나요?",
+  "runs": [
+    {
+      "answer": "Cogni 프로젝트의 구체적인 기술 스택에 대한 상세 정보가 검색 결과에 없네요. \n\n검색 결과를 보면 Cogni는 개인 노트 시스템(PKM)이고 Claude Code로 만든 PKM 에이전트라고 언급되어 있지만, 구체적인 기술 스택은 명시되어 있지 않습니다. \n\n죄송하지만 Cogni 프로젝트의 정확한 기술 스택 정보는 제가 가진 자료에서 찾을 수 없어서 확실히 말씀드릴 수 없습니다.",
+      "sourceIds": [
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_personal-profile_7",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "blog_cogni-pkm-agent_3",
+        "cogni_100-questions_16",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_cogni-integration-guide_1",
+        "cogni_faq_0"
+      ],
+      "tokens": 6795,
+      "ms": 6129,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "cogni 프로젝트에 대한 구체적인 기술 스택 정보는 검색 결과에서 명확하게 나와있지 않네요. \n\n검색된 내용에서는 cogni가 \"개인 노트 시스템\"이고 \"SSOT(Single Source of Truth)\"로 운영되며, 블로그나 persona-api에 자동 싱크되는 시스템이라고 언급되어 있습니다. \n\n또한 Claude Code로 만든 PKM(Personal Knowledge Management) 에이전트라는 설명도 있지만, cogni 프로젝트 자체의 구체적인 기술 스택(프로그래밍 언어, 프레임워크, 데이터베이스 등)에 대한 상세한 정보는 제공된 노트에서 찾을 수 없었습니다.\n\n더 구체적인 cogni 프로젝트의 기술 스택 정보가 필요하시다면, 관련된 다른 키워드로 검색해볼 수 있을 것 같습니다.",
+      "sourceIds": [
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_personal-profile_7",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "blog_cogni-pkm-agent_3",
+        "cogni_100-questions_16",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_cogni-integration-guide_1",
+        "cogni_faq_0"
+      ],
+      "tokens": 6913,
+      "ms": 7075,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 0.8
+    },
+    {
+      "answer": "cogni 프로젝트는 개인 PKM(Personal Knowledge Management) 에이전트로, 다음 기술 스택을 사용했습니다:\n\n**백엔드**\n- Claude Code API (에이전트 베이스)\n- Qdrant 벡터 데이터베이스\n- Fly.io 배포\n\n**프론트엔드 & 통합**\n- Obsidian (로컬 노트 뷰어)\n- Astro (블로그 빌드)\n- TypeScript\n\n**아키텍처**\n- 노트를 `daily/`, `fleeting/`, `persona/`, `permanent/` 폴더로 구조화\n- 태그 기반 자동 싱크 (`[persona]` 태그는 Persona API로, `[blog]` 태그는 블로그로 자동 배포)\n- SSOT(Single Source of Truth) 방식으로 모든 콘텐츠가 cogni를 중심으로 동기화\n\n현재 제 블로그와 dwkim CLI의 지식 베이스가 모두 cogni에서 자동으로 업데이트되고 있어요.",
+      "sourceIds": [
+        "cogni_resume_4",
+        "cogni_100-questions_21",
+        "cogni_personal-profile_7",
+        "cogni_coxwave-project_0",
+        "blog_workflow-studio-revival-strategy_0",
+        "blog_cogni-pkm-agent_3",
+        "cogni_100-questions_16",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_cogni-integration-guide_1",
+        "cogni_faq_0"
+      ],
+      "tokens": 6918,
+      "ms": 12035,
+      "assertionScore": 0,
+      "hallucination": false,
+      "faithfulness": 0.7,
+      "relevance": 0.9
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "case": "contact-email",
+  "branch": "contact-intent",
+  "query": "이메일로 연락하려면 어떻게 해?",
+  "runs": [
+    {
+      "answer": "이메일로 연락하려면 **dannyworks102@gmail.com**으로 보내주세요.",
+      "sourceIds": [
+        "cogni_a2ui-contact-collection-research_1",
+        "cogni_a2ui-contact-collection-research_0",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_resume-en_3",
+        "cogni_resume_3",
+        "cogni_resume_0",
+        "cogni_dust-deep-dive_1",
+        "cogni_mock-engine-100x-faster-preview_0",
+        "cogni_gumloop-deep-dive_1",
+        "cogni_ws-competitive-strategy_5"
+      ],
+      "tokens": 7739,
+      "ms": 3271,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "김동욱에게 이메일로 연락하시려면 **dannyworks102@gmail.com**으로 보내시면 됩니다.",
+      "sourceIds": [
+        "cogni_a2ui-contact-collection-research_1",
+        "cogni_mock-engine-100x-faster-preview_0",
+        "cogni_a2ui-contact-collection-research_0",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_resume-en_0",
+        "cogni_resume-en_3",
+        "cogni_resume_3",
+        "blog_bun-sqlite-wal-file-explained_0",
+        "cogni_resume_0",
+        "cogni_gumloop-deep-dive_1"
+      ],
+      "tokens": 7300,
+      "ms": 4957,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    },
+    {
+      "answer": "김동욱의 이메일 주소는 **dannyworks102@gmail.com**입니다.\n\n이 이메일로 연락하시면 됩니다!",
+      "sourceIds": [
+        "cogni_a2ui-contact-collection-research_1",
+        "cogni_mock-engine-100x-faster-preview_0",
+        "cogni_a2ui-contact-collection-research_0",
+        "cogni_hitl-is-data-engine-not-friction_1",
+        "cogni_resume-en_0",
+        "cogni_resume-en_3",
+        "cogni_resume_3",
+        "blog_bun-sqlite-wal-file-explained_0",
+        "cogni_resume_0",
+        "cogni_gumloop-deep-dive_1"
+      ],
+      "tokens": 7305,
+      "ms": 8303,
+      "assertionScore": 1,
+      "hallucination": false,
+      "faithfulness": 1,
+      "relevance": 1
+    }
+  ]
+}

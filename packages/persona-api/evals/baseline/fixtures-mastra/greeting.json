@@ -1,0 +1,64 @@
+{
+  "case": "greeting",
+  "branch": "simple",
+  "query": "안녕",
+  "runs": [
+    {
+      "answer": "안녕하세요! 김동욱의 AI 프로필 에이전트입니다. 김동욱에 대해 궁금한 것이 있으시면 언제든 물어보세요!김동욱에 대해 간단히 소개드리면:\n\n**AI Agent Engineer & Product Lead**로 일하고 있습니다. 6년간 SaaS 제품을 설계하고 출시해온 소프트웨어 엔지니어로, 프론트엔드에서 시작해 SDK 아키텍처, LLM 파이프라인, 멀티에이전트 오케스트레이션으로 영역을 확장했습니다.\n\n현재는 콕스웨이브에서 Agent Builder Product Lead로서 4인 팀을 리드하며, **AI 코딩 에이전트와의 협업**을 통해 Workflow Studio를 24일 만에 설계·납품하는 등 AI-Assisted 개발 방법론을 실무에 적용하고 있습니다.\n\n**주요 특징:**\n- 멀티에이전트 시스템 설계 전문\n- AI 워크플로우 팀 내 전파 및 표준화\n- 기술 의사결정 문서화 (ADR 작성)\n- TypeScript 진영을 선호하는 개발자\n\n궁금한 점이 있으시면 언제든 물어보세요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_building-with-ai-agent_2",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_resume_1",
+        "blog_anthropic-typescript-bet_4",
+        "blog_cogni-pkm-agent_3",
+        "rag_wrtn-coding-agent-developer_1",
+        "cogni_rag-improvement-research_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_92"
+      ],
+      "tokens": 5991,
+      "ms": 8522,
+      "assertionScore": 1,
+      "hallucination": false
+    },
+    {
+      "answer": "안녕하세요! 저는 김동욱의 AI 프로필 에이전트입니다. 김동욱에 대해 궁금한 것이 있으시면 언제든 물어보세요.김동욱은 AI Agent Engineer & Product Lead로 활동하고 있는 소프트웨어 엔지니어입니다. 6년간 SaaS 제품을 설계하고 출시한 경험이 있으며, 프론트엔드에서 시작해서 SDK 아키텍처, LLM 파이프라인, 멀티에이전트 오케스트레이션까지 영역을 확장해왔습니다.\n\n현재 콕스웨이브에서 Agent Builder Product Lead로 4인 팀을 리드하고 있으며, AI 코딩 에이전트와의 협업을 통해 Workflow Studio를 24일 만에 설계·납품한 경험이 있습니다.\n\n김동욱에 대해 더 궁금한 것이 있으시면 언제든 물어보세요! 커리어, 기술 스택, 프로젝트, 개발 철학 등에 대해 답변드릴 수 있습니다.",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_building-with-ai-agent_2",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_resume_1",
+        "blog_anthropic-typescript-bet_4",
+        "blog_cogni-pkm-agent_3",
+        "rag_wrtn-coding-agent-developer_1",
+        "cogni_rag-improvement-research_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_92"
+      ],
+      "tokens": 5937,
+      "ms": 7975,
+      "assertionScore": 1,
+      "hallucination": false
+    },
+    {
+      "answer": "안녕하세요! 저는 김동욱의 AI 프로필 에이전트입니다. 김동욱에 대해 궁금한 것이 있으시면 언제든 물어보세요.김동욱에 대해 간단히 소개드릴게요!\n\n김동욱은 6년간 SaaS 제품을 설계하고 출시한 **AI Agent Engineer & Product Lead**입니다. 현재 콕스웨이브에서 Agent Builder Product Lead로 4인 팀을 리드하고 있어요.\n\n주요 특징:\n- **AI-Assisted 개발 전문가**: AI 코딩 에이전트와 협업해 24일 만에 Workflow Studio를 설계·납품\n- **멀티에이전트 시스템 설계**: LangGraph 기반 에이전트 오케스트레이션 전문\n- **기술 의사결정 문서화**: ADR 작성으로 설계 결정의 근거와 트레이드오프 기록\n- **프론트엔드→SDK 아키텍처→LLM 파이프라인**으로 영역을 확장한 풀스택 개발자\n\n연락처:\n- 이메일: dannyworks102@gmail.com  \n- GitHub: github.com/domuk-k\n- 소개 페이지: https://domuk-k.vercel.app/\n\n궁금한 점이 있으시면 언제든 물어보세요!",
+      "sourceIds": [
+        "cogni_resume_0",
+        "blog_building-with-ai-agent_2",
+        "cogni_agent-ux-architecture-research_5",
+        "cogni_resume_1",
+        "blog_anthropic-typescript-bet_4",
+        "blog_cogni-pkm-agent_3",
+        "rag_wrtn-coding-agent-developer_1",
+        "cogni_rag-improvement-research_0",
+        "cogni_hiring-evaluation-criteria-dwkim_1",
+        "cogni_100-questions_92"
+      ],
+      "tokens": 6011,
+      "ms": 8366,
+      "assertionScore": 1,
+      "hallucination": false
+    }
+  ]
+}
