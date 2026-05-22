@@ -38,13 +38,69 @@ export interface UXLogStats {
   topQueries: Array<{ query: string; count: number }>
 }
 
+/**
+ * Elicitation engagement 로그 (ADR-0003: "day 1부터 engagement 로깅" — 데이터가
+ * initiative ladder를 올릴지 결정한다).
+ *
+ * - shown: elicitation을 방문자에게 노출함
+ * - answered: 방문자가 옵션을 선택함 (value = visitorType 식별자)
+ * - skipped: TODO — session-state 추적 필요, Slice 1에서 DEFER
+ */
+export interface ElicitationLogEntry {
+  timestamp: string
+  deviceId?: string
+  sessionId: string
+  intent: string
+  event: 'shown' | 'answered'
+  value?: string
+}
+
 export class UXLogService {
   private redis: IRedisClient
   private readonly LOG_KEY = 'persona:ux_logs'
+  private readonly ELICITATION_LOG_KEY = 'persona:elicitation_logs'
   private readonly MAX_LOGS = 100
 
   constructor(redis: IRedisClient) {
     this.redis = redis
+  }
+
+  /**
+   * Elicitation engagement 로그 (circular buffer + Better Stack)
+   *
+   * fire-and-forget: 호출부에서 .catch()로 감싸 스트림을 블록/throw하지 않는다.
+   */
+  async logElicitation(params: {
+    deviceId?: string
+    sessionId: string
+    intent: string
+    event: 'shown' | 'answered'
+    value?: string
+  }): Promise<void> {
+    const entry: ElicitationLogEntry = {
+      timestamp: new Date().toISOString(),
+      deviceId: params.deviceId,
+      sessionId: params.sessionId,
+      intent: params.intent,
+      event: params.event,
+      value: params.value
+    }
+
+    try {
+      await this.redis.lpush(this.ELICITATION_LOG_KEY, JSON.stringify(entry))
+      await this.redis.ltrim(this.ELICITATION_LOG_KEY, 0, this.MAX_LOGS - 1)
+
+      // chatLogger에도 기록 (Better Stack으로 전송됨)
+      chatLogger.info({
+        type: 'elicitation_engagement',
+        ...entry
+      })
+    } catch (error) {
+      chatLogger.error({
+        type: 'elicitation_log_error',
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
   }
 
   /**

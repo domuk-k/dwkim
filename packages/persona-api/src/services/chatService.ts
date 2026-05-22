@@ -384,6 +384,16 @@ export class ChatService {
           console.warn('Failed to persist visitorType:', err)
         })
       }
+      // engagement 로깅: 방문자가 옵션을 선택함 (answered) — fire-and-forget
+      getUXLogService()
+        .logElicitation({
+          deviceId: context.deviceId,
+          sessionId,
+          intent: 'identify',
+          event: 'answered',
+          value: request.visitorType
+        })
+        .catch((err) => console.warn('Failed to log elicitation answered:', err))
     }
 
     // elicitation (ADR-0003 Rung 1, rule-held): turn-1 미식별 방문자 → identify chip
@@ -396,6 +406,16 @@ export class ChatService {
           const elicitation = decideElicitation(visitorContext, turn, message)
           if (elicitation) {
             yield elicitation
+            // engagement 로깅: elicitation을 노출함 (shown) — fire-and-forget
+            // TODO(Slice 1+): skipped 이벤트는 session-state 추적 필요 — DEFER
+            getUXLogService()
+              .logElicitation({
+                deviceId: context.deviceId,
+                sessionId,
+                intent: elicitation.intent,
+                event: 'shown'
+              })
+              .catch((err) => console.warn('Failed to log elicitation shown:', err))
           }
         } catch (err) {
           console.warn('Failed to decide elicitation:', err)
