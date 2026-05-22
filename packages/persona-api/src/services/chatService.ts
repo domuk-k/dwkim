@@ -12,6 +12,8 @@ import { type ChatLogEntry, generateRequestId, logChatResponse } from './chatLog
 import type { ContactInfo, ContactService } from './contactService'
 import { type ConversationLimiter, THRESHOLDS } from './conversationLimiter'
 import { ConversationStore } from './conversationStore'
+import { getDeviceService } from './deviceService'
+import { decideElicitation } from './elicitationPolicy'
 import type { ChatMessage } from './llmService'
 import { PersonaEngine, type RAGResponse, type RAGStreamEvent } from './personaAgent'
 import { getUXLogService, type UXLogEntry } from './uxLogService'
@@ -370,6 +372,23 @@ export class ChatService {
 
     // 세션 시작 이벤트
     yield { type: 'session', sessionId }
+
+    // elicitation (ADR-0003 Rung 1, rule-held): turn-1 미식별 방문자 → identify chip
+    if (context.deviceId) {
+      const deviceService = getDeviceService()
+      if (deviceService) {
+        try {
+          const visitorContext = await deviceService.getVisitorContext(context.deviceId)
+          const turn = Math.floor(history.length / 2) + 1
+          const elicitation = decideElicitation(visitorContext, turn, message)
+          if (elicitation) {
+            yield elicitation
+          }
+        } catch (err) {
+          console.warn('Failed to decide elicitation:', err)
+        }
+      }
+    }
 
     // LangGraph RAG 엔진 사용
     if (this.personaEngine) {
