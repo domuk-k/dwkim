@@ -13,6 +13,7 @@
  */
 
 import type { IRedisClient } from '../infra/redis'
+import { type VisitorContext, type VisitorType, visitorTypeSchema } from './visitor'
 
 const DEVICE_TTL_DAYS = 90
 const DEVICE_TTL_SECONDS = DEVICE_TTL_DAYS * 24 * 60 * 60
@@ -35,6 +36,7 @@ export interface DeviceProfile {
   firstSeen: Date | null
   lastSeen: Date | null
   email?: string
+  visitorType?: VisitorType
 }
 
 export class DeviceService {
@@ -155,13 +157,42 @@ export class DeviceService {
       }
     }
 
+    // visitorType은 SSOT 스키마로 검증 (저장된 값이 enum 밖이면 무시)
+    const visitorType = visitorTypeSchema.safeParse(data.visitorType).success
+      ? (data.visitorType as VisitorType)
+      : undefined
+
     return {
       deviceId,
       messageCount: parseInt(data.messageCount || '0', 10),
       topics,
       firstSeen: data.firstSeen ? new Date(parseInt(data.firstSeen, 10)) : null,
       lastSeen: data.lastSeen ? new Date(parseInt(data.lastSeen, 10)) : null,
-      email: data.email
+      email: data.email,
+      visitorType
+    }
+  }
+
+  /**
+   * 방문자 유형 저장 (identify elicitation 응답 시)
+   * - working-memory-lite: 세션 간 visitorType 기억
+   */
+  async setVisitorType(deviceId: string, type: VisitorType): Promise<void> {
+    const key = this.deviceKey(deviceId)
+    await this.redis.hset(key, 'visitorType', type)
+    await this.redis.expire(key, DEVICE_TTL_SECONDS)
+  }
+
+  /**
+   * 방문자 맥락 조회 — elicitationPolicy / framing이 읽는다.
+   * 데이터 없으면 미식별(type undefined, isReturning false).
+   */
+  async getVisitorContext(deviceId: string): Promise<VisitorContext> {
+    const profile = await this.getProfile(deviceId)
+    return {
+      type: profile?.visitorType,
+      interests: profile?.topics ?? [],
+      isReturning: (profile?.messageCount ?? 0) > 1
     }
   }
 
