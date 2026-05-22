@@ -17,6 +17,7 @@ import { decideElicitation } from './elicitationPolicy'
 import type { ChatMessage } from './llmService'
 import { PersonaEngine, type RAGResponse, type RAGStreamEvent } from './personaAgent'
 import { getUXLogService, type UXLogEntry } from './uxLogService'
+import { visitorTypeSchema } from './visitor'
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -39,7 +40,9 @@ export const ChatRequestSchema = z.object({
       maxSearchResults: z.number().min(1).max(10).optional(),
       includeSources: z.boolean().optional()
     })
-    .optional()
+    .optional(),
+  // elicitation capture: 직전 턴에 선택한 visitorType (다음 요청에 실려옴)
+  visitorType: visitorTypeSchema.optional()
 })
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>
@@ -372,6 +375,16 @@ export class ChatService {
 
     // 세션 시작 이벤트
     yield { type: 'session', sessionId }
+
+    // elicitation capture: 직전 턴에 선택한 visitorType이 실려오면 persist (재질문 방지)
+    if (context.deviceId && request.visitorType) {
+      const ds = getDeviceService()
+      if (ds) {
+        await ds.setVisitorType(context.deviceId, request.visitorType).catch((err) => {
+          console.warn('Failed to persist visitorType:', err)
+        })
+      }
+    }
 
     // elicitation (ADR-0003 Rung 1, rule-held): turn-1 미식별 방문자 → identify chip
     if (context.deviceId) {
