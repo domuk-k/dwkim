@@ -656,6 +656,10 @@ export async function startApp(): Promise<void> {
   // ─── Chat streaming ──────────────────────────────────
   async function handleChat(message: string): Promise<void> {
     try {
+      // capture: 직전 턴에 선택한 visitorType을 이번 요청에 실어 보내고 clear
+      const visitorType = state.capturedVisitorType ?? undefined
+      if (visitorType) dispatch({ type: 'ELICITATION_CONSUMED' })
+
       let sources: SourcesEvent['sources'] = []
       let fullContent = ''
       let processingTime = 0
@@ -663,7 +667,7 @@ export async function startApp(): Promise<void> {
       let confidence: 'high' | 'medium' | 'low' | undefined
       let loadingState: LoadingState = { icon: '⏳', message: '처리 중...', toolCalls: [] }
 
-      for await (const event of client.chatStream(message, state.sessionId)) {
+      for await (const event of client.chatStream(message, state.sessionId, visitorType)) {
         switch (event.type) {
           case 'session':
             dispatch({ type: 'STREAM_SESSION', sessionId: event.sessionId })

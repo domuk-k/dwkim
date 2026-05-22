@@ -304,6 +304,10 @@ export function transition(state: AppState, event: AppEvent): AppState {
       if (state.mode !== 'idle') return state
       return { ...state, pendingElicitation: null }
 
+    case 'ELICITATION_CONSUMED':
+      // capturedVisitorType을 요청에 실어 보낸 뒤 clear (한 번만 전송)
+      return { ...state, capturedVisitorType: null }
+
     // ─── Sources panel ──────────────────────────────────
     case 'TOGGLE_SOURCES': {
       if (state.mode !== 'idle') return state

@@ -127,6 +127,7 @@ export type AppEvent =
   // Elicitation (selling chip)
   | { type: 'ELICITATION_SELECT'; value: string; label: string }
   | { type: 'ELICITATION_DISMISS' }
+  | { type: 'ELICITATION_CONSUMED' }
   // Sources panel
   | { type: 'TOGGLE_SOURCES' }
   // Email

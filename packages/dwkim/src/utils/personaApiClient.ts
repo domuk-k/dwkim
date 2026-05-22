@@ -394,7 +394,11 @@ export class PersonaApiClient {
    *
    * Cold-start 대응: 502/503 발생 시 최대 2회 재시도
    */
-  async *chatStream(message: string, sessionId?: string): AsyncGenerator<StreamEvent> {
+  async *chatStream(
+    message: string,
+    sessionId?: string,
+    visitorType?: string
+  ): AsyncGenerator<StreamEvent> {
     // 이전 요청 취소
     this.abort()
     this.abortController = new AbortController()
@@ -410,7 +414,7 @@ export class PersonaApiClient {
         response = await fetch(`${this.baseUrl}/api/v2/chat/stream`, {
           method: 'POST',
           headers: this.getHeaders('application/json'),
-          body: JSON.stringify({ message, sessionId }),
+          body: JSON.stringify({ message, sessionId, visitorType }),
           signal: this.abortController.signal
         })
 
