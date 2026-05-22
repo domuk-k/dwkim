@@ -5,6 +5,7 @@
  * @see https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol
  */
 
+import type { Elicitation } from '../elicitation'
 import type { ConfidenceLevel, ProgressItem, SEUResult } from '../personaAgent'
 import type { Document } from '../vectorStore'
 
@@ -65,6 +66,13 @@ export interface FollowupDataPart {
 }
 
 /**
+ * Elicitation 이벤트 (A2UI)
+ * - 에이전트가 방문자에게 던지는 구조화된 질문(클릭 가능한 옵션)
+ * - clarification과 달리 value≠label 리치 페이로드 (SSOT: elicitationSchema)
+ */
+export type ElicitationDataPart = { type: 'data-elicitation' } & Omit<Elicitation, 'type'>
+
+/**
  * Done 이벤트 (Transient)
  * - 스트림 완료 메타데이터
  * - transient: true → 메타데이터, 메시지에 저장 안 됨
@@ -115,6 +123,7 @@ export type CustomDataPart =
   | ClarificationDataPart
   | EscalationDataPart
   | FollowupDataPart
+  | ElicitationDataPart
   | DoneDataPart
   | ErrorDataPart
   | SourcesDataPart

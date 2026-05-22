@@ -10,6 +10,7 @@
  * @see ADR-0002 — agent-agnostic adapter = fair before/after
  */
 
+import type { Elicitation } from '../../src/services/elicitation'
 import type { ChatMessage } from '../../src/services/llmService'
 import { PersonaEngine } from '../../src/services/personaAgent'
 import type { Document } from '../../src/services/vectorStore'
@@ -25,6 +26,8 @@ export interface AgentOutput {
   sources: Document[]
   tokens: number
   ms: number
+  /** Structured prompts the agent emitted this turn — observable, lets golden cases assert chip behavior (ADR-0004). */
+  elicitations?: Elicitation[]
 }
 
 export type RunAgent = (input: AgentInput) => Promise<AgentOutput>

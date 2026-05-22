@@ -24,7 +24,7 @@ const TEXT_BLOCK_ID = 'main-text'
 /**
  * ChatStreamEvent를 UI Message Stream 형식으로 변환하여 writer에 쓰기
  */
-function writeEventToStream(
+export function writeEventToStream(
   event: ChatStreamEvent,
   writer: UIMessageStreamWriter,
   textStarted: { value: boolean }
@@ -97,6 +97,19 @@ function writeEventToStream(
       writer.write({
         type: 'data-followup',
         data: { suggestedQuestions: event.suggestedQuestions }
+      })
+      break
+
+    // elicitation 이벤트 → data-elicitation (value≠label 리치 페이로드)
+    case 'elicitation':
+      writer.write({
+        type: 'data-elicitation',
+        data: {
+          intent: event.intent,
+          prompt: event.prompt,
+          options: event.options,
+          skippable: event.skippable
+        }
       })
       break
 

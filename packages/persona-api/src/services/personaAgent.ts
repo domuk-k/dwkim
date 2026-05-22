@@ -18,6 +18,7 @@ import {
 } from '@langchain/langgraph'
 import { env } from '../config/env'
 import { getDeviceService } from './deviceService'
+import type { Elicitation } from './elicitation'
 import { createLangfuseHandler, initLangfuse, prefetchPrompts } from './langfuseService'
 import { generationLLM, utilityLLM } from './llmInstances'
 import type { ChatMessage } from './llmService'
@@ -116,6 +117,8 @@ export type RAGStreamEvent =
   | RAGEscalationEvent
   | RAGFollowupEvent
   | RAGProgressEvent
+  // elicitation: SSOT 타입(Elicitation)을 그대로 union 멤버로 — value≠label 리치 페이로드
+  | Elicitation
 
 // ─────────────────────────────────────────────────────────────
 // State Schema (LangGraph Annotation Pattern)
