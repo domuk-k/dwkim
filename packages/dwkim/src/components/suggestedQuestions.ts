@@ -16,3 +16,9 @@ export function createSuggestedQuestionsView(questions: string[]): SelectList {
   }))
   return new SelectList(items, questions.length, selectListTheme)
 }
+
+// elicitation chip: label은 사람이 보고, value(visitorType)는 선택 시 회수된다
+export function createElicitationView(options: { value: string; label: string }[]): SelectList {
+  const items: SelectItem[] = options.map((o) => ({ value: o.value, label: o.label }))
+  return new SelectList(items, options.length, selectListTheme)
+}

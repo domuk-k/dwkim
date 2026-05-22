@@ -21,7 +21,10 @@ import {
   updateToolCallsView
 } from './components/statusBar.js'
 import { createStreamingView, updateStreamingContent } from './components/streamingView.js'
-import { createSuggestedQuestionsView } from './components/suggestedQuestions.js'
+import {
+  createElicitationView,
+  createSuggestedQuestionsView
+} from './components/suggestedQuestions.js'
 import {
   createProfileImage,
   createWelcomeHintText,
@@ -68,6 +71,8 @@ export async function startApp(): Promise<void> {
   const progressView = createProgressView()
   const toolCallsView = createToolCallsView()
   let suggestedQuestionsView: SelectList | null = null
+  let elicitationView: SelectList | null = null
+  let elicitationPromptText: Text | null = null
   const feedbackView = createFeedbackView()
   const sourcesPanel = createSourcesPanel()
 
@@ -106,6 +111,7 @@ export async function startApp(): Promise<void> {
   let sourcesInTree = false
   let emailInTree = false
   let suggestionsInTree = false
+  let elicitationInTree = false
   let toolCallsInTree = false
   let emailInput: Input | null = null
   let emailHeaderText: Text | null = null
@@ -223,6 +229,13 @@ export async function startApp(): Promise<void> {
           suggestedQuestionsView = null
           suggestionsInTree = false
         }
+        if (elicitationInTree) {
+          if (elicitationPromptText) tui.removeChild(elicitationPromptText)
+          if (elicitationView) tui.removeChild(elicitationView)
+          elicitationPromptText = null
+          elicitationView = null
+          elicitationInTree = false
+        }
         break
       case 'feedback':
       case 'feedbackConfirmed':
@@ -282,8 +295,18 @@ export async function startApp(): Promise<void> {
       case 'idle': {
         setupInputArea(next.input)
 
-        // Suggested questions
-        if (next.suggestedQuestions.length > 0) {
+        // Elicitation chip은 suggested questions보다 우선 (이중 SelectList 포커스 충돌 회피)
+        if (next.pendingElicitation) {
+          elicitationPromptText = new Text(c.lavender(next.pendingElicitation.prompt), 1, 0)
+          elicitationView = createElicitationView(next.pendingElicitation.options)
+          elicitationView.onSelect = (item) =>
+            dispatch({ type: 'ELICITATION_SELECT', value: item.value, label: item.label })
+          elicitationView.onCancel = () => dispatch({ type: 'ELICITATION_DISMISS' })
+          tui.addChild(elicitationPromptText)
+          tui.addChild(elicitationView)
+          elicitationInTree = true
+          tui.setFocus(elicitationView)
+        } else if (next.suggestedQuestions.length > 0) {
           suggestedQuestionsView = createSuggestedQuestionsView(next.suggestedQuestions)
           suggestedQuestionsView.onSelect = (item) => selectSuggestion(item.value)
           suggestedQuestionsView.onCancel = () => dispatch({ type: 'SUGGESTION_DISMISS' })
@@ -687,6 +710,9 @@ export async function startApp(): Promise<void> {
             break
           case 'followup':
             dispatch({ type: 'STREAM_FOLLOWUP', questions: event.suggestedQuestions })
+            break
+          case 'elicitation':
+            dispatch({ type: 'STREAM_ELICITATION', elicitation: event })
             break
           case 'content':
             fullContent += event.content

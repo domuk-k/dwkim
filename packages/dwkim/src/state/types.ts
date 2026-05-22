@@ -5,6 +5,7 @@ import type { ProgressItem, StreamEvent } from '../utils/personaApiClient.js'
 // ─────────────────────────────────────────────────────────────
 
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>
+export type ElicitationEvent = Extract<StreamEvent, { type: 'elicitation' }>
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 
@@ -52,6 +53,9 @@ interface BaseState {
   lastExchange: { query: string; response: string } | null
   // UI
   expandedSourcesMsgId: number | null
+  // Elicitation (selling chip) — BaseState라 모든 transition에 자동 전파
+  pendingElicitation: ElicitationEvent | null
+  capturedVisitorType: string | null
 }
 
 export type AppState = BaseState &
@@ -103,6 +107,7 @@ export type AppEvent =
   | { type: 'STREAM_CONTENT'; fullContent: string }
   | { type: 'STREAM_CLARIFICATION'; questions: string[] }
   | { type: 'STREAM_FOLLOWUP'; questions: string[] }
+  | { type: 'STREAM_ELICITATION'; elicitation: ElicitationEvent }
   | { type: 'STREAM_ESCALATION'; reason: string }
   | {
       type: 'STREAM_DONE'
@@ -119,6 +124,9 @@ export type AppEvent =
   | { type: 'SUGGESTION_DOWN' }
   | { type: 'SUGGESTION_SELECT'; question: string }
   | { type: 'SUGGESTION_DISMISS' }
+  // Elicitation (selling chip)
+  | { type: 'ELICITATION_SELECT'; value: string; label: string }
+  | { type: 'ELICITATION_DISMISS' }
   // Sources panel
   | { type: 'TOGGLE_SOURCES' }
   // Email

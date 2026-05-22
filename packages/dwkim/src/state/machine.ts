@@ -82,7 +82,8 @@ export function transition(state: AppState, event: AppEvent): AppState {
         streamContent: '',
         progressItems: [],
         escalationReason: '',
-        pendingSuggestions: []
+        pendingSuggestions: [],
+        pendingElicitation: null
       }
     }
 
@@ -120,7 +121,8 @@ export function transition(state: AppState, event: AppEvent): AppState {
         streamContent: '',
         progressItems: [],
         escalationReason: '',
-        pendingSuggestions: []
+        pendingSuggestions: [],
+        pendingElicitation: null
       }
     }
 
@@ -156,6 +158,10 @@ export function transition(state: AppState, event: AppEvent): AppState {
     case 'STREAM_FOLLOWUP':
       if (state.mode !== 'loading') return state
       return { ...state, pendingSuggestions: event.questions }
+
+    case 'STREAM_ELICITATION':
+      if (state.mode !== 'loading') return state
+      return { ...state, pendingElicitation: event.elicitation }
 
     case 'STREAM_ESCALATION':
       if (state.mode !== 'loading') return state
@@ -277,6 +283,26 @@ export function transition(state: AppState, event: AppEvent): AppState {
     case 'SUGGESTION_DISMISS':
       if (state.mode !== 'idle') return state
       return { ...state, suggestedQuestions: [], selectedSuggestionIdx: 0 }
+
+    // ─── Elicitation (selling chip) ─────────────────────
+    case 'ELICITATION_SELECT': {
+      if (state.mode !== 'idle') return state
+      // 선택=조용히 visitorType 기억 (쿼리 안 쏨). 다음 요청에 실어 보냄 (capture).
+      const patch = addMessage(state, {
+        role: 'system',
+        content: `${icons.check} ${event.label}로 기억할게요.`
+      })
+      return {
+        ...state,
+        ...patch,
+        capturedVisitorType: event.value,
+        pendingElicitation: null
+      }
+    }
+
+    case 'ELICITATION_DISMISS':
+      if (state.mode !== 'idle') return state
+      return { ...state, pendingElicitation: null }
 
     // ─── Sources panel ──────────────────────────────────
     case 'TOGGLE_SOURCES': {
@@ -448,6 +474,8 @@ export function createInitialState(): AppState {
     hideFeedbackForSession: false,
     hideEmailForSession: false,
     lastExchange: null,
-    expandedSourcesMsgId: null
+    expandedSourcesMsgId: null,
+    pendingElicitation: null,
+    capturedVisitorType: null
   }
 }
