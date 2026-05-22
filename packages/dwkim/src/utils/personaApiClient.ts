@@ -27,7 +27,7 @@ function parseUIMessageStreamLine(line: string): StreamEvent | null {
 /**
  * UI Message Stream 이벤트를 CLI StreamEvent로 변환
  */
-function convertUIMessageEvent(event: {
+export function convertUIMessageEvent(event: {
   type: string
   [key: string]: unknown
 }): StreamEvent | null {
@@ -55,6 +55,22 @@ function convertUIMessageEvent(event: {
         type: 'followup',
         suggestedQuestions: (event.data as { suggestedQuestions: string[] }).suggestedQuestions
       }
+
+    case 'data-elicitation': {
+      const data = event.data as {
+        intent: 'identify' | 'guide' | 'convert'
+        prompt: string
+        options: { value: string; label: string }[]
+        skippable: boolean
+      }
+      return {
+        type: 'elicitation',
+        intent: data.intent,
+        prompt: data.prompt,
+        options: data.options,
+        skippable: data.skippable
+      }
+    }
 
     case 'data-escalation':
       return {
@@ -238,6 +254,14 @@ export type StreamEvent =
   | { type: 'clarification'; suggestedQuestions: string[] }
   | { type: 'escalation'; reason: string; uncertainty: number }
   | { type: 'followup'; suggestedQuestions: string[] }
+  // elicitation: 구조화된 질문 (value≠label). persona-api SSOT의 구조적 대응(새 dep 없음)
+  | {
+      type: 'elicitation'
+      intent: 'identify' | 'guide' | 'convert'
+      prompt: string
+      options: { value: string; label: string }[]
+      skippable: boolean
+    }
   | { type: 'progress'; items: ProgressItem[] }
   | {
       type: 'done'
