@@ -1,0 +1,68 @@
+# persona-api Evals — REPORT-ONLY, OPT-IN. NOT a blocking gate.
+#
+# Per ADR-0002 (eval-first strangler parity gate): evals run on-demand and their
+# output is documentation, never a merge/deploy gate. Evals call REAL LLMs via
+# OpenRouter (real token cost), so this workflow MUST NOT run on ordinary pushes.
+#
+# Triggers (both opt-in):
+#   1. workflow_dispatch — manual run from the Actions tab.
+#   2. pull_request touching packages/persona-api/** AND labeled `run-evals`.
+#      The label guard (job-level `if`) means it never bills OpenRouter unless a
+#      maintainer explicitly opts in by adding the label.
+#
+# Required GitHub repo secrets (DO NOT hardcode — configure in repo settings):
+#   - OPENROUTER_API_KEY   (required — evals hit the live LLM)
+# Optional secrets (Langfuse tracing; evals run fine without them):
+#   - LANGFUSE_PUBLIC_KEY
+#   - LANGFUSE_SECRET_KEY
+#   - LANGFUSE_BASE_URL
+#
+# This workflow is informational only: `continue-on-error: true` on the eval step
+# means a regression NEVER fails CI. The eval report is uploaded as a build
+# artifact for human review.
+
+name: Eval persona-api (report-only)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packages/persona-api/**'
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    # Opt-in guard: manual dispatch, or a PR explicitly labeled `run-evals`.
+    # Ordinary PRs/pushes skip this job entirely (no LLM cost).
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'run-evals')
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install
+
+      # Report-only: a regression must NOT fail the workflow (ADR-0002).
+      - name: Run evals (real LLM)
+        continue-on-error: true
+        run: bun run --filter persona-api eval:run
+
+      # Export the eval report for human review.
+      - name: Export eval report
+        continue-on-error: true
+        working-directory: packages/persona-api
+        run: bun run eval:export
+
+      - name: Upload eval report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: packages/persona-api/eval-report
+          if-no-files-found: warn

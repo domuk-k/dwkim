@@ -60,3 +60,32 @@ jobs:
           done
           echo "Health check failed after 5 attempts" >&2
           exit 1
+
+      # 실제 채팅 경로(CLI/blog 가 쓰는 prod path)를 스모크 테스트.
+      # POST /api/v2/chat/stream 은 AI SDK UI Message Stream 을 반환:
+      #   start → text-start → text-delta {id, delta} ... → text-end → finish (HTTP 200)
+      # 성공 판정 = HTTP 200 AND 최소 1개의 non-empty `text-delta` 프레임.
+      # 스트리밍 generate 가 느릴 수 있어 --max-time 60 + 5회 재시도.
+      # 배포당 ~1 LLM 호출(OpenRouter) 비용 — main 배포에서만 실행되므로 허용.
+      - name: Chat smoke (v2 stream)
+        run: |
+          for i in 1 2 3 4 5; do
+            RESP=$(curl -s -w '\n%{http_code}' --max-time 60 \
+              -X POST https://persona-api.fly.dev/api/v2/chat/stream \
+              -H 'content-type: application/json' \
+              -d '{"message":"김동욱은 어떤 개발자야?"}')
+            CODE=$(printf '%s' "$RESP" | tail -n1)
+            BODY=$(printf '%s' "$RESP" | sed '$d')
+            echo "attempt $i: HTTP $CODE"
+            # text-delta 프레임에 공백이 아닌 문자 1개 이상 포함된 delta 가 있는지 검사.
+            if [ "$CODE" = "200" ] \
+              && printf '%s' "$BODY" | grep -q '"text-delta"' \
+              && printf '%s' "$BODY" | grep -Eq '"delta":"[^"]*[^[:space:]"][^"]*"'; then
+              echo "Chat smoke passed: non-empty text-delta received."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Chat smoke failed after 5 attempts. Last response body:" >&2
+          printf '%s\n' "$BODY" >&2
+          exit 1

@@ -7,15 +7,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # persona-api 테스트는 완전 모킹(setup.ts) + .env.test 로 시크릿 불필요.
+    # NODE_ENV=test 로 config/env.ts 의 LLM 키 refine 우회.
+    env:
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
 
       - run: bun install
-      - run: bun run lint && bun run build
+      - run: bun run lint
+      - run: bun run build
 
-      # dwkim CLI 게이트: 타입체크 + 테스트 (green 검증됨)
-      # NOTE: persona-api 테스트는 별도 선결과제(guardrails 모듈/supertest dep/langgraph
-      # Annotation export) 정리 후 게이트에 추가 예정.
-      - run: bun run typecheck:dwkim
-      - run: bun run test:dwkim
+      # 전체 패키지 게이트: 타입체크 + 테스트 (dwkim + persona-api).
+      # blog 은 type-check/test 스크립트가 없어 `--filter '*'` 가 자동 스킵.
+      - run: bun run typecheck
+      - run: bun run test
