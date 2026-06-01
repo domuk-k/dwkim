@@ -43,6 +43,9 @@ import type { AppEvent, AppState, LoadingState, ToolCallState } from './state/ty
 import { isCorrection, STARTER_QUESTIONS } from './state/types.js'
 import { icons } from './ui/data.js'
 import { c } from './ui/theme.js'
+import { setClipboardText } from './utils/clipboard.js'
+import { loadConfig } from './utils/config.js'
+import { sendNotification } from './utils/notify.js'
 import { ApiError, PersonaApiClient, type StreamEvent } from './utils/personaApiClient.js'
 
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>
@@ -575,6 +578,23 @@ export async function startApp(): Promise<void> {
       return
     }
 
+    // Ctrl+Y (\x19) in idle: 마지막 어시스턴트 응답을 클립보드에 복사.
+    // idle + suggestions/elicitation 없음으로 게이팅 → SelectList 포커스/스트리밍과 충돌 방지.
+    // setClipboardText는 절대 throw하지 않고 실패 시 false를 반환한다.
+    if (
+      state.mode === 'idle' &&
+      data === '\x19' &&
+      state.suggestedQuestions.length === 0 &&
+      !state.pendingElicitation
+    ) {
+      const lastAssistant = [...state.messages].reverse().find((m) => m.role === 'assistant')
+      if (lastAssistant) {
+        setClipboardText(lastAssistant.content)
+        // NOTE: 복사 성공/실패 배너는 별도 상태 이벤트가 필요해 생략 (state machine 미변경).
+      }
+      return
+    }
+
     // Sources toggle: 's' key in idle (only when sources exist)
     if (state.mode === 'idle' && data === 's' && state.suggestedQuestions.length === 0) {
       const hasSources = state.messages.some(
@@ -740,6 +760,10 @@ export async function startApp(): Promise<void> {
         shouldSuggestContact,
         confidence
       })
+
+      // 응답 완료 알림 (벨/시스템). config는 핸들러 내부에서 읽어 라이브 변경을 반영.
+      // 기본값 'bell'. content 스트리밍 분기가 아닌 완료 시 1회만 발사.
+      sendNotification('response_done', { mode: loadConfig().notifyMode ?? 'bell' })
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
       const message = error instanceof ApiError ? error.message : '오류가 발생했습니다.'
