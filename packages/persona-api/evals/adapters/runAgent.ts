@@ -11,13 +11,17 @@
  */
 
 import type { Elicitation } from '../../src/services/elicitation'
+import { decideElicitation } from '../../src/services/elicitationPolicy'
 import type { ChatMessage } from '../../src/services/llmService'
 import { PersonaEngine } from '../../src/services/personaAgent'
 import type { Document } from '../../src/services/vectorStore'
+import type { VisitorContext, VisitorType } from '../../src/services/visitor'
 
 export interface AgentInput {
   query: string
   history?: ChatMessage[]
+  /** 방문자 유형(식별됐다면). 미지정 = 미식별 — elicitation 정책의 turn-1 분기를 탄다. */
+  visitorType?: VisitorType
 }
 
 /** The observable output the eval scores. No internal pipeline state. */
@@ -46,14 +50,22 @@ async function getEngine(): Promise<PersonaEngine> {
   return engine
 }
 
-export const langGraphAgent: RunAgent = async ({ query, history = [] }) => {
+export const langGraphAgent: RunAgent = async ({ query, history = [], visitorType }) => {
   const e = await getEngine()
   const start = performance.now()
   const res = await e.processQuery(query, history)
+
+  // 라우트가 agent *주위에서* 적용하는 elicitation 정책(ADR-0003/0004)을 eval에서도 관측 가능하게 재현.
+  // turn = 직전 대화쌍 수 + 1 (history 비어있으면 turn-1). 미식별 방문자의 turn-1만 identify를 발화한다.
+  const turn = Math.floor(history.length / 2) + 1
+  const ctx: VisitorContext = { type: visitorType, interests: [], isReturning: false }
+  const elicitation = decideElicitation(ctx, turn, query)
+
   return {
     answer: res.answer,
     sources: res.sources,
     tokens: res.usage.totalTokens,
-    ms: Math.round(performance.now() - start)
+    ms: Math.round(performance.now() - start),
+    elicitations: elicitation ? [elicitation] : []
   }
 }

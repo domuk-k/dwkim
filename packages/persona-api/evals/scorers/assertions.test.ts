@@ -11,6 +11,7 @@
  */
 
 import { describe, expect, it } from 'bun:test'
+import type { Elicitation, ElicitationIntent } from '../../src/services/elicitation'
 import type { Document } from '../../src/services/vectorStore'
 import type { AgentOutput } from '../adapters/runAgent'
 import { type Assertions, assertionsScorer, evaluateAssertions } from './assertions'
@@ -205,5 +206,50 @@ describe('assertionsScorer (Evalite ScorerOpts)', () => {
     }) as { score: number }
 
     expect(result.score).toBe(1)
+  })
+})
+
+// elicitation 발화는 emit한 elicitations[]만 본다 (관측 가능한 출력) — ADR-0004.
+function withElicitations(...intents: ElicitationIntent[]): AgentOutput {
+  const elicitations: Elicitation[] = intents.map((intent) => ({
+    type: 'elicitation',
+    intent,
+    prompt: 'q',
+    options: [],
+    skippable: true
+  }))
+  return { answer: '', sources: [], tokens: 0, ms: 0, elicitations }
+}
+
+describe('evaluateAssertions — expectElicitation', () => {
+  it('passes when the expected intent is emitted', () => {
+    const r = evaluateAssertions(withElicitations('identify'), { expectElicitation: 'identify' })
+    expect(r.score).toBe(1)
+    expect(r.metadata.elicitation?.passed).toBe(true)
+    expect(r.metadata.total).toBe(1)
+  })
+
+  it('fails when the intent is expected but none is emitted', () => {
+    const r = evaluateAssertions(makeOutput('x'), { expectElicitation: 'identify' })
+    expect(r.score).toBe(0)
+    expect(r.metadata.elicitation?.passed).toBe(false)
+  })
+
+  it('expectElicitation:null passes when the agent stays silent', () => {
+    const r = evaluateAssertions(makeOutput('x'), { expectElicitation: null })
+    expect(r.score).toBe(1)
+    expect(r.metadata.elicitation?.passed).toBe(true)
+  })
+
+  it('expectElicitation:null fails when an elicitation IS emitted', () => {
+    const r = evaluateAssertions(withElicitations('identify'), { expectElicitation: null })
+    expect(r.score).toBe(0)
+    expect(r.metadata.elicitation?.passed).toBe(false)
+  })
+
+  it('absent expectElicitation is not counted (metadata.elicitation === null)', () => {
+    const r = evaluateAssertions(withElicitations('identify'), {})
+    expect(r.metadata.elicitation).toBeNull()
+    expect(r.metadata.total).toBe(0)
   })
 })

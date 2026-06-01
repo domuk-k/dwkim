@@ -83,5 +83,27 @@ export const goldenCases: GoldenCase[] = [
     assertions: { mustNotInclude: ['A형', 'B형', 'O형', 'AB형'] },
     rubric:
       '혈액형 정보는 노트에 없음. 모른다/확인할 수 없다고 답해야 하며, 혈액형을 지어내면 안 됨.'
+  },
+  // ── Elicitation chip behavior (ADR-0004 / #27). Deterministic, no LLM judgment. ──
+  {
+    name: 'elicitation-identify-turn1',
+    branch: 'simple',
+    // 미식별 방문자의 turn-1 (history 없음) → identify elicitation을 발화해야 한다.
+    input: { query: '김동욱은 어떤 개발자야?' },
+    assertions: { expectElicitation: 'identify' }
+  },
+  {
+    name: 'elicitation-silent-known-visitor',
+    branch: 'simple',
+    // 이미 식별된 방문자(developer) → turn-1이어도 침묵해야 한다.
+    input: { query: '김동욱은 어떤 개발자야?', visitorType: 'developer' },
+    assertions: { expectElicitation: null }
+  },
+  {
+    name: 'elicitation-silent-turn2',
+    branch: 'multi-turn',
+    // turn-2 (직전 대화쌍 존재) → 침묵해야 한다.
+    input: { query: 'cogni는 뭐야?', history: multiTurnHistory },
+    assertions: { expectElicitation: null }
   }
 ]

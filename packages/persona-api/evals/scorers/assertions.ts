@@ -17,6 +17,7 @@
  */
 
 import type { Evalite } from 'evalite'
+import type { ElicitationIntent } from '../../src/services/elicitation'
 import type { AgentInput, AgentOutput } from '../adapters/runAgent'
 
 /**
@@ -35,6 +36,13 @@ export interface Assertions {
   mustInclude?: string[]
   mustNotInclude?: string[]
   expectedSourceIds?: string[]
+  /**
+   * Expected elicitation behavior this turn (ADR-0004 chip behavior).
+   * - an intent (`'identify'`/…) → the agent MUST emit an elicitation of that intent
+   * - `null` → the agent MUST stay silent (emit no elicitation)
+   * - absent (`undefined`) → not checked.
+   */
+  expectElicitation?: ElicitationIntent | null
 }
 
 /** Per-string outcome for a text-based assertion group. */
@@ -49,11 +57,20 @@ export interface SourceIdAssertionResult {
   passed: boolean
 }
 
+/** Outcome for the (optional) `expectElicitation` assertion. */
+export interface ElicitationAssertionResult {
+  expected: ElicitationIntent | null
+  actual: ElicitationIntent[]
+  passed: boolean
+}
+
 /** Faithful, per-assertion report attached to the score. */
 export interface AssertionsMetadata {
   mustInclude: StringAssertionResult[]
   mustNotInclude: StringAssertionResult[]
   expectedSourceIds: SourceIdAssertionResult[]
+  /** Present only when the case declared `expectElicitation`. */
+  elicitation: ElicitationAssertionResult | null
   /** True if ANY `mustNotInclude` string was present in the answer. */
   hallucination: boolean
   /** Count of individual assertions that passed. */
@@ -110,9 +127,19 @@ export function evaluateAssertions(
     })
   )
 
-  const all = [...mustInclude, ...mustNotInclude, ...expectedSourceIds]
-  const total = all.length
-  const passed = all.filter((a) => a.passed).length
+  // Elicitation: counted as one assertion ONLY when the case declared it
+  // (including the `null` "must stay silent" case). Absent → not checked.
+  let elicitation: ElicitationAssertionResult | null = null
+  if (expected.expectElicitation !== undefined) {
+    const actual = (output.elicitations ?? []).map((e) => e.intent)
+    const exp = expected.expectElicitation
+    const ok = exp === null ? actual.length === 0 : actual.includes(exp)
+    elicitation = { expected: exp, actual, passed: ok }
+  }
+
+  const stringAndSource = [...mustInclude, ...mustNotInclude, ...expectedSourceIds]
+  const total = stringAndSource.length + (elicitation ? 1 : 0)
+  const passed = stringAndSource.filter((a) => a.passed).length + (elicitation?.passed ? 1 : 0)
 
   // A failing mustNotInclude assertion means a banned string was present.
   const hallucination = mustNotInclude.some((a) => !a.passed)
@@ -123,6 +150,7 @@ export function evaluateAssertions(
       mustInclude,
       mustNotInclude,
       expectedSourceIds,
+      elicitation,
       hallucination,
       passed,
       total
