@@ -16,21 +16,33 @@ interface UserConfig {
   notifyMode?: NotificationMode
   // 마지막 업데이트 체크 시각 (epoch ms). 24h throttle용.
   lastUpdateCheck?: number
+  // 크래시 텔레메트리 옵트아웃 플래그. 미설정 시 활성(opt-out 모델).
+  // false면 비활성. DWKIM_NO_TELEMETRY 환경변수로도 끌 수 있음.
+  telemetry?: boolean
 }
 
-const CONFIG_DIR = join(homedir(), '.dwkim')
-const CONFIG_FILE = join(CONFIG_DIR, 'config.json')
+// 경로는 호출 시점에 lazy 계산한다(HOME 변경/테스트 격리에 안전).
+// 프로덕션에서는 homedir()와 동일. Bun의 homedir()가 시작 시점 값을 캐시하므로
+// 런타임 HOME 변경(테스트 격리)을 반영하도록 env를 우선한다.
+function configDir(): string {
+  return join(process.env.HOME || homedir(), '.dwkim')
+}
+function configFile(): string {
+  return join(configDir(), 'config.json')
+}
 
 function ensureConfigDir(): void {
-  if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true })
+  const dir = configDir()
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
   }
 }
 
 export function loadConfig(): UserConfig {
   try {
-    if (existsSync(CONFIG_FILE)) {
-      const data = readFileSync(CONFIG_FILE, 'utf-8')
+    const file = configFile()
+    if (existsSync(file)) {
+      const data = readFileSync(file, 'utf-8')
       return JSON.parse(data)
     }
   } catch {
@@ -42,7 +54,7 @@ export function loadConfig(): UserConfig {
 export function saveConfig(config: UserConfig): void {
   try {
     ensureConfigDir()
-    writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
+    writeFileSync(configFile(), JSON.stringify(config, null, 2))
   } catch {
     // 저장 실패 무시
   }
@@ -88,4 +100,15 @@ export function setLastUpdateCheck(ts: number): void {
 
 export function getLastUpdateCheck(): number | undefined {
   return loadConfig().lastUpdateCheck
+}
+
+export function setTelemetryEnabled(enabled: boolean): void {
+  const config = loadConfig()
+  config.telemetry = enabled
+  saveConfig(config)
+}
+
+// 미설정 시 undefined (= 기본 활성으로 해석). telemetry.ts에서 opt-out 판정에 사용.
+export function getTelemetryEnabled(): boolean | undefined {
+  return loadConfig().telemetry
 }

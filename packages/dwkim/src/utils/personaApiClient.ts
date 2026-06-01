@@ -1,4 +1,5 @@
 import { getDeviceId } from './deviceId.js'
+import { logger } from './logger.js'
 
 // ─────────────────────────────────────────────────────────────
 // AI SDK UI Message Stream Parser
@@ -540,11 +541,13 @@ export class PersonaApiClient {
       })
 
       if (!response.ok) {
-        console.warn('Feedback submission failed:', response.status)
+        logger.warn('feedback_submit_non_2xx', { status: response.status })
       }
     } catch (error) {
-      // 피드백 실패해도 사용자 경험에 영향 없음
-      console.warn('Feedback submission error:', error)
+      // 피드백 실패해도 사용자 경험에 영향 없음 (TUI 점유 중 console 출력 금지 → logger)
+      logger.warn('feedback_submit_failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   }
 
@@ -571,7 +574,9 @@ export class PersonaApiClient {
 
       return await response.json()
     } catch (error) {
-      console.warn('Correction submission error:', error)
+      logger.warn('correction_submit_failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
       return { success: false, message: '수정 피드백 전송 실패' }
     }
   }

@@ -45,6 +45,7 @@ import { icons } from './ui/data.js'
 import { c } from './ui/theme.js'
 import { setClipboardText } from './utils/clipboard.js'
 import { loadConfig } from './utils/config.js'
+import { logger } from './utils/logger.js'
 import { sendNotification } from './utils/notify.js'
 import { ApiError, PersonaApiClient, type StreamEvent } from './utils/personaApiClient.js'
 
@@ -802,7 +803,10 @@ export async function startApp(): Promise<void> {
             type: 'CMD_STATUS_OK',
             statusText: `${icons.check} ${st.status} · 문서 ${st.rag_engine?.total_documents || 0}개`
           })
-        } catch {
+        } catch (error) {
+          logger.warn('status_failed', {
+            error: error instanceof Error ? error.message : String(error)
+          })
           dispatch({ type: 'CMD_STATUS_FAIL' })
         }
         break
@@ -859,7 +863,10 @@ export async function startApp(): Promise<void> {
       } else {
         throw new Error(result.error || '이메일 전송 실패')
       }
-    } catch {
+    } catch (error) {
+      logger.warn('email_submit_failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
       dispatch({
         type: 'EMAIL_SUBMIT_ERROR',
         message: '이메일 전송에 실패했어요. 다시 시도해주세요.'
@@ -882,7 +889,10 @@ export async function startApp(): Promise<void> {
       } else {
         dispatch({ type: 'CORRECTION_FAIL', message: result.message })
       }
-    } catch {
+    } catch (error) {
+      logger.warn('correction_failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
       dispatch({ type: 'CORRECTION_FAIL', message: '수정 요청에 실패했어요.' })
     }
   }
@@ -898,7 +908,10 @@ export async function startApp(): Promise<void> {
   try {
     await client.checkHealth(3, 2000)
     dispatch({ type: 'HEALTH_OK' })
-  } catch {
+  } catch (error) {
+    logger.warn('health_check_failed', {
+      error: error instanceof Error ? error.message : String(error)
+    })
     dispatch({ type: 'HEALTH_FAIL', error: 'API 연결 실패. 잠시 후 다시 시도해주세요.' })
   }
 }

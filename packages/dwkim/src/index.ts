@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 
+import { installCrashHandlers } from './utils/crashHandler.js'
+import { logger } from './utils/logger.js'
+import { reportCrash } from './utils/telemetry.js'
+
 declare const __VERSION__: string
 
 const command = process.argv[2]
+
+// 치명적 오류 처리를 3초로 bound (텔레메트리/플러시가 종료를 막지 않도록)
+const FATAL_FLUSH_TIMEOUT_MS = 3000
 
 function showHelp() {
   console.log(`
@@ -59,6 +66,10 @@ function fireUpdateCheck(): void {
 }
 
 async function main() {
+  // 전역 크래시 핸들러 설치 + 시작 로그 (DWKIM_DEBUG 시 ~/.dwkim/debug.log)
+  installCrashHandlers()
+  logger.info('cli_start', { version: __VERSION__, command: command ?? '(chat)' })
+
   if (command === '--version' || command === '-v') {
     console.log(__VERSION__)
     return
@@ -77,7 +88,19 @@ async function main() {
   await startApp()
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
+  // 치명적 오류: 로컬 로깅 + best-effort 텔레메트리(3초 bound) 후 종료.
+  logger.error('fatal', {
+    kind: 'fatal',
+    name: error instanceof Error ? error.name : 'Error',
+    message: error instanceof Error ? error.message : String(error)
+  })
+  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+  try {
+    await Promise.race([reportCrash(error, { kind: 'fatal' }), sleep(FATAL_FLUSH_TIMEOUT_MS)])
+  } catch {
+    // reportCrash는 throw하지 않지만 방어적으로 감싼다.
+  }
   console.error('Fatal error:', error)
   process.exit(1)
 })
