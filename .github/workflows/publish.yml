@@ -1,11 +1,13 @@
 name: Release dwkim
 
+# auto-publish 비활성화 (수동 전용).
+# 이유: 과거 PII 히스토리 purge로 origin/main에서 dwkim-v* 태그가 orphan되어,
+# CI 러너의 semantic-release가 매번 baseline을 못 잡고 1.0.0으로 재시작 → 태그 충돌 실패 +
+# 'release 1.0.0' 쓰레기 커밋 루프를 유발했다. 릴리즈는 로컬에서 `bun run release:dwkim`로 수행한다
+# (로컬 clone에는 dwkim-v3.6.0 태그가 reachable하여 정상적으로 다음 버전을 계산한다).
+# 필요 시 아래 workflow_dispatch로 수동 실행 가능.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/dwkim/**'
-      - '.github/workflows/publish.yml'
+  workflow_dispatch:
 
 concurrency:
   group: release-dwkim
@@ -37,6 +39,21 @@ jobs:
 
       - name: Upgrade npm for OIDC support
         run: npm install -g npm@latest
+
+      - name: Verify release baseline tag is reachable
+        # Guard against orphaned/rewritten history: if no dwkim-v* tag is
+        # reachable from HEAD, semantic-release would treat this as a first
+        # release and recompute the version from scratch (landing on 1.0.0
+        # because of old BREAKING CHANGE commits), then collide with the
+        # existing dwkim-v1.0.0 tag and loop on junk release commits.
+        # Fail loudly instead so a human can re-point the tag.
+        run: |
+          if [ -z "$(git tag --merged HEAD -l 'dwkim-v*')" ]; then
+            echo "::error::No 'dwkim-v*' tag is reachable from HEAD. The release baseline tag is orphaned (likely after a history rewrite). Re-point the latest dwkim-v* tag onto main before releasing — refusing to run semantic-release to avoid a 1.0.0 reset / tag-collision loop."
+            exit 1
+          fi
+          echo "Baseline tag(s) reachable from HEAD:"
+          git tag --merged HEAD -l 'dwkim-v*' | sort -V | tail -5
 
       - name: Install dependencies
         run: bun install
