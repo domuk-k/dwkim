@@ -24,19 +24,16 @@ describe('ApiError', () => {
   })
 })
 
-// --- AI SDK Data Stream Protocol Parsing (chatStream) ---
+// --- AI SDK UI Message Stream (SSE) Parsing (chatStream) ---
+//
+// 서버는 AI SDK UI Message Stream을 SSE로 emit한다.
+// 포맷: 한 줄당 `data: {"type":...}\n` (text-delta는 delta, data-* 는 중첩 data 객체).
+// 클라이언트 read 루프는 '\n'으로 라인을 나누고 'data: ' 프리픽스만 파싱한다.
 
-/**
- * AI SDK Data Stream 포맷 텍스트를 ReadableStream으로 변환
- * 포맷: `{type_id}:{json}\n`
- * - 0: text
- * - 2: data (custom parts)
- * - e: error
- * - d: finish
- */
-function dataStream(parts: string[]): ReadableStream<Uint8Array> {
+/** 이벤트 객체 배열을 SSE `data: {...}\n` 라인 스트림으로 변환 */
+function sseStream(events: object[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
-  const content = `${parts.join('\n')}\n`
+  const content = `${events.map((e) => `data: ${JSON.stringify(e)}`).join('\n')}\n`
   return new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(content))
@@ -45,26 +42,28 @@ function dataStream(parts: string[]): ReadableStream<Uint8Array> {
   })
 }
 
-describe('PersonaApiClient — chatStream Data Stream parsing', () => {
+describe('PersonaApiClient — chatStream UI Message Stream parsing', () => {
   const originalFetch = globalThis.fetch
 
   afterEach(() => {
     globalThis.fetch = originalFetch
   })
 
-  test('parses AI SDK Data Stream events into StreamEvent objects', async () => {
-    // AI SDK Data Stream Protocol 포맷
-    const streamParts = [
-      '2:[{"type":"data-session","sessionId":"abc"}]', // data part
-      '0:"Hello"', // text part
-      '2:[{"type":"data-done","metadata":{"searchQuery":"q","searchResults":1,"processingTime":42}}]', // data part
-      'd:{"finishReason":"stop"}' // finish (ignored)
+  test('parses AI SDK UI Message Stream events into StreamEvent objects', async () => {
+    const events_in = [
+      { type: 'data-session', data: { sessionId: 'abc' } },
+      { type: 'text-delta', delta: 'Hello' },
+      {
+        type: 'data-done',
+        data: { metadata: { searchQuery: 'q', searchResults: 1, processingTime: 42 } }
+      },
+      { type: 'finish' } // 무시됨
     ]
 
     globalThis.fetch = (async () =>
-      new Response(dataStream(streamParts), {
+      new Response(sseStream(events_in), {
         status: 200,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        headers: { 'Content-Type': 'text/event-stream' }
       })) as unknown as typeof fetch
 
     const client = new PersonaApiClient('http://test')
@@ -80,14 +79,25 @@ describe('PersonaApiClient — chatStream Data Stream parsing', () => {
   })
 
   test('skips malformed lines gracefully', async () => {
-    const streamParts = [
-      '2:[{"type":"data-session","sessionId":"s1"}]',
-      'NOT_VALID_FORMAT', // 잘못된 포맷
-      '0:"ok"'
-    ]
+    const encoder = new TextEncoder()
+    // 'data: ' 프리픽스 없는 줄 + 잘못된 JSON 줄은 조용히 스킵된다
+    const content = [
+      `data: ${JSON.stringify({ type: 'data-session', data: { sessionId: 's1' } })}`,
+      'NOT_VALID_FORMAT',
+      'data: {not valid json}',
+      `data: ${JSON.stringify({ type: 'text-delta', delta: 'ok' })}`
+    ].join('\n')
 
     globalThis.fetch = (async () =>
-      new Response(dataStream(streamParts), { status: 200 })) as unknown as typeof fetch
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(`${content}\n`))
+            controller.close()
+          }
+        }),
+        { status: 200 }
+      )) as unknown as typeof fetch
 
     const client = new PersonaApiClient('http://test')
     const events: StreamEvent[] = []
@@ -95,7 +105,6 @@ describe('PersonaApiClient — chatStream Data Stream parsing', () => {
       events.push(event)
     }
 
-    // Malformed line silently skipped
     expect(events).toHaveLength(2)
     expect(events[0].type).toBe('session')
     expect(events[1].type).toBe('content')
@@ -103,10 +112,12 @@ describe('PersonaApiClient — chatStream Data Stream parsing', () => {
 
   test('handles chunked data split across reads', async () => {
     const encoder = new TextEncoder()
-    // 첫 번째 청크: 불완전한 라인
-    const chunk1 = encoder.encode('2:[{"type":"data-ses')
+    // 첫 번째 청크: 불완전한 라인 (JSON 중간에서 끊김)
+    const chunk1 = encoder.encode('data: {"type":"data-ses')
     // 두 번째 청크: 나머지 + 다음 라인
-    const chunk2 = encoder.encode('sion","sessionId":"x"}]\n0:"hi"\n')
+    const chunk2 = encoder.encode(
+      'sion","data":{"sessionId":"x"}}\ndata: {"type":"text-delta","delta":"hi"}\n'
+    )
 
     const stream = new ReadableStream({
       start(controller) {
@@ -131,16 +142,22 @@ describe('PersonaApiClient — chatStream Data Stream parsing', () => {
   })
 
   test('parses various data part types', async () => {
-    const streamParts = [
-      '2:[{"type":"data-sources","sources":[{"id":"1","content":"test","metadata":{"type":"faq"}}]}]',
-      '2:[{"type":"data-progress","items":[{"id":"1","label":"검색중","status":"in_progress"}]}]',
-      '2:[{"type":"data-clarification","suggestedQuestions":["질문1","질문2"]}]',
-      '2:[{"type":"data-followup","suggestedQuestions":["다음 질문"]}]',
-      '2:[{"type":"data-escalation","reason":"불확실","uncertainty":0.8}]'
+    const events_in = [
+      {
+        type: 'data-sources',
+        data: { sources: [{ id: '1', content: 'test', metadata: { type: 'faq' } }] }
+      },
+      {
+        type: 'data-progress',
+        data: { items: [{ id: '1', label: '검색중', status: 'in_progress' }] }
+      },
+      { type: 'data-clarification', data: { suggestedQuestions: ['질문1', '질문2'] } },
+      { type: 'data-followup', data: { suggestedQuestions: ['다음 질문'] } },
+      { type: 'data-escalation', data: { reason: '불확실', uncertainty: 0.8 } }
     ]
 
     globalThis.fetch = (async () =>
-      new Response(dataStream(streamParts), { status: 200 })) as unknown as typeof fetch
+      new Response(sseStream(events_in), { status: 200 })) as unknown as typeof fetch
 
     const client = new PersonaApiClient('http://test')
     const events: StreamEvent[] = []
