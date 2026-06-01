@@ -149,6 +149,15 @@ export async function createServer() {
         }
       }
 
+      // 깨진 JSON 등 본문 파싱 실패는 클라이언트 오류(400) — 서버 장애(500)로 오분류하지 않는다
+      if (code === 'PARSE') {
+        set.status = 400
+        return {
+          error: 'Bad Request',
+          message: '요청 본문을 해석할 수 없습니다. (JSON 형식 오류)'
+        }
+      }
+
       set.status = 500
       return {
         error: 'Internal Server Error',

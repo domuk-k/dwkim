@@ -178,14 +178,14 @@ describe('Chat API (Elysia)', () => {
   })
 
   describe('Error handling', () => {
-    it('should handle malformed JSON without crashing', async () => {
+    it('should map malformed JSON to 400 (Bad Request), not 500', async () => {
       const res = await post('/api/v1/chat', '{"invalid": json}')
-      // Elysia onError는 JSON 파싱 에러를 매핑하지 않아 500으로 처리된다.
-      // 핵심은 서버가 죽지 않고 에러 응답을 돌려준다는 것.
-      expect(res.status).toBe(500)
+      // 깨진 JSON은 클라이언트 오류 → onError의 PARSE 분기에서 400으로 매핑된다.
+      // (서버 장애 500으로 오분류하지 않는다.)
+      expect(res.status).toBe(400)
 
       const body = await res.json()
-      expect(body).toHaveProperty('error')
+      expect(body.error).toBe('Bad Request')
     })
 
     it('should return 200 with mocked engine', async () => {
