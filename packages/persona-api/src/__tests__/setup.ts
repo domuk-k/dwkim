@@ -26,8 +26,16 @@ jest.mock('@langchain/langgraph', () => {
     })
   }
 
+  // @langchain/langgraph 1.x Annotation API
+  // Annotation<T>() 호출 + Annotation.Root({...}) 정적 메서드 둘 다 지원
+  const Annotation = Object.assign(
+    jest.fn((spec?: unknown) => ({ spec })),
+    { Root: jest.fn((spec: Record<string, unknown>) => ({ spec })) }
+  )
+
   return {
     StateGraph: jest.fn().mockImplementation(() => mockGraph),
+    Annotation,
     START: 'START',
     END: 'END'
   }

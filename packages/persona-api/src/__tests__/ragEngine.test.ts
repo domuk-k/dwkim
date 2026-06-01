@@ -3,15 +3,15 @@ import type { Document } from '../services/vectorStore'
 import * as vectorStoreModule from '../services/vectorStore'
 
 // Mock dependencies
-jest.mock('../services/vectorStore', () => {
-  const actual = jest.requireActual('../services/vectorStore')
-  return {
-    ...actual,
-    getVectorStore: jest.fn(),
-    initVectorStore: jest.fn(),
-    resetVectorStore: jest.fn()
-  }
-})
+// 주의: setup.ts에서 이미 ../services/vectorStore를 전역 모킹함.
+// 여기서는 테스트 케이스별로 동작을 재정의하기 위해 핵심 export만 jest.fn으로 덮어쓴다.
+// (bun:test는 jest.requireActual을 지원하지 않으므로 actual spread 대신 직접 정의)
+jest.mock('../services/vectorStore', () => ({
+  VectorStore: jest.fn(),
+  getVectorStore: jest.fn(),
+  initVectorStore: jest.fn(),
+  resetVectorStore: jest.fn()
+}))
 
 // LLMService mock (파일 상단에서 설정)
 jest.mock('../services/llmService', () => {
@@ -66,6 +66,7 @@ jest.mock('../services/seuService', () => ({
 
 describe('RAGEngine', () => {
   let personaEngine: PersonaEngine
+  // biome-ignore lint/suspicious/noExplicitAny: 부분 구현 테스트 목 — VectorStore 전체 타입 불필요
   let mockVectorStore: any
 
   beforeEach(() => {
@@ -91,7 +92,9 @@ describe('RAGEngine', () => {
 
   describe('initialization', () => {
     it('should initialize successfully', async () => {
-      await expect(personaEngine.initialize()).resolves.not.toThrow()
+      // bun:test는 expect(promise).resolves.not.toThrow()를 지원하지 않으므로
+      // Promise<void> 반환을 toBeUndefined로 검증 (= reject 없이 resolve)
+      await expect(personaEngine.initialize()).resolves.toBeUndefined()
       expect(vectorStoreModule.initVectorStore).toHaveBeenCalled()
     })
 
@@ -169,12 +172,12 @@ describe('RAGEngine', () => {
         }
       }
 
-      await expect(personaEngine.addDocument(document)).resolves.not.toThrow()
+      await expect(personaEngine.addDocument(document)).resolves.toBeUndefined()
       expect(mockVectorStore.addDocument).toHaveBeenCalledWith(document)
     })
 
     it('should delete document successfully', async () => {
-      await expect(personaEngine.deleteDocument('test-doc')).resolves.not.toThrow()
+      await expect(personaEngine.deleteDocument('test-doc')).resolves.toBeUndefined()
       expect(mockVectorStore.deleteDocument).toHaveBeenCalledWith('test-doc')
     })
 
@@ -206,9 +209,18 @@ describe('RAGEngine', () => {
 
       expect(status.vectorStore).toBe(true)
       expect(status.llmService).toBe(true)
-      expect(status.modelInfo).toEqual({
-        model: 'gpt-4o-mini',
-        maxTokens: 4096
+      // 현재 구현: modelInfo는 generation/utility 두 LLM 인스턴스 정보를 담는다
+      expect(status.modelInfo).toHaveProperty('generation')
+      expect(status.modelInfo).toHaveProperty('utility')
+      expect(status.modelInfo.generation).toMatchObject({
+        purpose: 'generation',
+        maxTokens: expect.any(Number),
+        model: expect.any(String)
+      })
+      expect(status.modelInfo.utility).toMatchObject({
+        purpose: 'utility',
+        maxTokens: expect.any(Number),
+        model: expect.any(String)
       })
     })
   })
@@ -239,10 +251,13 @@ describe('RAGEngine', () => {
       // Use exported buildContext function directly
       const context = buildContext(documents, query)
 
+      // 현재 구현 포맷: "### [<한국어 라벨>]" 섹션 헤더 + "**제목**" + 본문
       expect(context).toContain('사용자 질문: Test query')
-      expect(context).toContain('[thoughts] First Document')
+      expect(context).toContain('### [생각]')
+      expect(context).toContain('**First Document**')
       expect(context).toContain('First document content')
-      expect(context).toContain('[experience] Second Document')
+      expect(context).toContain('### [경험]')
+      expect(context).toContain('**Second Document**')
       expect(context).toContain('Second document content')
     })
 
