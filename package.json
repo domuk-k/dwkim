@@ -14,6 +14,8 @@
     "format": "biome format --write .",
     "build:dwkim": "bun run --filter dwkim build",
     "dev:dwkim": "bun run --filter dwkim dev",
+    "test:dwkim": "bun run --filter dwkim test",
+    "typecheck:dwkim": "bun run --filter dwkim type-check",
     "build:blog": "bun run --filter blog build",
     "dev:blog": "bun run --filter blog dev",
     "build:persona-api": "bun run --filter persona-api build",

@@ -13,3 +13,9 @@ jobs:
 
       - run: bun install
       - run: bun run lint && bun run build
+
+      # dwkim CLI 게이트: 타입체크 + 테스트 (green 검증됨)
+      # NOTE: persona-api 테스트는 별도 선결과제(guardrails 모듈/supertest dep/langgraph
+      # Annotation export) 정리 후 게이트에 추가 예정.
+      - run: bun run typecheck:dwkim
+      - run: bun run test:dwkim
