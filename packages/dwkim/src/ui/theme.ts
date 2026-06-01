@@ -1,8 +1,12 @@
 import { flavors } from '@catppuccin/palette'
 import chalk from 'chalk'
+import { detectThemeModeSync } from './detectTheme.js'
 
-// Catppuccin Mocha (기본 다크 테마)
-const mocha = flavors.mocha.colors
+// 터미널 테마 자동 감지 (순수/동기 — 모듈 로드 시점 호출 안전, OSC 부수효과 없음)
+// light → latte, dark → mocha. 변수명 `mocha`는 활성 팔레트로 재사용한다.
+// latte와 mocha는 동일한 색상 키를 노출하므로 아래 theme 객체 리터럴은 그대로 유지된다.
+const mode = detectThemeModeSync()
+const mocha = (mode === 'light' ? flavors.latte : flavors.mocha).colors
 
 export const theme = {
   // 주요 색상
