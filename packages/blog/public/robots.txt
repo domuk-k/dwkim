@@ -1,4 +1,4 @@
-# robots.txt — blog.dwkim.me
+# robots.txt — domuk-k.vercel.app
 # Developer blog: allow all crawlers for maximum visibility
 
 User-agent: *
@@ -32,4 +32,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://blog.dwkim.me/sitemap-index.xml
+Sitemap: https://domuk-k.vercel.app/sitemap-index.xml

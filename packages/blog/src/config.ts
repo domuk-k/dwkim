@@ -3,7 +3,7 @@ import type { ThemeConfig } from './types/config.types'
 export const themeConfig: ThemeConfig = {
   // SITE INFO ///////////////////////////////////////////////////////////////////////////////////////////
   site: {
-    website: 'https://blog.dwkim.me', // Site domain
+    website: 'https://domuk-k.vercel.app', // Site domain (blog.dwkim.me 미등록 → 라이브 도메인. 커스텀 도메인 등록 시 교체)
     title: 'dwkim', // Site title
     author: 'dwkim', // Author name
     description: 'Developer & Marathon Runner', // Site description
