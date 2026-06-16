@@ -4,9 +4,8 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "sync-cogni": "bun scripts/sync-cogni-posts.ts && bun scripts/sync-cogni-about.ts",
+    "sync-cogni": "bun scripts/sync-cogni-posts.ts",
     "sync-cogni:posts": "bun scripts/sync-cogni-posts.ts",
-    "sync-cogni:about": "bun scripts/sync-cogni-about.ts",
     "deploy": "./scripts/deploy-blog.sh",
     "prebuild": "[ -d ~/.cogni ] && bun run sync-cogni || echo 'Skipping sync-cogni (no ~/.cogni directory)'",
     "dev": "astro dev",
