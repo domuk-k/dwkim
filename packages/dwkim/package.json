@@ -22,6 +22,7 @@
   "scripts": {
     "build": "bun script/build.js",
     "dev": "bun --watch src/index.ts",
+    "qa:tui": "bun test src/__tests__ && bun run type-check && bun run build",
     "test": "bun test",
     "type-check": "tsc --noEmit"
   },

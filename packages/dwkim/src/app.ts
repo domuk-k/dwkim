@@ -42,7 +42,9 @@ import { createInitialState, transition } from './state/machine.js'
 import type { AppEvent, AppState, LoadingState, ToolCallState } from './state/types.js'
 import { isCorrection, STARTER_QUESTIONS } from './state/types.js'
 import { icons } from './ui/data.js'
+import { ScreenRuntime } from './ui/screenRuntime.js'
 import { c } from './ui/theme.js'
+import { TuiFrame } from './ui/tuiFrame.js'
 import { setClipboardText } from './utils/clipboard.js'
 import { loadConfig } from './utils/config.js'
 import { logger } from './utils/logger.js'
@@ -66,6 +68,7 @@ export async function startApp(): Promise<void> {
   let state = createInitialState()
 
   // ─── Component tree ───────────────────────────────────
+  const frame = new TuiFrame()
   const chatHistory = createChatHistoryText()
   const profileImage = createProfileImage()
   const welcomeScopeText = createWelcomeScopeText()
@@ -80,8 +83,7 @@ export async function startApp(): Promise<void> {
   const feedbackView = createFeedbackView()
   const sourcesPanel = createSourcesPanel()
 
-  // Input separator + editor
-  const inputSeparator = new Text('', 0, 0)
+  // Composer editor
   const editorTheme: EditorTheme = {
     borderColor: c.surface,
     selectList: {
@@ -107,28 +109,33 @@ export async function startApp(): Promise<void> {
   // Overlay handle for exit feedback
   let exitFeedbackOverlay: OverlayHandle | null = null
 
-  // Track which components are currently in the tree
-  let loaderInTree = false
-  let welcomeInTree = false
-  let inputInTree = false
-  let feedbackInTree = false
-  let sourcesInTree = false
-  let emailInTree = false
-  let suggestionsInTree = false
-  let elicitationInTree = false
-  let toolCallsInTree = false
   let emailInput: Input | null = null
   let emailHeaderText: Text | null = null
   let emailHintText: Text | null = null
 
   // ─── Build initial tree ───────────────────────────────
-  tui.addChild(chatHistory)
+  frame.setSlot('history', 'chat', [chatHistory])
   // Show connecting loader immediately
   statusLoader.setMessage('연결 중...')
   statusLoader.start()
-  tui.addChild(statusLoader)
-  loaderInTree = true
+  frame.setSlot('main', 'connecting', [statusLoader])
+  tui.addChild(frame)
   tui.start()
+
+  const screenRuntime = new ScreenRuntime(
+    {
+      connecting: { exit: exitConnecting },
+      welcome: { enter: enterWelcome, exit: exitWelcome },
+      idle: { enter: enterIdle, update: updateIdle, exit: exitIdle },
+      loading: { enter: enterLoading, update: updateLoading, exit: exitLoading },
+      emailInput: { enter: enterEmailInput, exit: exitEmailInput },
+      feedback: { enter: enterFeedback, exit: exitFeedback },
+      feedbackConfirmed: { enter: enterFeedbackConfirmed, exit: exitFeedback },
+      exitFeedback: { enter: enterExitFeedback, exit: exitExitFeedback },
+      error: { enter: enterError, exit: exitError }
+    },
+    () => tui.requestRender()
+  )
 
   // ─── Dispatch & render ────────────────────────────────
   function dispatch(event: AppEvent): void {
@@ -148,15 +155,9 @@ export async function startApp(): Promise<void> {
       if (next.expandedSourcesMsgId !== null) {
         const msg = next.messages.find((m) => m.id === next.expandedSourcesMsgId)
         updateSourcesPanel(sourcesPanel, msg?.sources)
-        if (!sourcesInTree) {
-          tui.addChild(sourcesPanel)
-          sourcesInTree = true
-        }
+        frame.setSlot('auxiliary', 'sources', [sourcesPanel])
       } else {
-        if (sourcesInTree) {
-          tui.removeChild(sourcesPanel)
-          sourcesInTree = false
-        }
+        frame.clearSlot('auxiliary', 'sources')
       }
     }
 
@@ -175,294 +176,221 @@ export async function startApp(): Promise<void> {
       }
     }
 
-    // Mode transitions
-    if (prev.mode !== next.mode) {
-      // Clean up previous mode's components
-      cleanupMode(prev.mode)
-      // Set up next mode's components
-      setupMode(next)
-    } else {
-      // Same mode — update content within mode
-      updateCurrentMode(prev, next)
-    }
-
-    tui.requestRender()
+    screenRuntime.render(prev, next)
   }
 
-  function cleanupMode(prevMode: string): void {
-    switch (prevMode) {
-      case 'connecting':
-        if (loaderInTree) {
-          statusLoader.stop()
-          tui.removeChild(statusLoader)
-          loaderInTree = false
-        }
-        break
-      case 'loading':
-        stopProgressSpinner()
-        if (toolCallsInTree) {
-          tui.removeChild(toolCallsView)
-          toolCallsInTree = false
-        }
-        tui.removeChild(progressView)
-        tui.removeChild(streamingView)
-        break
-      case 'welcome':
-        if (welcomeInTree) {
-          tui.removeChild(profileImage)
-          tui.removeChild(welcomeScopeText)
-          tui.removeChild(welcomeSelectList)
-          tui.removeChild(welcomeHintText)
-          welcomeInTree = false
-        }
-        // Welcome also has input area
-        if (inputInTree) {
-          tui.removeChild(inputSeparator)
-          tui.removeChild(inputField)
-          inputInTree = false
-        }
-        break
-      case 'idle':
-        if (inputInTree) {
-          tui.removeChild(inputSeparator)
-          tui.removeChild(inputField)
-          inputInTree = false
-        }
-        if (suggestionsInTree) {
-          if (suggestedQuestionsView) tui.removeChild(suggestedQuestionsView)
-          suggestedQuestionsView = null
-          suggestionsInTree = false
-        }
-        if (elicitationInTree) {
-          if (elicitationPromptText) tui.removeChild(elicitationPromptText)
-          if (elicitationView) tui.removeChild(elicitationView)
-          elicitationPromptText = null
-          elicitationView = null
-          elicitationInTree = false
-        }
-        break
-      case 'feedback':
-      case 'feedbackConfirmed':
-        if (feedbackInTree) {
-          tui.removeChild(feedbackView)
-          feedbackInTree = false
-        }
-        break
-      case 'emailInput':
-        if (emailInTree) {
-          if (emailHeaderText) tui.removeChild(emailHeaderText)
-          if (emailInput) tui.removeChild(emailInput)
-          if (emailHintText) tui.removeChild(emailHintText)
-          emailInTree = false
-          emailInput = null
-          emailHeaderText = null
-          emailHintText = null
-        }
-        break
-      case 'exitFeedback':
-        if (exitFeedbackOverlay) {
-          exitFeedbackOverlay.hide()
-          exitFeedbackOverlay = null
-        }
-        break
+  function exitConnecting(): void {
+    statusLoader.stop()
+    frame.clearSlot('main', 'connecting')
+  }
+
+  function enterWelcome(): void {
+    welcomeSelectList.setSelectedIndex(0)
+    welcomeSelectList.onSelect = (item) => {
+      const idx = STARTER_QUESTIONS.indexOf(item.value)
+      dispatch({ type: 'STARTER_SELECT', index: idx >= 0 ? idx : 0 })
+      handleChat(item.value)
+    }
+    welcomeSelectList.onCancel = () => dispatch({ type: 'WELCOME_DISMISS' })
+
+    frame.setSlot('main', 'welcome', [
+      profileImage,
+      welcomeScopeText,
+      welcomeSelectList,
+      welcomeHintText
+    ])
+    setupInputArea('')
+    tui.setFocus(welcomeSelectList)
+  }
+
+  function exitWelcome(): void {
+    frame.clearSlot('main', 'welcome')
+    frame.clearSlot('composer', 'input')
+  }
+
+  function enterIdle(next: AppState): void {
+    if (next.mode !== 'idle') return
+    setupInputArea(next.input)
+    syncIdlePrompt(next)
+  }
+
+  function updateIdle(prev: AppState, next: AppState): void {
+    if (prev.mode !== 'idle' || next.mode !== 'idle') return
+    if (
+      prev.suggestedQuestions !== next.suggestedQuestions ||
+      prev.pendingElicitation !== next.pendingElicitation
+    ) {
+      syncIdlePrompt(next)
     }
   }
 
-  function setupMode(next: AppState): void {
-    switch (next.mode) {
-      case 'connecting':
-        // Initial connecting state handled in initialization above
-        break
+  function exitIdle(): void {
+    frame.clearSlot('composer', 'input')
+    clearIdlePrompt()
+  }
 
-      case 'welcome': {
-        welcomeSelectList.setSelectedIndex(0)
-        welcomeSelectList.onSelect = (item) => {
-          const idx = STARTER_QUESTIONS.indexOf(item.value)
-          dispatch({ type: 'STARTER_SELECT', index: idx >= 0 ? idx : 0 })
-          handleChat(item.value)
-        }
-        welcomeSelectList.onCancel = () => dispatch({ type: 'WELCOME_DISMISS' })
-        tui.addChild(profileImage)
-        tui.addChild(welcomeScopeText)
-        tui.addChild(welcomeSelectList)
-        tui.addChild(welcomeHintText)
-        welcomeInTree = true
-        tui.setFocus(welcomeSelectList)
+  function enterLoading(next: AppState): void {
+    if (next.mode !== 'loading') return
 
-        // Also show input
-        setupInputArea('')
-        // Focus stays on SelectList, not input, during welcome
-        tui.setFocus(welcomeSelectList)
-        break
-      }
+    updateStreamingContent(streamingView, '')
+    updateProgressView(progressView, [], false)
+    updateToolCallsView(toolCallsView, next.loadingState)
 
-      case 'idle': {
-        setupInputArea(next.input)
+    inputField.disableSubmit = true
+    frame.setSlot('main', 'streaming', [streamingView])
+    frame.setSlot('main', 'progress', [progressView])
+    frame.setSlot('main', 'toolCalls', [toolCallsView])
+    tui.setFocus(null)
+  }
 
-        // Elicitation chip은 suggested questions보다 우선 (이중 SelectList 포커스 충돌 회피)
-        if (next.pendingElicitation) {
-          elicitationPromptText = new Text(c.lavender(next.pendingElicitation.prompt), 1, 0)
-          elicitationView = createElicitationView(next.pendingElicitation.options)
-          elicitationView.onSelect = (item) =>
-            dispatch({ type: 'ELICITATION_SELECT', value: item.value, label: item.label })
-          elicitationView.onCancel = () => dispatch({ type: 'ELICITATION_DISMISS' })
-          tui.addChild(elicitationPromptText)
-          tui.addChild(elicitationView)
-          elicitationInTree = true
-          tui.setFocus(elicitationView)
-        } else if (next.suggestedQuestions.length > 0) {
-          suggestedQuestionsView = createSuggestedQuestionsView(next.suggestedQuestions)
-          suggestedQuestionsView.onSelect = (item) => selectSuggestion(item.value)
-          suggestedQuestionsView.onCancel = () => dispatch({ type: 'SUGGESTION_DISMISS' })
-          tui.addChild(suggestedQuestionsView)
-          suggestionsInTree = true
-          tui.setFocus(suggestedQuestionsView)
-        }
-        break
-      }
+  function updateLoading(prev: AppState, next: AppState): void {
+    if (prev.mode !== 'loading' || next.mode !== 'loading') return
 
-      case 'loading': {
-        // Reset views to avoid stale content flash
-        updateStreamingContent(streamingView, '')
-        updateProgressView(progressView, [], false)
-        updateToolCallsView(toolCallsView, next.loadingState)
-
-        inputField.disableSubmit = true
-        tui.addChild(streamingView)
-        tui.addChild(progressView)
-        tui.addChild(toolCallsView)
-        toolCallsInTree = true
-        tui.setFocus(null)
-        break
-      }
-
-      case 'emailInput': {
-        const escalation = next.escalation
-        const color = escalation.show ? c.peach : c.lavender
-        const headerIcon = escalation.show ? '🤔 ' : '📧 '
-        const headerMsg = escalation.show
-          ? escalation.reason || '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.'
-          : '더 깊은 이야기가 필요하신 것 같아요!'
-
-        emailHeaderText = new Text('', 2, 0)
-        emailHeaderText.setText(
-          [
-            '',
-            color(`${headerIcon}${headerMsg}`),
-            c.dim(c.muted('이메일 남겨주시면 동욱이 직접 연락드릴게요.')),
-            '',
-            c.primary('이메일: ')
-          ].join('\n')
-        )
-
-        emailInput = new Input()
-        emailInput.onSubmit = (value: string) => handleEmailSubmit(value)
-        emailInput.onEscape = () => dispatch({ type: 'EMAIL_DISMISS' })
-
-        emailHintText = new Text('', 2, 0)
-        emailHintText.setText(
-          `\n${c.dim(c.muted('Enter: 전송 · 빈값 Enter: 넘어가기 · ESC: 다시보지않기'))}`
-        )
-
-        tui.addChild(emailHeaderText)
-        tui.addChild(emailInput)
-        tui.addChild(emailHintText)
-        emailInTree = true
-        tui.setFocus(emailInput)
-        break
-      }
-
-      case 'feedback': {
-        showFeedbackPrompt(feedbackView)
-        tui.addChild(feedbackView)
-        feedbackInTree = true
-        tui.setFocus(null)
-        break
-      }
-
-      case 'feedbackConfirmed': {
-        showFeedbackConfirmed(feedbackView)
-        tui.addChild(feedbackView)
-        feedbackInTree = true
-        tui.setFocus(null)
-        // Auto-dismiss after 1 second
-        setTimeout(() => dispatch({ type: 'FEEDBACK_CONFIRMED_DONE' }), 1000)
-        break
-      }
-
-      case 'exitFeedback': {
-        const overlay = createExitFeedbackOverlay()
-        exitFeedbackOverlay = tui.showOverlay(overlay, {
-          anchor: 'center',
-          width: '60%'
-        })
-        tui.setFocus(null)
-        break
-      }
-
-      case 'error': {
-        const errText = new Text('', 1, 0)
-        errText.setText(`\n${c.error(`${icons.error} ${next.errorMessage}`)}`)
-        tui.addChild(errText)
-        break
-      }
+    if (prev.streamContent !== next.streamContent) {
+      updateStreamingContent(streamingView, next.streamContent)
     }
+    if (prev.progressItems !== next.progressItems) {
+      updateProgressView(progressView, next.progressItems, !!next.streamContent)
+    }
+    if (prev.loadingState !== next.loadingState) {
+      updateToolCallsView(toolCallsView, next.loadingState)
+    }
+    if (next.streamContent && frame.hasSlot('main', 'toolCalls')) {
+      frame.clearSlot('main', 'toolCalls')
+    }
+  }
+
+  function exitLoading(): void {
+    stopProgressSpinner()
+    frame.clearSlot('main', 'streaming')
+    frame.clearSlot('main', 'progress')
+    frame.clearSlot('main', 'toolCalls')
+  }
+
+  function enterEmailInput(next: AppState): void {
+    if (next.mode !== 'emailInput') return
+
+    const escalation = next.escalation
+    const color = escalation.show ? c.peach : c.lavender
+    const headerIcon = escalation.show ? '🤔 ' : '📧 '
+    const headerMsg = escalation.show
+      ? escalation.reason || '이 질문은 정확한 답변을 위해 직접 연락드리고 싶어요.'
+      : '더 깊은 이야기가 필요하신 것 같아요!'
+
+    emailHeaderText = new Text('', 2, 0)
+    emailHeaderText.setText(
+      [
+        '',
+        color(`${headerIcon}${headerMsg}`),
+        c.dim(c.muted('이메일 남겨주시면 동욱이 직접 연락드릴게요.')),
+        '',
+        c.primary('이메일: ')
+      ].join('\n')
+    )
+
+    emailInput = new Input()
+    emailInput.onSubmit = (value: string) => handleEmailSubmit(value)
+    emailInput.onEscape = () => dispatch({ type: 'EMAIL_DISMISS' })
+
+    emailHintText = new Text('', 2, 0)
+    emailHintText.setText(
+      `\n${c.dim(c.muted('Enter: 전송 · 빈값 Enter: 넘어가기 · ESC: 다시보지않기'))}`
+    )
+
+    frame.setSlot('main', 'email', [emailHeaderText, emailInput, emailHintText])
+    tui.setFocus(emailInput)
+  }
+
+  function exitEmailInput(): void {
+    frame.clearSlot('main', 'email')
+    emailInput = null
+    emailHeaderText = null
+    emailHintText = null
+  }
+
+  function enterFeedback(): void {
+    showFeedbackPrompt(feedbackView)
+    frame.setSlot('main', 'feedback', [feedbackView])
+    tui.setFocus(null)
+  }
+
+  function enterFeedbackConfirmed(): void {
+    showFeedbackConfirmed(feedbackView)
+    frame.setSlot('main', 'feedback', [feedbackView])
+    tui.setFocus(null)
+    setTimeout(() => dispatch({ type: 'FEEDBACK_CONFIRMED_DONE' }), 1000)
+  }
+
+  function exitFeedback(): void {
+    frame.clearSlot('main', 'feedback')
+  }
+
+  function enterExitFeedback(): void {
+    const overlay = createExitFeedbackOverlay()
+    exitFeedbackOverlay = tui.showOverlay(overlay, {
+      anchor: 'center',
+      width: '60%'
+    })
+    tui.setFocus(null)
+  }
+
+  function exitExitFeedback(): void {
+    if (exitFeedbackOverlay) {
+      exitFeedbackOverlay.hide()
+      exitFeedbackOverlay = null
+    }
+  }
+
+  function enterError(next: AppState): void {
+    if (next.mode !== 'error') return
+    const errText = new Text('', 1, 0)
+    errText.setText(`\n${c.error(`${icons.error} ${next.errorMessage}`)}`)
+    frame.setSlot('main', 'error', [errText])
+  }
+
+  function exitError(): void {
+    frame.clearSlot('main', 'error')
   }
 
   function setupInputArea(value: string): void {
-    const termWidth = terminal.columns || 80
-    inputSeparator.setText(`\n${c.surface('─'.repeat(termWidth - 2))}`)
     inputField.setText(value)
     inputField.disableSubmit = false
-    tui.addChild(inputSeparator)
-    tui.addChild(inputField)
-    inputInTree = true
+    frame.setSlot('composer', 'input', [inputField])
     tui.setFocus(inputField)
   }
 
-  function updateCurrentMode(prev: AppState, next: AppState): void {
-    // Welcome: SelectList handles selection internally, no update needed
+  function syncIdlePrompt(next: Extract<AppState, { mode: 'idle' }>): void {
+    clearIdlePrompt()
 
-    // Loading: update streaming content, progress, tool calls
-    if (next.mode === 'loading' && prev.mode === 'loading') {
-      if (prev.streamContent !== next.streamContent) {
-        updateStreamingContent(streamingView, next.streamContent)
-      }
-      if (prev.progressItems !== next.progressItems) {
-        updateProgressView(progressView, next.progressItems, !!next.streamContent)
-      }
-      if (prev.loadingState !== next.loadingState) {
-        updateToolCallsView(toolCallsView, next.loadingState)
-      }
-      // Hide toolcalls when streaming content starts
-      if (next.streamContent && toolCallsInTree) {
-        tui.removeChild(toolCallsView)
-        toolCallsInTree = false
-      }
+    if (next.pendingElicitation) {
+      elicitationPromptText = new Text(c.lavender(next.pendingElicitation.prompt), 1, 0)
+      elicitationView = createElicitationView(next.pendingElicitation.options)
+      elicitationView.onSelect = (item) =>
+        dispatch({ type: 'ELICITATION_SELECT', value: item.value, label: item.label })
+      elicitationView.onCancel = () => dispatch({ type: 'ELICITATION_DISMISS' })
+      frame.setSlot('main', 'elicitation', [elicitationPromptText, elicitationView])
+      tui.setFocus(elicitationView)
+      return
     }
 
-    // Idle: update suggestions
-    if (next.mode === 'idle' && prev.mode === 'idle') {
-      if (prev.suggestedQuestions !== next.suggestedQuestions) {
-        if (next.suggestedQuestions.length > 0) {
-          // Rebuild SelectList with new items
-          if (suggestionsInTree && suggestedQuestionsView) {
-            tui.removeChild(suggestedQuestionsView)
-          }
-          suggestedQuestionsView = createSuggestedQuestionsView(next.suggestedQuestions)
-          suggestedQuestionsView.onSelect = (item) => selectSuggestion(item.value)
-          suggestedQuestionsView.onCancel = () => dispatch({ type: 'SUGGESTION_DISMISS' })
-          tui.addChild(suggestedQuestionsView)
-          suggestionsInTree = true
-          tui.setFocus(suggestedQuestionsView)
-        } else if (suggestionsInTree) {
-          if (suggestedQuestionsView) tui.removeChild(suggestedQuestionsView)
-          suggestedQuestionsView = null
-          suggestionsInTree = false
-          tui.setFocus(inputField)
-        }
-      }
+    if (next.suggestedQuestions.length > 0) {
+      suggestedQuestionsView = createSuggestedQuestionsView(next.suggestedQuestions)
+      suggestedQuestionsView.onSelect = (item) => selectSuggestion(item.value)
+      suggestedQuestionsView.onCancel = () => dispatch({ type: 'SUGGESTION_DISMISS' })
+      frame.setSlot('main', 'suggestions', [suggestedQuestionsView])
+      tui.setFocus(suggestedQuestionsView)
+      return
     }
+
+    tui.setFocus(inputField)
+  }
+
+  function clearIdlePrompt(): void {
+    frame.clearSlot('main', 'suggestions')
+    frame.clearSlot('main', 'elicitation')
+    suggestedQuestionsView = null
+    elicitationPromptText = null
+    elicitationView = null
   }
 
   // ─── Input handling ───────────────────────────────────
@@ -900,7 +828,7 @@ export async function startApp(): Promise<void> {
   // ─── Cleanup ──────────────────────────────────────────
   function cleanup(): void {
     stopProgressSpinner()
-    if (loaderInTree) statusLoader.stop()
+    statusLoader.stop()
     tui.stop()
   }
 

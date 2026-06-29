@@ -18,6 +18,7 @@
     "dev:dwkim": "bun run --filter dwkim dev",
     "test:dwkim": "bun run --filter dwkim test",
     "typecheck:dwkim": "bun run --filter dwkim type-check",
+    "qa:dwkim:tui": "bun run --filter dwkim qa:tui",
     "build:blog": "bun run --filter blog build",
     "dev:blog": "bun run --filter blog dev",
     "build:persona-api": "bun run --filter persona-api build",
