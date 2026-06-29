@@ -1,3 +1,13 @@
+## [3.6.1](https://github.com/domuk-k/dwkim/compare/dwkim-v3.6.0...dwkim-v3.6.1) (2026-06-29)
+
+### Bug Fixes
+
+* **dwkim:** stabilize local tui dev and status command ([47a7854](https://github.com/domuk-k/dwkim/commit/47a78547cc01190fbc3bd2c901458723df98f191))
+
+### Refactoring
+
+* **dwkim:** introduce tui frame runtime ([7982329](https://github.com/domuk-k/dwkim/commit/79823298d790155c387d414ce97ba62dfbf20d31))
+
 ## [3.6.0](https://github.com/domuk-k/dwkim/compare/dwkim-v3.5.0...dwkim-v3.6.0) (2026-03-10)
 
 ### Features
