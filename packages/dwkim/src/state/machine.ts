@@ -126,6 +126,35 @@ export function transition(state: AppState, event: AppEvent): AppState {
       }
     }
 
+    case 'STEER_SUBMIT': {
+      if (state.mode !== 'loading') return state
+      const trimmed = event.value.trim()
+      if (!trimmed) return state
+
+      let nextState: AppState = state
+      const partialAnswer = state.streamContent.trim()
+      if (partialAnswer) {
+        const partialPatch = addMessage(nextState, {
+          role: 'assistant',
+          content: partialAnswer
+        })
+        nextState = { ...nextState, ...partialPatch }
+      }
+
+      const patch = addMessage(nextState, { role: 'user', content: trimmed })
+      return {
+        ...nextState,
+        ...patch,
+        mode: 'loading',
+        loadingState: { icon: '⏳', message: '방향 전환 중...', toolCalls: [] },
+        streamContent: '',
+        progressItems: [],
+        escalationReason: '',
+        pendingSuggestions: [],
+        pendingElicitation: null
+      }
+    }
+
     // ─── Streaming ──────────────────────────────────────
     case 'STREAM_SESSION':
       if (state.mode !== 'loading') return state

@@ -3,9 +3,9 @@
 import { installCrashHandlers } from './utils/crashHandler.js'
 import { logger } from './utils/logger.js'
 import { reportCrash } from './utils/telemetry.js'
+import { getVersion } from './utils/version.js'
 
-declare const __VERSION__: string
-
+const VERSION = getVersion()
 const command = process.argv[2]
 
 // 치명적 오류 처리를 3초로 bound (텔레메트리/플러시가 종료를 막지 않도록)
@@ -13,7 +13,7 @@ const FATAL_FLUSH_TIMEOUT_MS = 3000
 
 function showHelp() {
   console.log(`
-📚 dwkim CLI v${__VERSION__}
+📚 dwkim CLI v${VERSION}
 
 사용법: dwkim [명령어]
 
@@ -48,7 +48,7 @@ function fireUpdateCheck(): void {
       const last = getLastUpdateCheck()
       if (last && Date.now() - last < UPDATE_CHECK_INTERVAL_MS) return
 
-      const result = await checkForUpdate(__VERSION__)
+      const result = await checkForUpdate(VERSION)
       if (!result) return
 
       // 성공적으로 조회했으면(새 버전 여부 무관) throttle 타임스탬프 갱신
@@ -68,10 +68,10 @@ function fireUpdateCheck(): void {
 async function main() {
   // 전역 크래시 핸들러 설치 + 시작 로그 (DWKIM_DEBUG 시 ~/.dwkim/debug.log)
   installCrashHandlers()
-  logger.info('cli_start', { version: __VERSION__, command: command ?? '(chat)' })
+  logger.info('cli_start', { version: VERSION, command: command ?? '(chat)' })
 
   if (command === '--version' || command === '-v') {
-    console.log(__VERSION__)
+    console.log(VERSION)
     return
   }
 

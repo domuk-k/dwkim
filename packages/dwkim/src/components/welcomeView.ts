@@ -1,11 +1,4 @@
-import {
-  Image,
-  type SelectItem,
-  SelectList,
-  type SelectListTheme,
-  Text
-} from '@mariozechner/pi-tui'
-import { profileImage } from '../assets/profile.js'
+import { type SelectItem, SelectList, type SelectListTheme, Text } from '@mariozechner/pi-tui'
 import { STARTER_QUESTIONS } from '../state/types.js'
 import { c } from '../ui/theme.js'
 
@@ -21,19 +14,6 @@ const items: SelectItem[] = STARTER_QUESTIONS.map((q) => ({
   value: q,
   label: q
 }))
-
-export function createProfileImage(): Image {
-  return new Image(
-    profileImage.base64,
-    profileImage.mimeType,
-    { fallbackColor: c.muted },
-    {
-      maxWidthCells: 20,
-      maxHeightCells: 8,
-      filename: 'profile.png'
-    }
-  )
-}
 
 export function createWelcomeScopeText(): Text {
   const text = new Text('', 1, 0)

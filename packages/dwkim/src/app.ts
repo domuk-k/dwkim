@@ -26,7 +26,6 @@ import {
   createSuggestedQuestionsView
 } from './components/suggestedQuestions.js'
 import {
-  createProfileImage,
   createWelcomeHintText,
   createWelcomeScopeText,
   createWelcomeSelectList
@@ -49,7 +48,12 @@ import { setClipboardText } from './utils/clipboard.js'
 import { loadConfig } from './utils/config.js'
 import { logger } from './utils/logger.js'
 import { sendNotification } from './utils/notify.js'
-import { ApiError, PersonaApiClient, type StreamEvent } from './utils/personaApiClient.js'
+import {
+  ApiError,
+  PersonaApiClient,
+  type StatusResponse,
+  type StreamEvent
+} from './utils/personaApiClient.js'
 
 type SourcesEvent = Extract<StreamEvent, { type: 'sources' }>
 
@@ -70,7 +74,6 @@ export async function startApp(): Promise<void> {
   // ─── Component tree ───────────────────────────────────
   const frame = new TuiFrame()
   const chatHistory = createChatHistoryText()
-  const profileImage = createProfileImage()
   const welcomeScopeText = createWelcomeScopeText()
   const welcomeSelectList = createWelcomeSelectList()
   const welcomeHintText = createWelcomeHintText()
@@ -98,6 +101,7 @@ export async function startApp(): Promise<void> {
     { name: 'help', description: '도움말' },
     { name: 'status', description: '서버 상태' },
     { name: 'clear', description: '초기화' },
+    { name: 'stop', description: '응답 중단' },
     { name: 'exit', description: '종료' }
   ])
   const inputField = new Editor(tui, editorTheme, { paddingX: 0 })
@@ -112,6 +116,7 @@ export async function startApp(): Promise<void> {
   let emailInput: Input | null = null
   let emailHeaderText: Text | null = null
   let emailHintText: Text | null = null
+  let activeChatRequestId = 0
 
   // ─── Build initial tree ───────────────────────────────
   frame.setSlot('history', 'chat', [chatHistory])
@@ -193,12 +198,7 @@ export async function startApp(): Promise<void> {
     }
     welcomeSelectList.onCancel = () => dispatch({ type: 'WELCOME_DISMISS' })
 
-    frame.setSlot('main', 'welcome', [
-      profileImage,
-      welcomeScopeText,
-      welcomeSelectList,
-      welcomeHintText
-    ])
+    frame.setSlot('main', 'welcome', [welcomeScopeText, welcomeSelectList, welcomeHintText])
     setupInputArea('')
     tui.setFocus(welcomeSelectList)
   }
@@ -231,20 +231,27 @@ export async function startApp(): Promise<void> {
 
   function enterLoading(next: AppState): void {
     if (next.mode !== 'loading') return
+    mountLoadingSurface(next)
+  }
 
+  function mountLoadingSurface(next: Extract<AppState, { mode: 'loading' }>): void {
     updateStreamingContent(streamingView, '')
     updateProgressView(progressView, [], false)
     updateToolCallsView(toolCallsView, next.loadingState)
 
-    inputField.disableSubmit = true
+    setupInputArea('')
     frame.setSlot('main', 'streaming', [streamingView])
     frame.setSlot('main', 'progress', [progressView])
     frame.setSlot('main', 'toolCalls', [toolCallsView])
-    tui.setFocus(null)
   }
 
   function updateLoading(prev: AppState, next: AppState): void {
     if (prev.mode !== 'loading' || next.mode !== 'loading') return
+
+    if (prev.messages !== next.messages) {
+      mountLoadingSurface(next)
+      return
+    }
 
     if (prev.streamContent !== next.streamContent) {
       updateStreamingContent(streamingView, next.streamContent)
@@ -265,6 +272,7 @@ export async function startApp(): Promise<void> {
     frame.clearSlot('main', 'streaming')
     frame.clearSlot('main', 'progress')
     frame.clearSlot('main', 'toolCalls')
+    frame.clearSlot('composer', 'input')
   }
 
   function enterEmailInput(next: AppState): void {
@@ -399,6 +407,17 @@ export async function startApp(): Promise<void> {
     if (!trimmed) return
 
     inputField.addToHistory(trimmed)
+
+    if (state.mode === 'loading') {
+      if (trimmed === '/stop' || trimmed === '/cancel') {
+        client.abort()
+        dispatch({ type: 'STREAM_CANCEL' })
+        return
+      }
+
+      handleSteer(trimmed)
+      return
+    }
 
     if (trimmed.startsWith('/')) {
       handleCommand(trimmed)
@@ -550,6 +569,13 @@ export async function startApp(): Promise<void> {
     handleChat(question)
   }
 
+  function handleSteer(message: string): void {
+    client.abort()
+    inputField.setText('')
+    dispatch({ type: 'STEER_SUBMIT', value: message })
+    handleChat(message)
+  }
+
   function handleFeedbackKey(data: string): void {
     if (data === '1') {
       dispatch({ type: 'FEEDBACK_RATE', rating: 1 })
@@ -603,11 +629,21 @@ export async function startApp(): Promise<void> {
   }
 
   // ─── Chat streaming ──────────────────────────────────
-  async function handleChat(message: string): Promise<void> {
+  function handleChat(message: string): void {
+    const requestId = ++activeChatRequestId
+    void runChat(message, requestId)
+  }
+
+  async function runChat(message: string, requestId: number): Promise<void> {
+    const isActive = () => requestId === activeChatRequestId
+    const dispatchActive = (event: AppEvent) => {
+      if (isActive()) dispatch(event)
+    }
+
     try {
       // capture: 직전 턴에 선택한 visitorType을 이번 요청에 실어 보내고 clear
       const visitorType = state.capturedVisitorType ?? undefined
-      if (visitorType) dispatch({ type: 'ELICITATION_CONSUMED' })
+      if (visitorType) dispatchActive({ type: 'ELICITATION_CONSUMED' })
 
       let sources: SourcesEvent['sources'] = []
       let fullContent = ''
@@ -617,9 +653,11 @@ export async function startApp(): Promise<void> {
       let loadingState: LoadingState = { icon: '⏳', message: '처리 중...', toolCalls: [] }
 
       for await (const event of client.chatStream(message, state.sessionId, visitorType)) {
+        if (!isActive()) return
+
         switch (event.type) {
           case 'session':
-            dispatch({ type: 'STREAM_SESSION', sessionId: event.sessionId })
+            dispatchActive({ type: 'STREAM_SESSION', sessionId: event.sessionId })
             break
           case 'status':
             loadingState = {
@@ -627,7 +665,7 @@ export async function startApp(): Promise<void> {
               message: event.message,
               toolCalls: loadingState.toolCalls
             }
-            dispatch({ type: 'STREAM_STATUS', loadingState })
+            dispatchActive({ type: 'STREAM_STATUS', loadingState })
             break
           case 'tool_call': {
             const toolCalls = [...loadingState.toolCalls]
@@ -646,30 +684,30 @@ export async function startApp(): Promise<void> {
               toolCalls.push(toolState)
             }
             loadingState = { ...loadingState, toolCalls }
-            dispatch({ type: 'STREAM_TOOL_CALL', loadingState })
+            dispatchActive({ type: 'STREAM_TOOL_CALL', loadingState })
             break
           }
           case 'sources':
             sources = event.sources
             break
           case 'progress':
-            dispatch({ type: 'STREAM_PROGRESS', items: event.items })
+            dispatchActive({ type: 'STREAM_PROGRESS', items: event.items })
             break
           case 'clarification':
-            dispatch({ type: 'STREAM_CLARIFICATION', questions: event.suggestedQuestions })
+            dispatchActive({ type: 'STREAM_CLARIFICATION', questions: event.suggestedQuestions })
             break
           case 'escalation':
-            dispatch({ type: 'STREAM_ESCALATION', reason: event.reason })
+            dispatchActive({ type: 'STREAM_ESCALATION', reason: event.reason })
             break
           case 'followup':
-            dispatch({ type: 'STREAM_FOLLOWUP', questions: event.suggestedQuestions })
+            dispatchActive({ type: 'STREAM_FOLLOWUP', questions: event.suggestedQuestions })
             break
           case 'elicitation':
-            dispatch({ type: 'STREAM_ELICITATION', elicitation: event })
+            dispatchActive({ type: 'STREAM_ELICITATION', elicitation: event })
             break
           case 'content':
             fullContent += event.content
-            dispatch({ type: 'STREAM_CONTENT', fullContent })
+            dispatchActive({ type: 'STREAM_CONTENT', fullContent })
             break
           case 'done':
             processingTime = event.metadata.processingTime
@@ -680,6 +718,8 @@ export async function startApp(): Promise<void> {
             throw new ApiError(event.error)
         }
       }
+
+      if (!isActive()) return
 
       dispatch({
         type: 'STREAM_DONE',
@@ -695,6 +735,7 @@ export async function startApp(): Promise<void> {
       sendNotification('response_done', { mode: loadConfig().notifyMode ?? 'bell' })
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
+      if (!isActive()) return
       const message = error instanceof ApiError ? error.message : '오류가 발생했습니다.'
       dispatch({ type: 'STREAM_ERROR', error: message })
     }
@@ -713,9 +754,11 @@ export async function startApp(): Promise<void> {
   /help     도움말
   /status   서버 상태
   /clear    초기화
+  /stop     응답 중단
 
 단축키
-  ESC       응답 취소
+  응답 중 입력 + Enter   방향 전환
+  ESC 또는 /stop         응답 중단
   Ctrl+C    종료
 
 예시 질문
@@ -729,7 +772,7 @@ export async function startApp(): Promise<void> {
           const st = await client.getStatus()
           dispatch({
             type: 'CMD_STATUS_OK',
-            statusText: `${icons.check} ${st.status} · 문서 ${st.rag_engine?.total_documents || 0}개`
+            statusText: formatStatusText(st)
           })
         } catch (error) {
           logger.warn('status_failed', {
@@ -741,6 +784,14 @@ export async function startApp(): Promise<void> {
 
       case 'clear':
         dispatch({ type: 'CMD_CLEAR' })
+        break
+
+      case 'stop':
+      case 'cancel':
+        dispatch({
+          type: 'CMD_HELP',
+          helpText: `${icons.info} 응답 중에는 /stop 또는 ESC로 중단할 수 있어요.`
+        })
         break
 
       case 'exit':
@@ -760,6 +811,22 @@ export async function startApp(): Promise<void> {
           helpText: `${icons.error} /${cmd} — /help 참고`
         })
     }
+  }
+
+  function formatStatusText(st: StatusResponse): string {
+    const documentCount = st.rag_engine?.total_documents
+    if (documentCount !== undefined) {
+      return `${icons.check} ${st.status} · 문서 ${documentCount}개`
+    }
+
+    const components = st.components
+      ? Object.entries(st.components)
+          .filter(([, value]) => typeof value === 'boolean')
+          .map(([key, value]) => `${key} ${value ? 'OK' : 'FAIL'}`)
+      : []
+
+    const componentText = components.length ? ` · ${components.join(' · ')}` : ''
+    return `${icons.check} ${st.status}${componentText}`
   }
 
   // ─── Email submission ─────────────────────────────────

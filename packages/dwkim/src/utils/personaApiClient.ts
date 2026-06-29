@@ -202,7 +202,8 @@ export interface SearchResult {
 
 export interface StatusResponse {
   status: string
-  timestamp: string
+  timestamp?: string
+  components?: Record<string, unknown>
   rag_engine?: {
     status: string
     total_documents: number
@@ -215,6 +216,26 @@ export interface StatusResponse {
     used: string
     total: string
   }
+}
+
+interface WrappedStatusResponse {
+  success: boolean
+  data?: StatusResponse
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizeStatusResponse(payload: unknown): StatusResponse {
+  const raw = isRecord(payload) && isRecord(payload.data) ? payload.data : payload
+
+  if (!isRecord(raw)) {
+    return { status: 'unknown' }
+  }
+
+  const status = typeof raw.status === 'string' ? raw.status : 'unknown'
+  return { ...(raw as Omit<StatusResponse, 'status'>), status }
 }
 
 // Discriminated Union: 각 이벤트 타입에 맞는 필드만 허용
@@ -402,7 +423,8 @@ export class PersonaApiClient {
   ): AsyncGenerator<StreamEvent> {
     // 이전 요청 취소
     this.abort()
-    this.abortController = new AbortController()
+    const controller = new AbortController()
+    this.abortController = controller
 
     const maxRetries = 2
     const retryDelayMs = 2000
@@ -416,7 +438,7 @@ export class PersonaApiClient {
           method: 'POST',
           headers: this.getHeaders('application/json'),
           body: JSON.stringify({ message, sessionId, visitorType }),
-          signal: this.abortController.signal
+          signal: controller.signal
         })
 
         // 502/503은 cold-start일 수 있으므로 재시도
@@ -430,7 +452,7 @@ export class PersonaApiClient {
         // 성공 또는 재시도 불가능한 에러면 루프 탈출
         break
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if ((error instanceof Error && error.name === 'AbortError') || controller.signal.aborted) {
           return // 취소된 요청은 조용히 종료
         }
         lastError = error instanceof Error ? error : new Error(String(error))
@@ -478,13 +500,15 @@ export class PersonaApiClient {
         }
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if ((error instanceof Error && error.name === 'AbortError') || controller.signal.aborted) {
         return // 취소된 요청은 조용히 종료
       }
       throw error
     } finally {
       reader.releaseLock()
-      this.abortController = null
+      if (this.abortController === controller) {
+        this.abortController = null
+      }
     }
   }
 
@@ -525,7 +549,9 @@ export class PersonaApiClient {
       handleHttpError(response.status, body)
     }
 
-    return response.json()
+    return normalizeStatusResponse(
+      (await response.json()) as WrappedStatusResponse | StatusResponse
+    )
   }
 
   /**

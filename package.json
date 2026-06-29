@@ -15,7 +15,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "build:dwkim": "bun run --filter dwkim build",
-    "dev:dwkim": "bun run --filter dwkim dev",
+    "dev:dwkim": "cd packages/dwkim && sh script/dev-tty.sh",
     "test:dwkim": "bun run --filter dwkim test",
     "typecheck:dwkim": "bun run --filter dwkim type-check",
     "qa:dwkim:tui": "bun run --filter dwkim qa:tui",
@@ -23,7 +23,7 @@
     "dev:blog": "bun run --filter blog dev",
     "build:persona-api": "bun run --filter persona-api build",
     "dev:persona-api": "bun run --filter persona-api dev",
-    "release:dwkim": "bun run build:dwkim && cd packages/dwkim && bunx semantic-release --no-ci",
+    "release:dwkim": "bun run qa:dwkim:tui && cd packages/dwkim && bunx semantic-release --no-ci",
     "prepare": "husky"
   },
   "devDependencies": {

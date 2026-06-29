@@ -93,6 +93,7 @@ export type AppEvent =
   // Input
   | { type: 'INPUT_CHANGE'; value: string }
   | { type: 'SUBMIT'; value: string }
+  | { type: 'STEER_SUBMIT'; value: string }
   // Welcome
   | { type: 'STARTER_UP' }
   | { type: 'STARTER_DOWN' }

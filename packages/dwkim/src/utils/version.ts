@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 /**
  * 빌드 시 esbuild `define`으로 주입되는 전역 버전 문자열을 안전하게 노출.
  *
@@ -8,14 +10,23 @@
 
 declare const __VERSION__: string
 
+function getPackageVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8'))
+    return typeof pkg.version === 'string' ? pkg.version : 'unknown'
+  } catch {
+    return process.env.npm_package_version ?? 'unknown'
+  }
+}
+
 /**
- * 현재 CLI 버전. 번들 빌드에서는 주입된 값을, 그 외에는 'unknown'을 반환한다.
+ * 현재 CLI 버전. 번들 빌드에서는 주입된 값을, 그 외에는 package.json 버전을 반환한다.
  */
 export function getVersion(): string {
   try {
     // 번들 외 컨텍스트에서는 __VERSION__이 미정의 → typeof 가드로 안전 처리
-    return typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'unknown'
+    return typeof __VERSION__ !== 'undefined' ? __VERSION__ : getPackageVersion()
   } catch {
-    return 'unknown'
+    return getPackageVersion()
   }
 }

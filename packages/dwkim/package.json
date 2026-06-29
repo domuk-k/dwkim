@@ -3,7 +3,7 @@
   "version": "3.6.0",
   "description": "Developer profile & AI chat in your terminal",
   "license": "MIT",
-  "author": "dannyworks102@gmail.com",
+  "author": "DongWook Kim <dannyworks102@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/domuk-k/dwkim.git",
@@ -21,8 +21,9 @@
   ],
   "scripts": {
     "build": "bun script/build.js",
-    "dev": "bun --watch src/index.ts",
-    "qa:tui": "bun test src/__tests__ && bun run type-check && bun run build",
+    "dev": "sh script/dev-tty.sh",
+    "smoke:cli": "bun src/index.ts --version && bun run build && node dist/index.js --version && ! rg -q \"iVBOR|profileImage|assets/profile\" dist/index.js",
+    "qa:tui": "bun test src/__tests__ && bun run type-check && bun run smoke:cli",
     "test": "bun test",
     "type-check": "tsc --noEmit"
   },

@@ -42,6 +42,12 @@ function sseStream(events: object[]): ReadableStream<Uint8Array> {
   })
 }
 
+function abortError(): Error {
+  const error = new Error('Aborted')
+  error.name = 'AbortError'
+  return error
+}
+
 describe('PersonaApiClient — chatStream UI Message Stream parsing', () => {
   const originalFetch = globalThis.fetch
 
@@ -172,6 +178,48 @@ describe('PersonaApiClient — chatStream UI Message Stream parsing', () => {
     expect(events[3].type).toBe('followup')
     expect(events[4].type).toBe('escalation')
   })
+
+  test('keeps the active abort controller when an older stream exits', async () => {
+    const signals: AbortSignal[] = []
+    const encoder = new TextEncoder()
+
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal as AbortSignal
+      signals.push(signal)
+
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'text-delta', delta: 'chunk' })}\n`)
+            )
+            signal.addEventListener('abort', () => controller.error(abortError()), { once: true })
+          }
+        }),
+        { status: 200 }
+      )
+    }) as unknown as typeof fetch
+
+    const client = new PersonaApiClient('http://test')
+    const first = client.chatStream('first')
+    await expect(first.next()).resolves.toMatchObject({
+      value: { type: 'content', content: 'chunk' },
+      done: false
+    })
+
+    const second = client.chatStream('second')
+    await expect(second.next()).resolves.toMatchObject({
+      value: { type: 'content', content: 'chunk' },
+      done: false
+    })
+    expect(signals[0].aborted).toBe(true)
+
+    await expect(first.next()).resolves.toMatchObject({ done: true })
+
+    client.abort()
+    expect(signals[1].aborted).toBe(true)
+    await expect(second.next()).resolves.toMatchObject({ done: true })
+  })
 })
 
 // --- HTTP Error Handling ---
@@ -204,6 +252,44 @@ describe('PersonaApiClient — error handling', () => {
     // Should succeed on 2nd attempt
     await expect(client.checkHealth(3, 10)).resolves.toBeUndefined()
     expect(attempt).toBe(2)
+  })
+
+  test('getStatus unwraps current API envelope', async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            status: 'ready',
+            components: { vectorStore: true, llmService: true },
+            timestamp: '2026-06-29T00:00:00.000Z'
+          }
+        }),
+        { status: 200 }
+      )) as unknown as typeof fetch
+
+    const client = new PersonaApiClient('http://test')
+    const status = await client.getStatus()
+
+    expect(status.status).toBe('ready')
+    expect(status.components).toEqual({ vectorStore: true, llmService: true })
+  })
+
+  test('getStatus still accepts legacy unwrapped payloads', async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          status: 'ok',
+          rag_engine: { status: 'ready', total_documents: 123, collections: ['persona'] }
+        }),
+        { status: 200 }
+      )) as unknown as typeof fetch
+
+    const client = new PersonaApiClient('http://test')
+    const status = await client.getStatus()
+
+    expect(status.status).toBe('ok')
+    expect(status.rag_engine?.total_documents).toBe(123)
   })
 
   test('chatStream throws ApiError on 429', async () => {

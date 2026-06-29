@@ -9,22 +9,22 @@ let spinnerTimer: ReturnType<typeof setInterval> | null = null
 let spinnerFrame = 0
 
 export function createProgressView(): Text {
-  return new Text('', 2, 0)
+  return new Text('', 1, 0)
 }
 
-function renderLines(items: ProgressItem[], frame: string): string {
-  return items
-    .map((item) => {
-      if (item.status === 'in_progress') {
-        const detail = item.detail ? c.muted(` — ${item.detail}`) : ''
-        return `${c.lavender(frame)} ${c.lavender(item.label)}${detail}`
-      }
-      const icon = item.status === 'completed' ? c.success('✓') : c.muted('○')
-      const label = item.status === 'completed' ? c.success(item.label) : c.dim(c.muted(item.label))
-      const detail = item.status === 'completed' && item.detail ? c.muted(` — ${item.detail}`) : ''
-      return `${icon} ${label}${detail}`
-    })
-    .join('\n')
+const AMBIENT_LABELS: Record<string, string> = {
+  rewrite: '질문을 읽는 중',
+  search: '관련 맥락을 찾는 중',
+  context: '맥락을 정리하는 중',
+  generate: '답변을 쓰는 중'
+}
+
+export function formatAmbientProgress(items: ProgressItem[], frame: string): string {
+  const active = items.find((item) => item.status === 'in_progress')
+  if (!active) return ''
+
+  const label = AMBIENT_LABELS[active.id] ?? active.label
+  return `${c.lavender(frame)} ${c.muted(label)}`
 }
 
 export function updateProgressView(view: Text, items: ProgressItem[], hidden: boolean): void {
@@ -38,13 +38,13 @@ export function updateProgressView(view: Text, items: ProgressItem[], hidden: bo
   const hasInProgress = items.some((item) => item.status === 'in_progress')
   if (hasInProgress) {
     spinnerFrame = 0
-    view.setText(renderLines(items, SPINNER_FRAMES[0]))
+    view.setText(formatAmbientProgress(items, SPINNER_FRAMES[0]))
     spinnerTimer = setInterval(() => {
       spinnerFrame = (spinnerFrame + 1) % SPINNER_FRAMES.length
-      view.setText(renderLines(items, SPINNER_FRAMES[spinnerFrame]))
+      view.setText(formatAmbientProgress(items, SPINNER_FRAMES[spinnerFrame]))
     }, SPINNER_INTERVAL)
   } else {
-    view.setText(renderLines(items, '○'))
+    view.setText('')
   }
 }
 
