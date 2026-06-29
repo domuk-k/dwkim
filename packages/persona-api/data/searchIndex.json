@@ -516,6 +516,102 @@
     }
   },
   {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_0",
+    "content": "# 검색 인덱스를 만들었다가 접었다\n\nRAG를 몇 번 해봤는데 매번 찜찜했다. 벡터DB 세우고, 임베딩 모델 고르고, 청크 자르고, 인덱스 안 썩게 관리하고. 이 구조가 진짜 값을 하는 건지 아니면 \"검색은 원래 어렵다\"는 옛날 직관을 그냥 관성으로 들고 있는 건지 늘 헷갈렸다. 마침 작게 확인해볼 일이 생겼다.\n\n\n\n## 만든 것\n\n사내 모노레포에 결정 기록(ADR)이 43개 쌓여 있었다. 문서가 불어나니까 에이전트가 지금 유효한 결정을 못 찾고 옛날에 폐기된 걸 집어오면 어쩌나 싶었다. 그래서 카탈로그를 하나 만들었다. 각 ADR에 이미 적혀 있는 \"이럴 때 읽어라\" 한 줄만 모아서 보여주는, 파일로 저장 안 하고 부를 때마다 만드는 인덱스다.\n\n만들어 놓고 나서야 의심이 들었다. 이게 그냥 에이전트가 grep 치는 거보다 나은 게 맞나. RAG에 품던 의심이 그대로 여기 있었다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_1",
+    "content": "## 실험\n\n두 조건을 비교했다.\n\n- A: 도구 없음. 에이전트가 알아서 (`ls` / `grep` / `read`).\n- B: 카탈로그 + \"grep 말고 카탈로그부터 봐라\" 안내.\n\n질문도 두 묶음으로 나눴다.\n\n- 1차는 질문에 쓴 단어가 ADR 파일명에 그대로 들어 있는 5문항. A가 유리하다.\n- 2차는 질문 단어가 파일명에도 본문에도 없는 4문항. 그중 셋은 질문 키워드가 43개 본문에 한 번도 안 나온다. grep이 구조적으로 못 찾는 경우다. RAG가 \"이게 내 차례\"라고 말하는 바로 그 지점이고, 그래서 B가 유리하다.\n\n정답 ADR은 실험 전에 적어두고, 정답률·폐기된 ADR을 잘못 집었는지·토큰·끝까지 읽은 파일 수를 쟀다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_2",
+    "content": "## 결과\n\n1차 5/5 = 5/5. 2차 4/4 = 4/4. 합치면 A가 9개, B가 9개 다 맞혔다. 토큰은 1차엔 카탈로그가 10% 더 쓰고 2차엔 5% 덜 써서, 부호가 뒤집힌다. 그냥 노이즈다.\n\nB가 유리하라고 일부러 짠 2차에서도 A가 하나도 안 틀렸다는 게 좀 놀라웠다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_3",
+    "content": "## 왜 안 틀렸냐면\n\n순수 grep은 진짜로 못 찾는다. \"token usage\"라는 말이 본문에 한 번도 안 나오니까. 그런데 에이전트가 단어를 바꿔가며 친다.\n\n- \"token usage\"가 안 걸리면 `토큰`, `token_usage`로\n- \"xlsx 편집\"은 실제 쓰는 라이브러리 이름 `univer`로\n- \"에이전트 종료 처리\"는 `context`, `submit`으로\n\n제일 웃긴 건 2차 한 문항은 카탈로그를 쥐여준 B조차 카탈로그를 안 쓰고 그냥 grep으로 풀었다는 거다. 손에 도구가 있는데 안 썼다. 필요가 없어서.\n\n미리 만들어둔 인덱스가 하려던 일을, 모델이 그 자리에서 검색어를 바꿔가며 해버렸다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_4",
+    "content": "## RAG로 넓혀보면\n\nRAG든 임베딩이든 카탈로그든 결국 \"검색을 미리 정리해두는\" 같은 부류다. 이게 값을 한다는 전제는 하나뿐이다. 검색하는 쪽이 단어가 안 맞아서 못 찾는다는 것. 그래서 의미 공간에 미리 박아둔다.\n\n근데 요즘 모델은 그 안 맞는 단어를 그 자리에서 메운다. 동의어 만들고, 파일명으로 찾아가고, 안 되면 다시 친다. 그러면 미리 정리해둔 값이 — 임베딩 비용이며 벡터DB 운영이며 청크 튜닝이며 인덱스 썩는 거 관리며 — 에이전트가 ls 한 번에 grep 몇 번 친 거랑 맞붙는다. 그리고 졌다.\n\n전에도 비슷한 걸 봤다. 임베딩은 차원 수가 아니라 구조가 품질을 가른다는 것([[local-hybrid-search-lessons-from-qmd]]), 챗봇 만들 때 이걸 LLM이 굳이 생성해야 하는지부터 물어야 한다는 것([[education-chatbot-design-from-exact-match-to-rag]]).",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_5",
+    "content": "## 그래도 구조가 이기는 경우\n\n언제나 grep이 이기는 건 아니다. 다음 중 하나라도 걸리면 미리 만든 구조가 다시 산다.\n\n- 코퍼스가 너무 커서 ls/grep으로 못 훑을 때 (수만 청크 단위)\n- 모델이 약해서 동의어를 못 만들 때\n- 파일명이나 메타데이터가 엉망일 때\n- 쿼리마다 grep 왕복할 시간이 없을 때 (지연이 빡셀 때)\n- 정답에 꼭 들어가야 할 문구가 정해져 있을 때 (exact match, [[교육-도메인-챗봇-기술-선택-의사결정-기준]])\n\n내 경우엔 다섯 개 다 grep 쪽이었다. 그래서 카탈로그는 접었다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 5,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_6",
+    "content": "## 남는 것\n\n순서가 거꾸로였다. 도구를 먼저 만들고, 이게 없으면 진짜 실패하는지를 나중에 쟀다. 다음엔 에이전트한테 grep부터 쥐여주고 그게 실패하는 걸 본 다음에 구조를 사야겠다. 이번엔 싸게 끝났고, 자기가 만든 걸 자기가 안 쓰기로 한 게 생각보다 안 아깝다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 6,
+      "totalChunks": 8
+    }
+  },
+  {
+    "id": "blog_llm-grep-vs-search-structures-an-experiment_7",
+    "content": "## Related\n\n- [[local-hybrid-search-lessons-from-qmd]] — 임베딩은 차원 수가 아니라 구조가 품질을 가른다. 같은 의심의 인프라판.\n- [[education-chatbot-design-from-exact-match-to-rag]] — 이걸 LLM이 굳이 생성해야 하나부터 묻는 순서. 이 글의 윗단계 프레임.\n- [[교육-도메인-챗봇-기술-선택-의사결정-기준]] — grep/ls냐 RAG냐 하이브리드냐 고르는 기준.\n- [[wrtn-critical-analysis]] — Agentic RAG로 넘어가는 흐름, 유사 코드 검색은 오히려 15% 떨어진다는 얘기.\n- [[cogni-pkm-agent]] — 이 노트가 사는 PKM도 벡터DB 대신 로컬 하이브리드를 골랐다.",
+    "metadata": {
+      "type": "blog",
+      "title": "검색 인덱스를 만들었다가 접었다",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 7,
+      "totalChunks": 8
+    }
+  },
+  {
     "id": "blog_building-with-ai-agent_0",
     "content": "이 블로그는 AI 에이전트와 함께 만들어지고 있다. 정확히는 Anthropic의 Claude Code를 활용해서다. 단순히 코드 생성 도구로 사용하는 게 아니라, 실제 개발 파트너처럼 함께 작업하고 있다.\n\n처음에는 호기심에서 시작했다. \"AI가 정말 개발에 도움이 될까?\" 하는 의구심 반, 기대 반으로. 몇 달 써본 지금은 확신한다. 이건 단순한 도구가 아니라 새로운 개발 방식이다.\n\n그렇다면 실제로 어떻게 함께 일하는 걸까?\n\n⸻\n\n\n\n## 함께 작업하는 방식\n\n보통 새 기능을 추가할 때 이런 식으로 진행한다:\n\n```\n나: \"블로그 소개 페이지에 탭 기능을 추가하고 싶어. 개발자/러너/기여자별로 내용을 나눠서 보여주고 싶거든\"\n\nClaude: \"좋은 아이디어네요. Astro의 content collection을 활용해서 각 탭별로 마크다운 파일을 만들고, AboutTabs 컴포넌트에서 동적으로 로드하는 방식이 어떨까요?\"\n```\n\n그리고 실제로 구현해본다. 코드를 작성하고, 테스트하고, 문제가 생기면 함께 디버깅한다. 마치 페어 프로그래밍하는 것처럼.\n\n가장 인상적인 건 단순히 코드만 짜는 게 아니라 **설계부터 함께 고민**한다는 점이다. \"이 기능을 어떻게 구현할지\"가 아니라 \"이 기능이 왜 필요하고, 어떤 방식이 가장 좋을지\"부터 대화한다.\n\n⸻",
     "metadata": {
@@ -865,6 +961,50 @@
       ],
       "chunkIndex": 7,
       "totalChunks": 8
+    }
+  },
+  {
+    "id": "cogni_conta-workspace-resolver-isolation-as-structure_0",
+    "content": "\n# facade를 걷어내고 프레임워크 위에 격리를 '구조'로 박다\n\nconta의 `workspace`(테넌트×워크플로 격리 파일 namespace) 설계를 아키텍트로서 복기한 기록. 결론부터: **좋은 판단이었다.** 특히 두 수(手)가 배울 만하다 — 자기가 만든 추상화를 죽인 것, 그리고 격리를 \"검사\"가 아니라 \"구조\"로 만든 것.\n\n## 맥락\n\n원래 conta는 자기 소유의 `WorkflowSpace` aggregate + `WorkflowSpaceService` facade를 가졌다. Mastra 프레임워크에도 `Workspace`라는 파일저장 프리미티브가 있었다. 두 개의 \"workspace\"가 한 단어로 충돌하던 상황.\n\n## 배운 점 (경험 자산)\n\n### 1. 자기가 만든 facade를 걷어내는 게 가장 어렵고 가장 좋은 결정\n2026-05-12, conta는 `WorkflowSpaceService` facade를 **제거**했다 (ADR-0025 amendment). Mastra `Workspace` 위에 한 겹 더 쌓은 자기 wrapper가 타입안전 외엔 값을 못 한다는 걸 인정하고 collapse 시킨 것.\n- 추상화는 **더 쌓을 때**가 아니라 **걷어낼 때** 실력이 드러난다.\n- \"단순 > 추상화\" ([[blog-workflow-studio-decisions]]의 원칙)의 실전 사례.\n- 단, 대가가 있다: 개념(`WorkflowSpace`)은 살았는데 전용 구현 클래스는 사라져서, 도메인 용어와 코드 사이에 한 칸 간격이 생긴다. ADR로 그 간격을 메우는 게 필수.",
+    "metadata": {
+      "type": "conta-workspace-resolver-isolation-as-structure",
+      "title": "facade를 걷어내고 프레임워크 위에 격리를 '구조'로 박다",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_conta-workspace-resolver-isolation-as-structure_1",
+    "content": "### 2. 격리는 \"검사\"가 아니라 \"구조\"로 만들 때 가장 강하다\n멀티테넌트 격리(POL-CORE-006)를 path validator로 막지 않았다. 대신:\n- 프로세스에 Mastra `Workspace` **싱글톤 1개**.\n- `filesystem` 은 **요청마다 호출되는 resolver** — `RequestContext`의 `conta:tenantId / workflowId / runId`를 읽어 그 요청 전용 mount를 조립.\n- 다른 run의 경로(`/runs/<other-rid>/…`)는 **매칭되는 mount가 없어서** 자연히 `FileNotFoundError`.\n- 핵심: *illegal state를 검사로 거부*하는 게 아니라 *표현 불가능하게* 만든다. ([[constraints-force-good-design]]의 결과 = 제약이 좋은 설계를 강제, [[types-are-documentation]]의 \"make illegal states unrepresentable\"와 같은 결.)\n- 빈 mount면 즉시 throw (fail loud) — 권한 누락이 silent하게 빈 워크스페이스로 흐르지 않게.\n\n### 3. 무상태 싱글톤 + per-request 컨텍스트 = 객체 증식 없는 멀티테넌시\n테넌트마다 Workspace 인스턴스를 늘리는 게 아니라, 객체는 하나 두고 *요청 컨텍스트를 읽어 다른 백엔드를 반환*. N개 테넌트를 한 인스턴스로, 누수 없이.\n\n### 4. byte-copy 없는 immutability — decorator로\nrun 입력 핀(B1)은 `SnapshotReadDecorator`로 inventory를 감싸 run 시작 시점 `revision_id`를 고정. 바이트 복사 없이 불변성 확보, 입력 없는 run은 오버헤드 0 (decorator 안 씌움).",
+    "metadata": {
+      "type": "conta-workspace-resolver-isolation-as-structure",
+      "title": "facade를 걷어내고 프레임워크 위에 격리를 '구조'로 박다 — conta workspace 설계",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_conta-workspace-resolver-isolation-as-structure_2",
+    "content": "### 5. 대칭의 미학보다 실제 수요의 비대칭 (two-basket)\ntenant 축은 원래 `WorkflowSpace`와 평행한 `TenantSpace`로 상상됐지만, 그 이름으론 구현/문서에 없다. 대신 ADR-0038(proposed)에서 **`TenantFile`** = `WorkflowFile`과 평행한 신규 1급 primitive로 내려왔다.\n- 핵심 통찰: tenant 재사용의 실제 수요는 \"run까지 가진 격리 *공간*\"이 아니라 \"공유 가능한 *파일 라이브러리*\"였다. 그래서 `WorkflowFile`=full space / `TenantFile`=copy-on-select source 라는 **비대칭**을 택했다.\n- additive 테이블(`tenant_files` …)로 기존 `workflow_files` 무손상 → 격리와 점진 마이그레이션을 동시에 삼.\n- 트리거(\"이 파일 다른 workflow서도 쓸래\") 도래까지 미룬 YAGNI 규율.\n\n## 그늘 (정직한 균형)\n- tenant 축이 오래 open-question으로 표류 + 별칭 drift(`Q-WORKSPACE-LIBRARY` vs `-MIGRATION`).\n- `WorkflowSpace` 개념이 historical 마킹 + 여러 amendment로 반복 리팩터됨 — 첫 설계가 정답은 아니었다. 단 iteration이 ADR로 전부 기록됨 = 그 자체가 좋은 점. ([[blog-workflow-studio-decisions]] \"왜를 기록하면 6개월 후의 나를 구한다\".)\n\n## 한 줄 요약\n> 프레임워크 프리미티브 위에 자기 facade를 더 쌓지 말고 걷어내라. 격리는 if문이 아니라 자료구조(mount)로 박아라. 대칭은 미학일 뿐, 모델은 실제 수요의 비대칭을 따라야 한다.",
+    "metadata": {
+      "type": "conta-workspace-resolver-isolation-as-structure",
+      "title": "facade를 걷어내고 프레임워크 위에 격리를 '구조'로 박다 — conta workspace 설계",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_conta-workspace-resolver-isolation-as-structure_3",
+    "content": "## Related\n- [[blog-workflow-studio-decisions]] - 같은 시리즈. \"단순 > 추상화\", \"표준 > 프레임워크\", \"왜를 기록\" — 이 노트의 1·5번이 그 실전 적용\n- [[constraints-force-good-design]] - 제약이 좋은 설계를 강제 → 2번 \"격리를 구조로\"의 사상적 뿌리\n- [[in-process-preview-pragmatism]] - 격리 vs 속도 trade-off의 대조 사례 (거긴 격리를 *포기*해 속도를 샀고, 여긴 격리를 *구조*로 공짜로 얻음)\n- [[types-are-documentation]] - \"illegal state를 표현 불가능하게\"의 타입판 버전\n- [[mastra-deep-dive]] - 이 설계가 올라탄 Mastra Workspace/resolver 프리미티브\n",
+    "metadata": {
+      "type": "conta-workspace-resolver-isolation-as-structure",
+      "title": "facade를 걷어내고 프레임워크 위에 격리를 '구조'로 박다 — conta workspace 설계",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 4
     }
   },
   {
@@ -3419,6 +3559,123 @@
     }
   },
   {
+    "id": "blog_tastelog-field-1-skill-discovery_0",
+    "content": "# 스킬이 백 개여도 컨텍스트는 1%만 쓴다\n\n> 다 보여주는 게 목표가 아니다. 다 닿게 하는 게 목표다.\n\n⸻\n\n\n\n## 야생편을 시작하며\n\n추상편은 트레이드오프 앞에서 \"나는 이쪽이다\"를 선언하는 글이었다. 야생편은 반대다. 매일 쓰는 도구가 실제로 내놓은 판단을 뜯어보고 그 뒤에 깔린 taste를 거꾸로 캔다. 누가 선언한 게 아니라 코드와 설정값에서 읽어내는 거라 근거가 있다.\n\n첫 표본은 지금 이 글을 쓰면서 켜둔 Claude Code다. 정확히는 2.1.179 바이너리. 질문은 하나다. 스킬이 늘어날 때 그걸 다 어떻게 알려주나.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 0,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_1",
+    "content": "## 내가 처음 떠올린 답\n\nClaude Code에는 스킬이 있다. 특정 작업에 필요한 지식 묶음이고, 내 환경에만 수십 개가 깔려 있다. 에이전트는 매 턴 어떤 스킬이 있는지 알아야 한다. 모르면 못 쓰니까.\n\n그럼 어떻게 알려줄까? 답은 바로 떠오른다. 이름이랑 설명을 다 나열하면 된다. 스킬마다 한 줄씩 시스템 프롬프트에 붙여서 매 턴 보낸다. 명료하고 구현도 금방이다. 나라면 이렇게 짰을 거고 아마 당신도 그럴 거다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 1,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_2",
+    "content": "## 근데 문제가 그게 아니었다\n\n다 나열하는 순간 비용이 붙는다. 그 목록은 매 턴 컨텍스트에 실린다. 스킬 50개에 설명이 두 줄씩이면 100줄, 100개면 200줄이 대화 내내 토큰마다 따라온다.\n\n컨텍스트는 유한하다. 게다가 스킬 목록은 일을 하는 게 아니라 일을 소개하는 군더더기다. 소개가 본문을 잡아먹으면 배가 산으로 간다.\n\n진짜 문제는 \"어떻게 다 보여주나\"가 아니었다. 최소한의 신호로 모든 스킬에 닿을 수 있게 유지하는 거다. 에이전트가 스킬을 쓰려면 그게 있다는 것만 알면 된다. 풀 설명을 매 턴 들고 다닐 필요가 없다. \"다 보여주기\"는 욕심이고 \"다 닿게 하기\"가 진짜 지켜야 할 선이다. 이 둘을 가른 게 첫 taste다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 2,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_3",
+    "content": "## 바이너리가 흘린 한 줄\n\n추측만으로는 해부가 안 된다. Claude Code는 컴파일된 바이너리(Mach-O)라 소스는 안 보이지만, strings로 긁으면 설정 설명이 평문으로 남는다. 2.1.179를 긁다 이 줄을 만났다(strings 캐시 약 116,598번째 줄).\n\n> \"Fraction of the context window (in characters) reserved for the skill listing sent to Claude (default: 0.01 = 1%). When the listing exceeds this, descriptions are shortened to fit. Raise to opt in to higher per-turn context cost.\"\n\n한 문장에 결정 세 개가 들어 있다. 스킬 목록에 컨텍스트의 1%라는 하드 예산을 박았고(default 0.01, 추측이 아니라 숫자다), 예산을 넘으면 스킬을 빼는 게 아니라 설명을 짧게 깎아 욱여넣고, 예산은 올릴 수 있는 손잡이로 빼뒀다. 기본값은 인색하게 잡고 비싸게 쓰는 건 직접 켜라는 거다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 3,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_4",
+    "content": "## 스킬이 아니라 설명을 깎는다\n\n셋 중 taste가 제일 진한 건 두 번째다.\n\n목록이 1%를 넘쳤다고 하자. 제일 쉬운 처리는 스킬을 떨구는 거다. 공간 없으니 뒤쪽 몇 개는 이번 턴에 안 보여준다. 자르면 끝이라 구현도 간단하다. 그런데 그 순간 도달가능성이 깨진다. 떨궈진 스킬은 에이전트 눈에 존재하지 않는다. 하필 그 작업에 필요한 스킬이 잘렸다면 에이전트는 있는 줄도 모르고 맨손으로 헤맨다.\n\nClaude Code는 반대로 갔다. 스킬은 하나도 안 뺀다. 대신 설명을 깎는다. 50개가 100개가 되면 설명은 한 줄에서 반 줄로, 다시 이름과 토막 힌트로 쪼그라든다. 그래도 사라지는 건 없다.\n\n희생할 축을 분명히 골랐다. 양보한 건 충실도다. 설명이 짧아지면 매칭이 둔해질 뿐 치명적이진 않다. 절대 안 건드린 건 도달가능성이다. 스킬은 언제나 다 목록에 있다.\n\n여기서 Linus의 good taste가 겹쳐 보인다. 그가 TED에서 보여준 linked list 삭제 코드는 특수 케이스(head인지 분기하는 if)를 없애 모든 경우를 같은 길로 흐르게 만들었다. Claude Code도 같은 모양이다. \"어떤 스킬은 이번 턴에 안 보임\"이라는 특수 케이스를 아예 안 만든다. 모든 스킬은 늘 보이고 해상도만 다르다. 분기가 사라진다.\n\nretrieval을 안 만든 것도 같은 결이다. 임베딩 깔고 관련 스킬만 top-k로 골라주는 RAG는 멋있고 정석처럼 보인다. 그런데 스킬이 수십 개일 때는 과설계다. 인덱스 관리, 임베딩 갱신, 검색 지연, 틀린 top-k가 진짜 스킬을 가리는 위험을 다 떠안고 얻는 게, \"예산 넘으면 자르기\" 30줄이 이미 주는 결과와 별 차이가 없다. 아직 필요 없는 걸 안 지었다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 4,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_5",
+    "content": "## 이름 붙이기\n\n이 표본에서 캔 taste에 이름을 붙이면 셋이다.\n\n하나는 progressive disclosure. 존재는 이름으로 싸게 알리고 무게는 쓸 때 로드한다. 스킬 목록은 메뉴판이지 요리가 아니다. 주문이 들어오면 그때 주방을 돌린다.\n\n다음은 graceful degradation. 예산을 넘으면 기능을 끄는 게 아니라 품질을 낮춘다. 100개를 넘겨도 시스템은 안 죽고 설명만 둔해진다. 무너질 때 절벽에서 떨어지는 대신 비탈을 미끄러진다.\n\n마지막은 YAGNI. 지금 규모에 필요 없는 retrieval을 안 지었다. 천장은 알지만 거기 닿기 전까진 단순함을 산다.\n\n재밌는 건 같은 취향이 한 겹 더 반복된다는 점이다. MCP 도구에서 Claude Code는 이름만 목록에 띄우고 실제 schema는 안 보낸다. 대신 ToolSearch라는 도구로 필요할 때 schema를 불러온다. 지금 내 세션 시스템 프롬프트에도 이 문장이 있다.\n\n> \"The following deferred tools are now available via ToolSearch. Their schemas are NOT loaded — calling them directly will fail... Use ToolSearch ... before calling them.\"\n\n이름은 알려주되 무게는 미룬다. 스킬에서 설명을 깎아 도달가능성을 지킨 판단과, 도구에서 schema를 미뤄 이름만 띄운 판단은 같은 손에서 나온 같은 취향이다. 한 군데서 보이면 우연일 수 있어도 두 군데서 같은 모양이면 원칙이다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 5,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_6",
+    "content": "## 이 베팅은 어디서 터지나\n\n여기서 멈추면 찬양글이다. 해부의 핵심은 이 판단이 언제 틀리는지 찾는 데 있다.\n\n1% 베팅에는 천장이 있고, 그 천장은 설명을 깎는 방식 자체에 내장돼 있다. 스킬이 진짜 수백 개가 됐다고 하자. 도달가능성은 여전히 지켜진다. 다 목록에 있으니까. 그런데 1% 고정 예산을 수백 개가 나눠 가지면 설명이 무의미하게 다져진다. 이름과 단어 몇 개만 남는다. 이름이 비슷한 스킬이 여럿이면(review-pr, code-review, pr-test-analyzer) 에이전트는 토막 신호로 옳은 걸 못 고른다. 목록엔 있는데 매칭이 붕괴한다. 도달가능성이 명목상 살아도 실질적으론 죽는다.\n\n바로 거기가 retrieval이 정당해지는 지점이다. 신호가 압축에 다 갈려 나가면 그제야 임베딩으로 \"이 작업엔 이 다섯 개\"를 골라줄 값이 비용을 넘는다. 아까 안 지은 게 여기선 안 지으면 안 되는 게 된다.\n\n그러니까 \"1% + 깎기\"는 보편 정답이 아니다. 스킬 수가 적당할 때만 성립하는 베팅이다. Claude Code는 지금 그 구간에 있어서 단순한 게 이긴다. 영구 설계가 아니라 현재 규모에 건 도박이고 설계자도 안다. 그래서 예산을 손잡이로 빼놨다.\n\n그런데 한 번 더 의심해야 한다. 그 손잡이는 진짜 선견지명인가, 아니면 어려운 결정을 사용자에게 떠넘긴 건가.\n\n너그럽게 읽으면 단순함을 기본값으로 두되 탈출구를 연 설계다. 인색하게 읽으면 정반대다. 언제 retrieval로 갈아탈지라는 진짜 어려운 판단을 시스템이 안 내리고 슬라이더 하나로 포장해 사용자에게 넘긴 거다. 매칭이 붕괴하는 순간을 시스템은 감지하지 않는다. 설명이 토막 나도 경고가 없다. 사용자가 어느 날 \"왜 스킬을 못 찾지\" 하고 직접 알아채서 손잡이를 올리거나 retrieval을 붙여야 한다. graceful degradation은 조용해서 좋은 동시에 조용해서 위험하다. 품질이 비탈을 미끄러지는데 아무도 안 알려준다.\n\n그럼 미룬 부채인가. 지금은 아니라고 본다. 천장이 충분히 멀고, 1%를 넘겨 설명이 의미를 잃는 임계가 현실 사용자에겐 아직 안 닥쳤다. YAGNI는 \"절대 필요 없다\"가 아니라 \"아직 필요 없다\"이고, 손잡이는 그 \"아직\"을 사는 값을 솔직하게 가격표로 붙여놨다(\"Raise to opt in to higher per-turn context cost\"). 다만 규모에 묶인, 유통기한 있는 taste다. 스킬 생태계가 커지면 조용한 열화는 자랑이 아니라 결함이 되고, 그때 손잡이는 선견지명에서 책임 회피로 의미가 뒤집힌다.\n\n그래서 진짜 taste는 \"1%로 간다\"도 \"손잡이를 빼놨다\"도 아니다. 지금 규모에선 1%가 맞지만 어느 규모부턴 틀리고, 그 틀려지는 지점이 조용히 온다는 것까지 아는 거다. 정답이 바뀌는 지점은 설계에 새겼지만 그게 다가오는 걸 시스템이 스스로 감지하게는 안 만들었다. 거기까지가 이 표본의 taste이자 한계다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 6,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_7",
+    "content": "## 제약이 설계를 만든다\n\n이 표본은 추상편 #7(제약이 좋은 설계를 만든다)의 야생 증거다. \"컨텍스트 1%\"는 스스로 채운 족쇄다. 무한히 써도 되는데 0.01로 묶었다. 그 제약이 없었으면 \"다 나열하면 되지\"에 머물렀을 거고, 도달가능성과 충실도를 나눠 생각할 이유조차 없었을 거다. 예산이라는 가드레일이 \"뭘 양보하고 뭘 지킬까\"를 강제했고, 그 질문이 progressive disclosure를 끌어냈다. 자유도가 높았으면 안 나왔을 설계다.\n\n⸻",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 7,
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_tastelog-field-1-skill-discovery_8",
+    "content": "## 참고한 것들\n\n실물 표본\n- Claude Code 2.1.179 바이너리(Mach-O) 설정 문자열, strings 캐시 약 116,598번째 줄: \"Fraction of the context window (in characters) reserved for the skill listing... default: 0.01 = 1%... descriptions are shortened to fit. Raise to opt in to higher per-turn context cost.\"\n- 같은 세션 시스템 프롬프트의 MCP deferred-tool 안내(ToolSearch로 schema 지연 로드)\n\ntaste의 렌즈\n- Linus Torvalds, [\"The mind behind Linux\"](https://www.ted.com/talks/linus_torvalds_the_mind_behind_linux), TED 2016. 특수 케이스를 없애 normal case로 만드는 눈.\n- Paul Graham, [\"Taste for Makers\"](https://paulgraham.com/taste.html), 2002. 좋은 디자인은 단순하다.\n\n교차링크\n- 추상편 #7: 제약이 좋은 설계를 만든다\n- 야생#2(예정): MCP 도구 deferred 로드",
+    "metadata": {
+      "type": "blog",
+      "title": "Taste Log 야생#1: 스킬이 백 개여도 컨텍스트는 1%만 쓴다",
+      "category": "general",
+      "source": "cogni",
+      "pubDate": "2026-06-23",
+      "chunkIndex": 8,
+      "totalChunks": 9
+    }
+  },
+  {
     "id": "blog_tastelog-0-why-taste_0",
     "content": "# 코드를 안 짜는데 더 피곤한 이유\n\n> 판단은 위임할 수 없다.\n\n⸻\n\n\n\n## 타이핑을 멈추니 머리가 더 아프다\n\n요즘 나는 코드를 거의 직접 타이핑하지 않는다.\n\nClaude Code와 페어 프로그래밍하듯 일하면서, 구현의 대부분을 AI에게 맡긴다. 보일러플레이트, 라우팅 설정, 타입 정의, 테스트 작성. 예전에는 타이핑하면서 머리를 쉴 수 있었다. 손이 움직이는 동안 다음 설계를 느긋하게 생각했다.\n\n그런데 이제 타이핑이 사라지니까, 고수준 의사결정만 연속으로 내려야 한다.\n\n\"이 모듈은 쪼갤까 뭉칠까.\" \"여기서 추상화할까 아직 이를까.\" \"이벤트 드리븐으로 갈까 폴링으로 갈까.\" 쉬는 시간 없이 판단, 판단, 판단.\n\n정신적으로 훨씬 피곤해졌다. 그런데 동시에, 이상하게도 더 즐겁다.\n\n⸻",
     "metadata": {
@@ -3556,29 +3813,51 @@
       "title": "Taste Log: 기술 판단의 결을 기록하다",
       "source": "cogni",
       "chunkIndex": 0,
-      "totalChunks": 3
+      "totalChunks": 5
     }
   },
   {
     "id": "cogni_tastelog-series-plan_1",
-    "content": "### #4: 병렬 에이전트의 맥락 공유\n- 독립성 vs 공유 상태 — DeepAgents 사례\n- 관련 노트: 빠른말-스터디\n\n### #5: 코드 생성 vs 컴포지션\n- 템플릿/AST vs 런타임 조합\n- 관련 노트: [[sdui-journey-react-to-composition]]\n\n### #6: 표준화 vs 속도\n- 에이스 복제 vs 빠른 출시\n- 관련 노트: [[standardization-over-speed]]\n\n### #7: 제약이 좋은 설계를 만든다\n- 자유도 vs 가드레일\n- 관련 노트: [[constraints-force-good-design]]\n\n### #8: 분기는 상위로 — Early Return의 미학\n- 분기(조건문)는 상위 레이어에서 처리하는 게 일반적으로 좋다\n- 하위 함수는 하나의 경로만 알면 되고, 분기 책임은 호출자에게\n- 관련: SRP, 함수의 단일 책임, \"깊은 함수 vs 넓은 함수\" 트레이드오프\n\n## 리서치 아카이브",
+    "content": "### #4: 병렬 에이전트의 맥락 공유\n- 독립성 vs 공유 상태 — DeepAgents 사례\n- 관련 노트: 빠른말-스터디\n\n### #5: 코드 생성 vs 컴포지션\n- 템플릿/AST vs 런타임 조합\n- 관련 노트: [[sdui-journey-react-to-composition]]\n\n### #6: 표준화 vs 속도\n- 에이스 복제 vs 빠른 출시\n- 관련 노트: [[standardization-over-speed]]\n\n### #7: 제약이 좋은 설계를 만든다\n- 자유도 vs 가드레일\n- 관련 노트: [[constraints-force-good-design]]\n\n### #8: 분기는 상위로 — Early Return의 미학\n- 분기(조건문)는 상위 레이어에서 처리하는 게 일반적으로 좋다\n- 하위 함수는 하나의 경로만 알면 되고, 분기 책임은 호출자에게\n- 관련: SRP, 함수의 단일 책임, \"깊은 함수 vs 넓은 함수\" 트레이드오프\n\n## 야생편 (Field Notes) — 거장의 코드에서 taste 캐기\n\n추상편(#0~8)이 \"트레이드오프에서 **내 경향**을 선언\"이라면, 야생편은 \"**매일 쓰는 도구가 실제로 shipped한 판단**을 해부하고 그 뒤의 taste를 추출\". 주관이 아니라 *경험적 근거*가 있는 taste. PG \"Taste for Makers\"·Linus \"good taste\"를 실물 표본에 적용. 추상편과 교차 링크해 \"원칙 ←→ 야생 표본\"으로 짝지음.\n\n소스 파이프라인: **assay Mode 2 archaeology → decisions.md 적재 → 야생편 초안**. (taste 훈련과 콘텐츠가 한 번에)",
     "metadata": {
       "type": "tastelog-series-plan",
       "title": "Taste Log 시리즈 기획",
       "source": "cogni",
       "chunkIndex": 1,
-      "totalChunks": 3
+      "totalChunks": 5
     }
   },
   {
     "id": "cogni_tastelog-series-plan_2",
-    "content": "### 핵심 출처\n- Linus Torvalds TED 2016: good taste = 특수 케이스를 제거하는 눈\n- Paul Graham \"Taste for Makers\": taste는 주관이 아니라 수련된 판단\n- Sean Goedecke: bad taste = 맥락 무시하고 익숙한 해법 전도\n- Antonio Agudo: taste = 불확실성 속 트레이드오프 판단 (테스트 가능)\n- Vivian Qu: AI 시대 70% wall — 주니어는 AI 생성 코드 기술부채로 벽에 부딪힘\n- Addy Osmani: taste = 맞아 보이지만 틀린 것을 알아채는 능력\n- Designative (2026.02): \"taste is the new bottleneck\"\n- Steve Jobs: 좋은 것 만드는 데 더 많은 에너지가 아니라 약간 더 많은 시간\n- Dan Abramov \"The WET Codebase\": 왜 best practice가 존재하는지 이해가 맹목적 따르기보다 중요\n- Martin Fowler \"Tradable Quality Hypothesis\": 내부 품질을 거래 가능하다고 프레이밍하는 순간 진 것\n\n## 실행 도구\n\n- `/tastelog <회차>` 커맨드로 작성 시작\n- `tastelog` 스킬에 스타일 가이드, 구조 템플릿, 리뷰 체크리스트 포함\n\n## Related\n\n- [[ai-native-mindset]] — Taste 개념의 출발점\n- [[know-how-to-know-where-essay-idea]] — Know-Where 시대의 핵심 역량\n- [[workflow-studio-revival-strategy]] — 기존 기술 블로그 전략 (병행)\n",
+    "content": "### 편당 템플릿 (assay REVEAL 구조 − COMMIT)\n1. **순진한 프레임** — 대부분이 당길 답 (독자도 여기 끌리게)\n2. **진짜 문제** — 저자가 reframe한 지점\n3. **실물 증거** — 코드/설정값/바이너리 strings (인용 + 숫자)\n4. **그들이 고른 것** — + 왜 그게 불변식을 지키나\n5. **원칙 명명** — progressive disclosure 등\n6. **과적용 경계 (adversarial)** — 언제 이 판단이 터지나 → 찬양글이 아니라 비판적 해부가 되는 지점\n\n### 트랙 1: Claude Code 설계 해부 (소스 = CC 2.1.179 바이너리)\n\n| 편 | 표본 | 원칙 | 교차링크 |\n|---|---|---|---|\n| 야생#1 | 스킬 디스커버리 = 컨텍스트 1%(0.01) 예산 + 넘치면 description 깎기 | progressive disclosure · graceful degradation · YAGNI(no RAG) | #7 제약 |\n| 야생#2 | MCP 도구 = 이름만 띄우고 schema는 `ToolSearch`로 deferred 로드 | \"존재는 알리고 무게는 쓸 때 로드\" | #3 Push/Pull |\n| 야생#3 | microcompact 점진 컨텍스트 압축 | 희소자원 관리, 점진 vs 일괄 | — |\n| 야생#4 | 시스템 프롬프트가 *스스로* COMMIT-first/effortful retrieval 씀 | 메타: 프롬프트 설계의 taste | #8 분기 상위로 |\n| 야생#5 | permission mode = 가역성(reversibility) 기준 | \"되돌릴 수 있나\" = 자동화 경계 | #6 표준 vs 속도 |",
     "metadata": {
       "type": "tastelog-series-plan",
       "title": "Taste Log 시리즈 기획",
       "source": "cogni",
       "chunkIndex": 2,
-      "totalChunks": 3
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_tastelog-series-plan_3",
+    "content": "- **야생#1은 2026-06-17 assay 세션에서 풀로 캠** — 순진한프레임·진짜문제·실물값(0.01)·원칙·과적용경계 모두 확보. 근거: [[cc-skill-discovery-budget]] (decisions.md)\n- **야생#1 초안 완료 (2026-06-23)** → `tastelog-field-1-skill-discovery.md`. 상태: draft (블로그 배포 전 사용자 리뷰 대기)\n\n## 리서치 아카이브\n\n### 핵심 출처\n- Linus Torvalds TED 2016: good taste = 특수 케이스를 제거하는 눈\n- Paul Graham \"Taste for Makers\": taste는 주관이 아니라 수련된 판단\n- Sean Goedecke: bad taste = 맥락 무시하고 익숙한 해법 전도\n- Antonio Agudo: taste = 불확실성 속 트레이드오프 판단 (테스트 가능)\n- Vivian Qu: AI 시대 70% wall — 주니어는 AI 생성 코드 기술부채로 벽에 부딪힘\n- Addy Osmani: taste = 맞아 보이지만 틀린 것을 알아채는 능력\n- Designative (2026.02): \"taste is the new bottleneck\"\n- Steve Jobs: 좋은 것 만드는 데 더 많은 에너지가 아니라 약간 더 많은 시간\n- Dan Abramov \"The WET Codebase\": 왜 best practice가 존재하는지 이해가 맹목적 따르기보다 중요\n- Martin Fowler \"Tradable Quality Hypothesis\": 내부 품질을 거래 가능하다고 프레이밍하는 순간 진 것\n\n## 실행 도구\n\n- `/tastelog <회차>` 커맨드로 작성 시작\n- `tastelog` 스킬에 스타일 가이드, 구조 템플릿, 리뷰 체크리스트 포함\n\n## Related",
+    "metadata": {
+      "type": "tastelog-series-plan",
+      "title": "Taste Log 시리즈 기획",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 5
+    }
+  },
+  {
+    "id": "cogni_tastelog-series-plan_4",
+    "content": "- [[ai-native-mindset]] — Taste 개념의 출발점\n- [[know-how-to-know-where-essay-idea]] — Know-Where 시대의 핵심 역량\n- [[workflow-studio-revival-strategy]] — 기존 기술 블로그 전략 (병행)\n",
+    "metadata": {
+      "type": "tastelog-series-plan",
+      "title": "Taste Log 시리즈 기획",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 5
     }
   },
   {
@@ -5624,7 +5903,7 @@
   },
   {
     "id": "cogni_personal-profile_7",
-    "content": "```\n- 이름: 김동욱 (dwkim, domuk-k)\n- 현직: Coxwave AX팀 LLM Engineer / SDK Engineer\n- 배경: 경영학과 → 투자회사 인턴 → 개발자 전환\n- 주요 스택: TypeScript, React, Bun, Elysia, Claude Agent SDK\n- 사이드 프로젝트: Yeow (개인 AI 에이전트), grant-pilot, cogni\n- 블로그: domuk-k.vercel.app (Astro 기반, cogni 자동 싱크)\n- GitHub: github.com/domuk-k\n- 이메일: dannyworks102@gmail.com\n- 취미: 러닝(거의 매일, 풀마라톤 완주), 락 음악, 독서(철학·경제학)\n- 결혼함. 아내와의 관계를 삶의 중요한 축으로 명시.\n- 뉴질랜드 유학 경험. 영어 가능 (토익 910).\n- 오픈소스 기여: react-hook-form, svelte-toast, svelte.dev, @ark-ui/svelte\n- 과거 창업: 백지장 (촬영공간 대여, 4개 지점, 연 6,600명, 매각)\n- 교육 경험: 과외 2년, 자기주도형 학원 튜터 6개월, 부트캠프 튜터 2년\n```\n\n### pattern",
+    "content": "```\n- 이름: 김동욱 (dwkim, domuk-k)\n- 현직: Coxwave AX팀 LLM Engineer / SDK Engineer\n- 배경: 경영학과 → 투자회사 인턴 → 개발자 전환\n- 주요 스택: TypeScript, React, Bun, Elysia, Claude Agent SDK\n- 사이드 프로젝트: Yeow (개인 AI 에이전트), grant-pilot, cogni\n- 블로그: domuk-k.vercel.app (Astro 기반, cogni 자동 싱크)\n- GitHub: github.com/domuk-k\n- 이메일: dannyworks102@gmail.com\n- 취미: 러닝(거의 매일, 풀마라톤 완주), 락 음악, 독서(철학·경제학)\n- 결혼함. 아내와의 관계를 삶의 중요한 축으로 명시.\n- 뉴질랜드 유학 경험. 영어 가능 (토익 910).\n- 오픈소스 기여: Mastra, Vercel AI SDK(@ai-sdk/langchain), Ark UI Svelte, svelte.dev, svelte-toast, react-hook-form\n- 과거 창업: 백지장 (촬영공간 대여, 4개 지점, 연 6,600명, 매각)\n- 교육 경험: 과외 2년, 자기주도형 학원 튜터 6개월, 부트캠프 튜터 2년\n```\n\n### pattern",
     "metadata": {
       "type": "personal-profile",
       "title": "Personal Profile - 김동욱 (dwkim)",
@@ -5653,6 +5932,72 @@
       "source": "cogni",
       "chunkIndex": 9,
       "totalChunks": 10
+    }
+  },
+  {
+    "id": "cogni_reshapespec-design-judgment-policy-mechanism_0",
+    "content": "\n# ReshapeSpec는 좋은 판단이었나\n\n> conta 개발기록. ax-conta reshape 파이프라인 설계 분석 (2026-06-08).\n> SoT = `docs/policies/subdomain/reshape.md`, `apps/tools-py/src/tools/reshape/spec.py`.\n\n## 한 줄\n\n**LLM agent가 시트마다 emit하고, 도메인-중립 결정론 reshape tail이 소비하는 유일한 변환 계약.**\n변환을 \"어떻게 할지(mechanism)\"가 아니라 \"무엇을 적용할지(policy)\"를 데이터로 들고 있는 객체.\n\n## 무엇인가\n\n- 형태: `RowOrientedSpec | ColOrientedSpec` discriminated union (`orientation` 디스크리미네이터), pydantic 모델.\n- 흐름: agent가 dict emit → MCP 경계를 **그냥 `dict[str,Any]`로** 운반 → 각 도구 진입점에서 `TypeAdapter(ReshapeSpec).validate_python()` 검증 → `unpivot → normalize_dimension → bucketize → pivot_to_template` 4단 tail이 spec 필드만 읽음.\n- **TS 미러 타입 없음** — 엔진은 JSON을 맹목적으로 운반만. 계약은 Python pydantic에만 산다.\n- 검증: 닫힌 어휘(`_attributes_closed_world`), orientation별 validator, `weekordinal⟹base_year` invariant를 **진입 시점에 fail-loud**.\n\n## 왜 만들어졌나 (판단의 핵심)\n\n`spec.py` 주석이 전부 \"옛 X → 새 Y\"로 도배 = **도메인 지식을 코드에서 데이터로 밀어낸 산물**.\n원래 reshape tail엔 MRP 리터럴이 코드에 박혀 있었다:",
+    "metadata": {
+      "type": "reshapespec-design-judgment-policy-mechanism",
+      "title": "ReshapeSpec는 좋은 판단이었나",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "cogni_reshapespec-design-judgment-policy-mechanism_1",
+    "content": "| 옛것 (코드 하드코딩) | 새것 (spec config) |\n|---|---|\n| `Role` enum = REQ/REC/AVL | `attribute: str` + per-run `attributes` 폐쇄어휘 |\n| `_SUM_KEYFIGURES` 하드코딩 | `aggregation: dict[str, Aggregation]` |\n| `past_due_policy` (MRP 재고 개념) | `out_of_grid_policy` (중립) |\n| 한국어 `\"{i}주차\"` 리터럴 | `bucket_col_format` config |\n| `material_col` | `entity_col` |\n\n목표 = **INV-RT4**: \"reshape tail 실행 코드엔 도메인 literal 0\". 임의 공장 input에 코드 불변.\n\n## 평결 — 좋은 판단, 단 조건부\n\n**개념적으로 명백히 옳다.**\n- policy/mechanism 분리는 정석. mechanism을 도메인-중립으로 굳히고 다양성을 policy 객체 한 곳으로 모음.\n- **경험적 증명**: 2026-06-07 **8개 공장이 code-0 config-1로 라이브** (KMX·KaGA·HMGMA·HMMC·HMMI·HMMA·HMB×2). 새 공장 = ReshapeSpec 하나 추가, tools-py 코드 변경 0. 대안(도메인 리터럴 유지)이었으면 공장마다 코드 PR.\n- 명명 규율 정확: `*Spec`(per-run instruction) vs `*Descriptor`(정적 catalog 메타) 의도적 구분 = UL drift 방지.\n\n**살아있는 긴장 (Q-RESHAPE-SPEC-NARROWING — 팀도 인지):**\n방향은 옳았지만 첫 *형태(calibration)*가 안 맞았다.",
+    "metadata": {
+      "type": "reshapespec-design-judgment-policy-mechanism",
+      "title": "ReshapeSpec는 좋은 판단이었나 — policy/mechanism 분리의 대가와 진화",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "cogni_reshapespec-design-judgment-policy-mechanism_2",
+    "content": "1. **넓고 permissive한 표면 + LLM 저자 = silent 오작동.**\n   `default_aggregation=\"sum\"`, `out_of_grid_policy={}`, `entity_ffill=True` 같은 관대한 기본값이 **누락을 조용히 흡수** → 에러가 아니라 *틀린 출력*. 8공장에서 dialect 슬립(week_of_year↔weekordinal), factory_code/attributes 랜덤 누락 실제 발생.\n   → **설계가 치른 대가**: 코드 레벨 도메인 지식(컴파일타임 고정)을 LLM 런타임 config로 바꾸며, enum이 막아주던 실수를 LLM의 fallibility에 노출.\n\n2. **한 객체가 두 수명주기를 섞음.** spec에 (a) *파일마다 기계적인 좌표*(col 위치, header_rows, orientation)와 (b) *공장마다 안정적인 정책 지식*(aggregation, out_of_grid_policy, row_alias 매핑)이 한 평면에 뒤섞임. → NL pack 설계가 지금 2층으로 factoring 중(①안정지식=자연어 pack, 사람 SoT / ②휘발좌표=ReshapeSpec, agent 출력).\n\n3. **사소한 누수**: `ignore_header_rows`, `ignore_col_indices`, `base_year_provenance`는 tail에서 INERT(안 읽힘) — 다른 slice(extract)/audit용이 계약에 묻어듦.\n\n## 핵심 교훈",
+    "metadata": {
+      "type": "reshapespec-design-judgment-policy-mechanism",
+      "title": "ReshapeSpec는 좋은 판단이었나 — policy/mechanism 분리의 대가와 진화",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "cogni_reshapespec-design-judgment-policy-mechanism_3",
+    "content": "- **설계 폐기가 아니라 좁히는 방향(narrowing)으로 진화 = 원래 판단이 옳았다는 방증.**\n  lever A(지식을 pack으로 외부화) + lever B(계약을 un-omittable하게 강화).\n- **LLM-authored config는 enum의 컴파일타임 안전을 못 준다.** policy를 데이터로 외부화할 때, permissive default는 LLM 저자와 만나면 silent failure 공장이 된다. required-ness / no-default / 타입분리로 fail-loud 강제가 핵심.\n- 실제 결정 포인트: permissive default를 *지금* 제거할지 vs NL pack(lever A) 도입을 기다릴지.\n\n## 경험적 검증 (2026-06-08 spike — qwen3.6-35b-a3b via OpenRouter)\n\n추상 논의를 실제 모델 eval로 검증. 배포 현실 = open-weight Qwen3.6급(OpenRouter, 모델 포터빌리티) → **Anthropic strict-tool-use 같은 벤더 전용 기능에 토대 못 걸음. 토대는 model-agnostic**. (grammar 강제는 self-host vLLM guided-decoding 시 보너스로만.)\n\n**KaGA (clean)**: qwen3.6-35b-a3b **첫 샷에 valid + 정확**. 청정 케이스엔 싼 모델로 충분. capability floor 우려 철회 — Qwen3.6/Gemma3-27b는 Sonnet-3.5급+, reasoning 있음. 단 *일반 벤치마크 parity ≠ 이 task(좌표 grounding·긴 지시준수)의 신뢰도*.",
+    "metadata": {
+      "type": "reshapespec-design-judgment-policy-mechanism",
+      "title": "ReshapeSpec는 좋은 판단이었나 — policy/mechanism 분리의 대가와 진화",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "cogni_reshapespec-design-judgment-policy-mechanism_4",
+    "content": "**HMMA (hard, 2밴드 공유-Key)**: 실패가 레버별로 분리됨 —\n| 실패 | pack 전 | pack 후 | 고치는 레버 |\n|---|---|---|---|\n| 2밴드 감지·split | ✅ | ✅ | 싼 모델 OK |\n| 밴드 역할배정 | ✗ 반전 | ✅ 정확 | **pack (lever A)** |\n| col_tags 구조 validity | ✗ | ✗ 여전 | **grid_cols 평탄화 (lever B)** |\n\n→ 마지막 못: `col_tags(dict[str,DimensionBand]) → grid_cols(list[{col,dimension_label}])` 평탄 스키마로 재실행 = **2라운드만에 valid + 밴드 정확** (nested는 3라운드 내내 invalid·발산).\n\n**핵심 발견**:\n- **pack(semantic)과 grid_cols 평탄화(structural)는 보완재 — 둘 다 필요.** \"pack 잘 짜면 되나?\" → 아니, pack은 절반(역할배정)만.\n- **validate-loop 효력 = 에러 가독성에 bounded.** nested의 25× tagged-union 에러는 싼 모델이 못 읽어 발산, flat 에러는 수렴. 평탄화가 self-correct의 전제.\n- **`measures`/`grid_cols` 리네임은 cosmetic 아님 = reliability 레버.** 약한 모델의 valid-spec률·자가수정 가능성을 물질적으로 끌어올림. 첫날 네이밍 검토가 곧 narrowing 레버였음이 데이터로 확정.\n- valid-but-wrong은 어느 레버도 못 막음 → reconcile + 사람 audit(ADR-0004 D6)이 최종 안전망.\n- caveat: n=1·temp0·2시트. 기계적 실패라 재현성 높으나 통계 rate는 8공장×다중샘플 eval 필요.",
+    "metadata": {
+      "type": "reshapespec-design-judgment-policy-mechanism",
+      "title": "ReshapeSpec는 좋은 판단이었나 — policy/mechanism 분리의 대가와 진화",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 6
+    }
+  },
+  {
+    "id": "cogni_reshapespec-design-judgment-policy-mechanism_5",
+    "content": "SoT = `docs/policies/subdomain/reshape.md` §Q-RESHAPE-SPEC-NARROWING (경험적 검증 단락).\n\n## Related\n- [[conta-architecture-brainstorm-2026-04-10]] - conta 아키텍처 초기 설계\n- [[conta-workspace-resolver-isolation-as-structure]] - conta 격리 구조 패턴 (같은 \"구조로 푸는\" 결)\n- daily/2026-06-06 - reshape tail 도메인-중립 재구조화 (이 노트의 전사)\n- daily/2026-06-08 - ReshapeSpec subdomain 분리 + KnowledgePack 설계 (이 분석의 맥락)\n- [[fleeting/2026-06-16-contract-vs-taxonomy-design-principle]] - 같은 결의 더 근본 원칙: taxonomy 자체를 계약에 박지 마라\n",
+    "metadata": {
+      "type": "reshapespec-design-judgment-policy-mechanism",
+      "title": "ReshapeSpec는 좋은 판단이었나 — policy/mechanism 분리의 대가와 진화",
+      "source": "cogni",
+      "chunkIndex": 5,
+      "totalChunks": 6
     }
   },
   {
@@ -9082,6 +9427,39 @@
     }
   },
   {
+    "id": "cogni_2026-06-16-contract-vs-taxonomy-design-principle_0",
+    "content": "\n## 핵심 한 줄\n\n**downstream이 그 값에 따라 동작을 달리하지 않는다면, 그건 기계의 계약이 아니라 사람의 사유지다.** 타입으로 박지 말고 자연어로 남겨라.\n\n---\n\n## 사고의 여정 (단계적 깨달음)\n\n### 1단계: flat enum의 불쾌함\n\n다중 소스 파이프라인에서 입력 항목을 분류하려 했을 때 처음 제안된 형태:\n\n```\nverdict: \"primary\" | \"fragment\" | \"duplicate-skip\" | \"derived-summary-skip\" | \"out-of-scope\" | \"meta-skip\"\n```\n\n직관적으로 \"말도 안 됨\"이 느껴졌다. 왜인지 진단이 필요했다.\n\n### 2단계: 직교하지 않는 축\n\n진단 1 — 한 enum에 서로 다른 축이 섞여 있었다:\n\n- **scope 축**: 독립 항목인가, 다른 항목과 병합되는가 (fragment)\n- **content 축**: 원본 데이터인가, 집계/파생본인가 (derived-summary)\n- **relation 축**: 중복인가, 처리 대상 밖인가 (duplicate, out-of-scope)\n\n그리고 `-skip`이라는 **동작**까지 값에 박혔다.\n\n처방: 축을 분리된 두 필드로 나누자.\n\n### 3단계: 도구에 도메인을 박는 패턴의 재발 (더 깊은 진단)\n\n축 분리로도 부족했다. 진짜 문제는 **도메인 판단 어휘가 outputSchema와 validator에 박힌 것** 자체였다.\n\n`duplicate-skip` / `derived-summary-skip` 같은 값은 특정 도메인 문제의 형태를 계약에 새기고 있다. 다른 파이프라인, 다른 컨텍스트에서 재사용 불가능한 도구가 된다.\n\n처방: open-vocab (호출자가 자유롭게 emit, 도구는 어휘를 모름). [[reshapespec-design-judgment-policy-mechanism]]의 \"도메인 지식을 코드에서 데이터로 밀어내기\" 패턴과 같은 결.",
+    "metadata": {
+      "type": "2026-06-16-contract-vs-taxonomy-design-principle",
+      "title": "사람의 분류법을 기계의 계약 타입으로 모델링하지 마라",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "cogni_2026-06-16-contract-vs-taxonomy-design-principle_1",
+    "content": "### 4단계: 가장 깊은 깨달음 — 열거 행위 자체가 도메인 모델링이다\n\n단어를 아무리 고치고 open-vocab으로 풀어도 해결이 안 됐다. 왜냐면:\n\n> 항목이 \"role을 갖는다\", \"merge 관계를 갖는다\"고 **선언한 순간**, 이미 특정 도메인 문제의 모양을 박은 것이다.\n\n어떤 어휘를 써도 case-bound 냄새가 빠지지 않는 이유가 여기 있다. 카테고리를 열거하는 행위 자체가 특정 도메인을 전제한다.\n\n---\n\n## 핵심 원칙\n\n**사람의 풍부한 추론(분류 taxonomy)을 기계의 계약 타입으로 모델링하지 마라.**\n\n파이프라인이 실제로 *행동을 달리하는* 것만 계약에 남긴다.\n\n### 확인 방법: downstream 행동 환원 테스트\n\n각 값에 대해 묻는다: \"이 값에 따라 코드가 다르게 동작하는가?\"\n\ngeneric 예시 — 다중 소스 파이프라인의 입력 항목 분류:\n- `primary` vs `fragment` → 기계에는 차이 없음 (둘 다 처리)\n- `summary` / `meta` / `duplicate` → 전부 처리 제외\n\n6개 값이 boolean 하나로 환원된다. **환원되면 그건 사람의 사유지, 기계의 계약이 아니다.**\n\n### 중립 계약의 형태\n\n```typescript\n// 기계의 계약: 결정(decision)과 사람이 읽는 이유(reason)만\n{ decision: boolean, reason: string }\n```\n\n- `decision`: 기계가 소비하는 유일한 필드 (처리할지 말지)\n- `reason`: 사람이 리뷰하고 LLM이 생성하는 자유텍스트. 풍부한 분류 어휘는 여기 자연어로 산다\n\n판단 가이드(어떤 항목을 제외할지, 왜)는 호출자의 지침(prose)에 있다. 타입이 아니다.\n\n### 안정 불변식 vs 가변 판단의 구분\n\n계약 내부에 검증 로직을 둬도 되는 것은 **안정 불변식**뿐이다.",
+    "metadata": {
+      "type": "2026-06-16-contract-vs-taxonomy-design-principle",
+      "title": "사람의 분류법을 기계의 계약 타입으로 모델링하지 마라",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 3
+    }
+  },
+  {
+    "id": "cogni_2026-06-16-contract-vs-taxonomy-design-principle_2",
+    "content": "- 안정 불변식: 시스템 전체 수명 동안 참이어야 하는 구조적 제약 (예: decision이 boolean이어야 한다, reason이 비어있으면 안 된다)\n- 가변 판단: 도메인/컨텍스트마다 달라지는 분류 기준 → 이건 validator에 박지 말고 자유텍스트(reason)와 호출자 지침으로\n\n\"이 조건이 다른 도메인에서도 여전히 참인가?\" — 아니라면 불변식이 아니라 판단이다. 계약 밖으로 꺼낸다.\n\n### Attribute 패턴과의 비교\n\n[[permanent/externalizing-variance-data-and-time]]의 \"분기를 데이터로 외부화\" 패턴은 도구가 어휘를 알고 소비한다. 이 원칙은 그보다 더 중립 — **도구가 어휘조차 알 필요 없는 경우**다.\n\n---\n\n## 열린 고민: 풍부한 분류의 가치는 어디서?\n\n분류의 풍부함은 리뷰 UX 가치가 분명히 있다. 제외된 항목들을 그룹핑해 보여주거나, 이유 패턴을 집계하거나. 그걸 어느 레이어가 제공할지:\n\n- 호출자 선언의 optional structured tag (기계가 소비하지 않는 메타)\n- 표면(UI)이 reason 자유텍스트를 파싱해 파생\n- 자유텍스트 그대로 (LLM이 읽으면 충분)\n\n미결.\n\n---\n\n## 연결\n\n- [[reshapespec-design-judgment-policy-mechanism]] — 같은 결: 도메인 지식을 코드에서 데이터로 밀어내기. ReshapeSpec가 \"mechanism에 policy를 박지 말라\"라면, 이 원칙은 \"계약에 taxonomy를 박지 말라\".\n- [[permanent/externalizing-variance-data-and-time]] — 분기를 데이터+시간으로 외부화. 이 원칙은 외부화조차 필요 없는 극단 중립의 케이스.\n- [[types-are-documentation]] — 타입이 계약이라는 전제. 이 원칙은 그 역을 묻는다: 계약이 되어야 하는 것만 타입으로.\n",
+    "metadata": {
+      "type": "2026-06-16-contract-vs-taxonomy-design-principle",
+      "title": "사람의 분류법을 기계의 계약 타입으로 모델링하지 마라",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 3
+    }
+  },
+  {
     "id": "blog_essay-know-where-version-a_0",
     "content": "# 질문이 코드보다 비싸진 시대 — 아니, 원래 그랬다\n\n2026년 2월, 전 테슬라 AI 디렉터 Andrej Karpathy가 한 문장을 던졌다.\n\n\"The profession is being dramatically refactored.\"\n\n그는 덧붙였다. \"I could be 10X more powerful if I just properly string together what has become available.\" 이미 있는 것을 엮는 능력. 최전선에 서 있는 사람이 스스로의 부족함을 고백하는 방식치고는 묘하게 정직했다.\n\n나는 이 문장에서 다른 것을 읽었다. '이미 있는 것을 엮는다'는 것은 도메인의 경계를 넘나들며, 적절한 도구를 골라내고, 올바른 질문을 적절한 곳에 던질 줄 아는 능력이다. 코딩 실력이 아니라 질문하는 능력이다.\n\n그런데 사실, 질문은 원래부터 코드보다 비쌌다.\n\n\n\n## 다섯 번째 지식\n\nHacker News에 올라온 사례 하나. 영업팀 8명이 매일 아침 3시간을 CRM 양식 작성에 쓰고 있었다. 팀은 \"더 빠른 UI를 만들어달라\"고 요청했다. 개발자는 코딩을 시작하기 전에 한 가지를 물었다. \"고객 카테고리마다 필요한 옵션이 다른가요?\" 답이 \"그렇다\"로 나오자, 해결책은 \"UI 속도 개선\"이 아니라 \"카테고리별 동적 양식\"이 되었다. 8명이 3시간 걸리던 작업이 1명이 30분이면 끝나는 일이 됐다. 코드를 한 줄도 짜기 전에 문제의 90%가 해결된 셈이다.\n\n이런 일은 나에게도 일상이다. 주니어가 복잡한 동시성 처리에 며칠을 쏟고 있을 때, \"균등 분배가 목표야, 정확한 순번이 목표야?\" 한 마디면 구현 복잡도가 절반 이하로 줄곤 한다. 시니어와 주니어의 차이는 코딩 속도가 아니다. 어떤 질문을 먼저 던지느냐다.\n\n90년대에 경제학자들이 분류한 지식의 네 범주가 있다. Know-what(사실), Know-why(원리), Know-how(실행), Know-who(인맥). 교과서적 분류인데, LLM이 이걸 뒤흔들었다. Know-what, Know-why, Know-how의 상당 부분을 이제 AI가 대체하거나 민주화한다. API 키 하나면 지능을 임대할 수 있다. 그렇다면 임대할 수 없는 것은 무엇인가.\n\n나는 다섯 번째 지식 유형을 제안한다. Know-Where — 적절한 질문을 어디에, 어떻게 던져야 하는지 아는 능력.",
     "metadata": {
@@ -9695,7 +10073,7 @@
   },
   {
     "id": "cogni_100-questions_22",
-    "content": "[컨텍스트: 김동욱의 현재 회사, 직장 관련 질문]\n\n### Q22. 오픈소스 기여 경험이 있어요?\n\n네, 사용하면서 개선점이 보이면 바로 기여하는 편이에요:\n\n- **react-hook-form v7.48.0**: jsDoc 문서 오타 수정\n- **svelte-toast v0.9.6**: 옵션 인터페이스 노출\n- **svelte.dev**: Svelte 공식문서 예시코드 파싱로직 개선\n- **@ark-ui/svelte v0.3.0**: Portal, Frame 컴포넌트 추가\n\n작은 기여라도 오픈소스 생태계에 참여하는 것 자체가 의미 있다고 생각해요. 사용하는 도구를 더 잘 이해하게 되고, 다른 개발자들의 코드 스타일도 배울 수 있거든요.",
+    "content": "[컨텍스트: 김동욱의 현재 회사, 직장 관련 질문]\n\n### Q22. 오픈소스 기여 경험이 있어요?\n\n네, 사용하면서 개선점이 보이면 바로 기여하는 편이에요:\n\n- **Mastra**: observability 가격 조회 버그와 issue triage workflow 오류를 고쳐 PR 2건이 merged 됐어요.\n- **Ark UI Svelte**: Frame, Portal 컴포넌트를 기여했어요.\n- **svelte.dev / svelte-toast / react-hook-form**: 공식문서 파싱, 타입 노출, 예제 구문 오류 같은 작은 버그를 고쳤어요.\n- **vercel/ai `@ai-sdk/langchain`**: LangGraph HITL interrupt 버그를 분석해 upstream PR을 냈고, 실무에서는 패치 파일로 적용했어요.\n\n큰 기능보다, 실제로 쓰다가 막힌 부분을 끝까지 읽고 고치는 쪽에 가깝습니다. 덕분에 라이브러리를 그냥 쓰는 수준을 넘어서 내부 설계까지 파악하게 됩니다.",
     "metadata": {
       "type": "100-questions",
       "title": "Q22. 오픈소스 기여 경험이 있어요?",
@@ -10652,7 +11030,7 @@
   },
   {
     "id": "cogni_contributor_0",
-    "content": "\n사용하는 도구의 코드를 읽으면, 더 잘 쓸 수 있어요.\n\n## 오픈소스 기여\n\n- **react-hook-form v7.48.0**: [jsDoc 문서 오타 수정](https://github.com/react-hook-form/react-hook-form/releases/tag/v7.48.0)\n- **svelte-toast v0.9.6**: [옵션 인터페이스 노출](https://github.com/zerodevx/svelte-toast/releases/tag/v0.9.6)\n- **svelte.dev**: [공식문서 예시코드 파싱로직 개선](https://github.com/sveltejs/svelte.dev/commit/aa7e00e432831204c981ba886a05c47580be5336)\n- **@ark-ui/svelte v0.3.0**: [Portal, Frame 컴포넌트 추가](https://github.com/chakra-ui/ark/pull/3171)\n\n## 왜 기여하나\n\n오타 하나를 고치려고 PR을 올리면, 그 프로젝트의 코드 스타일을 배워요. 다른 개발자들의 코드 리뷰 코멘트를 읽으면, 좋은 피드백이 뭔지 알게 돼요.\n\n작은 기여가 쌓이면, 도구를 쓰는 게 아니라 도구와 함께 성장하는 느낌이에요.\n",
+    "content": "\n사용하는 도구의 코드를 읽으면, 더 잘 쓸 수 있어요.\n\n## 오픈소스 기여\n\n- **Mastra**: [가격 조회용 model id 정규화 수정](https://github.com/mastra-ai/mastra/pull/17140), [issue triage workflow 오류 수정](https://github.com/mastra-ai/mastra/pull/15698)\n- **Ark UI Svelte**: [Frame, Portal 컴포넌트 기여](https://github.com/chakra-ui/ark/pull/3171)\n- **svelte.dev**: [공식문서 AST 파싱 로직 수정](https://github.com/sveltejs/svelte.dev/pull/1018)\n- **svelte-toast**: [SvelteToastOptions 타입 노출](https://github.com/zerodevx/svelte-toast/pull/107)\n- **react-hook-form**: [useWatch 예제 구문 오류 수정](https://github.com/react-hook-form/react-hook-form/pull/11005)\n- **vercel/ai**: [`@ai-sdk/langchain` LangGraph HITL 버그 PR 제출](https://github.com/vercel/ai/pull/12798), 실무 패치 적용\n\n## 왜 기여하나\n\n오타 하나를 고치려고 PR을 올리면, 그 프로젝트의 코드 스타일을 배워요. 다른 개발자들의 코드 리뷰 코멘트를 읽으면, 좋은 피드백이 뭔지 알게 돼요.\n\n작은 기여가 쌓이면, 도구를 쓰는 게 아니라 도구와 함께 성장하는 느낌이에요.\n",
     "metadata": {
       "type": "contributor",
       "title": "Contributor",
@@ -11054,28 +11432,6 @@
     }
   },
   {
-    "id": "cogni_developer_0",
-    "content": "\n기술을 좋아합니다. 더 중요한 것에 집중할 수 있게 해주니까요.[^a16z] 더 중요한 것들을 생각하며, 연구하고 구현하고 개선합니다.\n\n[^a16z]: a16z: \"AI-native 플랫폼은 사용자가 저수준 작업을 AI에게 위임하고, 고차원 사고에 시간을 쓰게 해준다\" — [The Future of Prosumer](https://a16z.com/the-future-of-prosumer-the-rise-of-ai-native-workflows/)\n\n---\n\n## 현재: Agent Builder Product Lead\n\n[콕스웨이브](https://coxwave.com) AX팀에서 Agent Builder의 Product Lead로 4인 팀(엔지니어 2, PM 1, 디자이너 1)을 리드하고 있어요.\n\nAI 코딩 에이전트와의 체계적 협업으로 멀티에이전트 Workflow Studio를 24일 만에 설계·납품했어요. LangGraph 기반 에이전트 오케스트레이션, HITL 패턴을 설계하고, 아키텍처 설계부터 코드 생성, 테스트, 오디트까지 AI 협업 방법론을 수립해 팀에 전파하고 있어요.\n\n## 여정: Agent Engineer & Product Lead로 가는 길\n\n대학 시절 [촬영 공간 대여 사업](https://baek.co)을 운영했어요. 고객 문의 하나하나 수동으로 답하다 보니, \"이걸 자동화할 수 없을까?\"라는 생각이 들었죠.\n\n[스타트업 액셀러레이터](https://sparklabs.co.kr) 인턴을 하며 70개 이상의 스타트업들을 만나고, 투자심의에 참여했어요. \"충분히 큰 문제인가, 그것을 가장 잘 해결할 수 있는 팀인가\" 라는 기준을 배웠어요.\n\n[서울대학교 AI 핀테크 과정](https://www.snukdt.com/)에서 Python, 데이터 분석에서 프로그래밍을 처음 접했어요. 화면에 버튼 하나 만들었을 때의 짜릿함이 아직도 기억나요. 그렇게 프론트엔드 개발자로 커리어를 시작했어요.",
-    "metadata": {
-      "type": "developer",
-      "title": "Developer",
-      "source": "cogni",
-      "chunkIndex": 0,
-      "totalChunks": 2
-    }
-  },
-  {
-    "id": "cogni_developer_1",
-    "content": "5년간 SaaS 제품을 만들며 사용자 인터페이스를 깊이 파고들었어요. 디자인 시스템, E2E QA 자동화를 주도하거나 기여했어요. 로그 분석, 세션 리플레이로 사용자를 이해하고, 디자이너와 치열하게 논의하며 최적의 경험을 고민했죠.\n\n지금은 AI 코딩 에이전트와 함께 빌드하고, 멀티에이전트 시스템을 설계하고, 그 방법론을 팀에 전파하는 일에 집중하고 있어요.\n\n## 코드 철학\n\n읽기 쉬운 코드, 수정하거나 제거하기에 편한 코드를 작성해요. 작은 모듈을 쉽게 합성할 수 있는 구조를 추구하고, 정적 분석 도구로 일관된 품질을 유지해요.\n\n빌드 속도 개선, 모니터링 도구 도입, E2E 테스트 관리, 의존성 관리, 패키지 배포 등 다양한 경험을 쌓았어요. Nest.js, Express, Docker, PostgreSQL, Redis, MongoDB에도 경험이 있어요.\n",
-    "metadata": {
-      "type": "developer",
-      "title": "Developer",
-      "source": "cogni",
-      "chunkIndex": 1,
-      "totalChunks": 2
-    }
-  },
-  {
     "id": "cogni_axc-capability-evolution-production-reality_0",
     "content": "\n## 핵심\n\n오늘 결정은 1년 후 시스템 모습을 결정한다. **운영 실재는 설계 의도와 항상 다르다**. 두 차이를 의식하지 않으면 설계가 박물관용으로 끝남.\n\n## 두 축\n\n### Capability evolution (시간축)\n\n- 오늘 = simple. 1년 후 = composed\n- 결정 시 항상 \"이 capability 가 어디까지 자랄지\" 질문\n- ax-conta ADR-0019 (inventory authority): conta workflows = SoT, Mastra exec cache = 외부 surface 노출 X. cache 가 자라도 surface 안 깨지도록 미리 못박음 — **미래 모양을 예약하는 결정**\n\n### Production reality (운영 실재)\n\n- 설계서 ≠ 운영 모습. 환경, 권한, 네트워크가 마지막 결정자\n- ax-conta deploy-dogfood: DB SSL, NODE_EXTRA_CA_CERTS, DNS — 전부 설계서 밖, 운영의 last mile\n- observability β-2: Mastra 내부 로그까지 PinoLogger 로 흡수 — **운영 안 보이면 운영 불가**. 설계 시점부터 보이게 만들어야\n\n## 두 축이 만나는 지점\n\n운영 실재가 capability evolution 의 ceiling. 운영 안 보이는 capability 는 자라지 못함.\n\n- ADR-0013 pg big-bang — incremental 의 운영 비용이 capability 성장 막음 → big-bang\n- Vercel hosting (apps/portal) — 운영 단순성이 풀스택 팀 자율성을 키움 (capability 가속)\n\n## 아키텍트의 default 질문",
     "metadata": {
@@ -11121,7 +11477,7 @@
   },
   {
     "id": "cogni_resume-en_2",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## Experience\n\n### Coxwave Inc. (Sep 2025 - Present)\n\n#### Agent Builder Product Lead (Mar 2026 - Present)\n**AX Team | Team: 2 Engineers, 1 PM, 1 Designer**\n\nLeading Agent Builder productization based on Workflow Studio PoC success. Owning product roadmap, technical architecture decisions, and team building.\n\n- Architecting PoC → production transition: refactoring multi-agent system for scalability and maintainability\n- Designed Agentic Playbook-based FE evaluation system for engineering hiring\n  - Claude Code automation (setup.sh + PLAYBOOK.md + SCORECARD.md)\n  - 6-stage take-home portfolio: state management, async data, dynamic rendering, AI transparency\n  - Hybrid rubric: objective tests (15%) + subjective evaluation (85%)\n\n#### Workflow Studio PoC (Nov 2025 - Feb 2026)\n**Technical Lead | Enterprise SaaS for Hyundai Glovis — Multi-Agent Workflow Builder**\n\nDesigned and delivered a 4-app system (api, web, admin, portal) + 11 packages + 13 external service integrations in 24 days through systematic collaboration with AI coding agents (Claude Code).\n\nAI-Assisted Development Methodology — Role as Steerer (AI executes; I design, orchestrate, and verify):\n- **Architecture Decisions (human judgment)**: Selected WinterTC runtime strategy, DAG execution approach, inter-agent state schema\n- **Feedback Loops**: Accumulated architecture rules, mistake patterns, and coding conventions as project context; reflected per PR\n- **Parallel Session Orchestration**: Ran multiple AI agents in parallel via monorepo subtree isolation, Plan-first design → auto-accept implementation workflow\n- **Multi-Layer Verification**: Unit/integration tests (deterministic) + E2E tests (user scenarios) + codebase audit cycles (architecture consistency, security, edge cases)\n\nCore System Design:\n- **Multi-Agent Orchestration**: LangGraph StateGraph-based agent system with 3-tier architecture (Discovery, Builder, Step Agents)\n- **Human-in-the-Loop**: Interrupt patterns — auto-execute / review / escalation tiers\n- **Cross-Runtime Compatibility**: WinterTC-compatible workflow engine using only Web Standards (Bun, Node.js, Cloudflare Workers, Deno)\n- **DAG Execution Engine**: Kahn's algorithm-based workflow executor with pause/resume support\n- **OSS Contribution**: Patched @ai-sdk/langchain library bug to unblock LangGraph integration\n\nImpact:\n- Successful PoC delivery → direct basis for Product Lead promotion\n- AI coding agent collaboration methodology and HITL patterns propagated to team\n\nTech: LangGraph, Vercel AI SDK, Bun, Elysia, React 19, Zustand, SQLite, Turborepo\n\n#### edutap.ai SDK Architecture (Sep - Oct 2025)\n**SDK Engineer**\n\nRedesigned prototype code into production SDK. Built architecture to handle diverse customer environments (Node.js, PHP) and frequent updates.\n\n- Dynamic Loader pattern: lightweight npm wrapper (~2.8KB) + CDN runtime loading for zero-touch updates\n- Stub + Queue Replay: queues pre-load method calls, executes sequentially post-load\n- iframe Bridge: postMessage Request-Response with Nonce matching and TypeScript generic bidirectional type safety\n- Solo-designed Turborepo monorepo with 8 packages, Playwright E2E, automated deploy/rollback\n- **Impact**: 3-line customer integration, npm + CDN dual support, hotfix deployment reduced from days to minutes\n\n---\n\n### BHSN Inc. (Jan 2024 - Sep 2025, 1 year 9 months)\n**Software Engineer** — Allibee: Cloud-based Contract Lifecycle Management (CLM) Solution\n\n- Optimized organization hierarchy API: compared Materialized Path, Nested Set, Recursive CTE patterns, selected Materialized Path for 80-90% performance improvement (Kotlin, Spring Boot)\n- Built SvelteKit + Turborepo CLM SaaS web app with PDF e-signature editor — analyzed open source core (documenso, tldraw) to cut development timeline by 50%\n- Separated frontend common code packages, reducing UI/utils code by 85%\n\n---\n\n### Modusign Inc. (Apr 2021 - Dec 2023, 2 years 9 months)\n**Frontend Engineer** — React/Next.js Enterprise E-Signature SaaS\n\n- Led frontend technical decisions in 9-person team: scope estimation, QA prioritization, API design proposals\n- Deployment pipeline: resolved CloudFront caching issues reducing user errors by 80%, introduced Datadog RUM for Web Vitals/UX metrics\n- Designed React-based design system: Compound components, typed theme system resolving designer-developer communication errors\n- Organized React 18 upgrade guild (3 FE engineers), proposed Playwright E2E adoption, TypeScript 4.2→5.1 upgrade\n- Facilitated \"Pragmatic Programmer\" reading group (5 people, 11 sessions)\n\n---",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## Experience\n\n### Coxwave Inc. (Sep 2025 - Present)\n\n#### Agent Builder Product Lead (Mar 2026 - Present)\n**AX Team | Team: 2 Engineers, 1 PM, 1 Designer**\n\nLeading Agent Builder productization based on Workflow Studio PoC success. Owning product roadmap, technical architecture decisions, and team building.\n\n- Architecting PoC → production transition: refactoring multi-agent system for scalability and maintainability\n- Designed Agentic Playbook-based FE evaluation system for engineering hiring\n  - Claude Code automation (setup.sh + PLAYBOOK.md + SCORECARD.md)\n  - 6-stage take-home portfolio: state management, async data, dynamic rendering, AI transparency\n  - Hybrid rubric: objective tests (15%) + subjective evaluation (85%)\n\n#### Workflow Studio PoC (Nov 2025 - Feb 2026)\n**Technical Lead | Enterprise SaaS for Hyundai Glovis — Multi-Agent Workflow Builder**\n\nDesigned and delivered a 4-app system (api, web, admin, portal) + 11 packages + 13 external service integrations in 24 days through systematic collaboration with AI coding agents (Claude Code).\n\nAI-Assisted Development Methodology — Role as Steerer (AI executes; I design, orchestrate, and verify):\n- **Architecture Decisions (human judgment)**: Selected WinterTC runtime strategy, DAG execution approach, inter-agent state schema\n- **Feedback Loops**: Accumulated architecture rules, mistake patterns, and coding conventions as project context; reflected per PR\n- **Parallel Session Orchestration**: Ran multiple AI agents in parallel via monorepo subtree isolation, Plan-first design → auto-accept implementation workflow\n- **Multi-Layer Verification**: Unit/integration tests (deterministic) + E2E tests (user scenarios) + codebase audit cycles (architecture consistency, security, edge cases)\n\nCore System Design:\n- **Multi-Agent Orchestration**: LangGraph StateGraph-based agent system with 3-tier architecture (Discovery, Builder, Step Agents)\n- **Human-in-the-Loop**: Interrupt patterns — auto-execute / review / escalation tiers\n- **Cross-Runtime Compatibility**: WinterTC-compatible workflow engine using only Web Standards (Bun, Node.js, Cloudflare Workers, Deno)\n- **DAG Execution Engine**: Kahn's algorithm-based workflow executor with pause/resume support\n- **OSS Contribution**: Patched @ai-sdk/langchain library bug to unblock LangGraph integration\n\nImpact:\n- Successful PoC delivery → direct basis for Product Lead promotion\n- AI coding agent collaboration methodology and HITL patterns propagated to team\n\nTech: LangGraph, Vercel AI SDK, Bun, Elysia, React 19, Zustand, SQLite, Turborepo\n\n#### edutap.ai SDK Architecture (Sep - Oct 2025)\n**SDK Engineer**\n\nRedesigned prototype code into production SDK. Built architecture to handle diverse customer environments (Node.js, PHP) and frequent updates.\n\n- Dynamic Loader pattern: lightweight npm wrapper (~2.8KB) + CDN runtime loading for zero-touch updates\n- Stub + Queue Replay: queues pre-load method calls, executes sequentially post-load\n- iframe Bridge: postMessage Request-Response with Nonce matching and TypeScript generic bidirectional type safety\n- **CDN deployment pipeline**: versioned bundles at `max-age=1yr immutable` + `loader.js` as a 300s pointer — same caching strategy as Stripe.js, achieving instant updates without sacrificing permanent cache. Rollback completes in seconds via S3 server-side copy + CloudFront invalidation, no rebuild required\n- **Safe deployment tooling**: immutable bundle re-upload guard, `--dry` rehearsal mode, SHA-384 SRI hashes + `versions.json` manifest for supply-chain integrity, multi-environment (dev/staging/prod) isolation\n- Solo-designed Turborepo monorepo with 8 packages, Playwright E2E, automated deploy/rollback\n- **Impact**: 3-line customer integration, npm + CDN dual support, hotfix deployment reduced from days to minutes\n\n---\n\n### BHSN Inc. (Jan 2024 - Sep 2025, 1 year 9 months)\n**Software Engineer** — Allibee: Cloud-based Contract Lifecycle Management (CLM) Solution\n\n- Optimized organization hierarchy API: compared Materialized Path, Nested Set, Recursive CTE patterns, selected Materialized Path for 80-90% performance improvement (Kotlin, Spring Boot)\n- Built SvelteKit + Turborepo CLM SaaS web app with PDF e-signature editor — analyzed open source core (documenso, tldraw) to cut development timeline by 50%\n- Separated frontend common code packages, reducing UI/utils code by 85%\n\n---\n\n### Modusign Inc. (Apr 2021 - Dec 2023, 2 years 9 months)\n**Frontend Engineer** — React/Next.js Enterprise E-Signature SaaS\n\n- Led frontend technical decisions in 9-person team: scope estimation, QA prioritization, API design proposals\n- Deployment pipeline: resolved CloudFront caching issues reducing user errors by 80%, introduced Datadog RUM for Web Vitals/UX metrics\n- Designed React-based design system: Compound components, typed theme system resolving designer-developer communication errors\n- Organized React 18 upgrade guild (3 FE engineers), proposed Playwright E2E adoption, TypeScript 4.2→5.1 upgrade\n- Facilitated \"Pragmatic Programmer\" reading group (5 people, 11 sessions)\n\n---",
     "metadata": {
       "type": "resume-en",
       "title": "Experience",
@@ -11143,7 +11499,7 @@
   },
   {
     "id": "cogni_resume-en_4",
-    "content": "## Side Projects & Open Source\n\n**dwkim CLI** (`npx dwkim`)\nPersonal AI agent running in the terminal. LangGraph RAG backend + TUI client + Astro blog monorepo.\n- Qdrant Hybrid Search (Dense + BM25 RRF), SEU uncertainty measurement, SSE streaming\n- Published on npm, hosted on Fly.io, semantic-release automation\n\n**Open Source Contributions**\n- @ai-sdk/langchain: LangGraph integration patch\n- react-hook-form, svelte-toast: type definition improvements\n- svelte.dev: official documentation parsing logic improvement",
+    "content": "## Side Projects & Open Source\n\n**dwkim CLI** (`npx dwkim`)\nPersonal AI agent running in the terminal. LangGraph RAG backend + TUI client + Astro blog monorepo.\n- Qdrant Hybrid Search (Dense + BM25 RRF), SEU uncertainty measurement, SSE streaming\n- Published on npm, hosted on Fly.io, semantic-release automation\n\n**Open Source Contributions**\n- Mastra: two merged bug-fix PRs (#17140 observability pricing lookup, #15698 issue-triage workflow)\n- Ark UI: merged Svelte Frame/Portal contribution (#3171)\n- svelte.dev, svelte-toast, react-hook-form: merged fixes across docs parsing, type surface, and examples\n- vercel/ai `@ai-sdk/langchain`: analyzed a LangGraph HITL bug, submitted an upstream PR, and applied the patch in production",
     "metadata": {
       "type": "resume-en",
       "title": "Side Projects & Open Source",
@@ -11186,102 +11542,157 @@
     }
   },
   {
+    "id": "cogni_als-ambient-context-propagation_0",
+    "content": "\n# Push vs Pull: 횡단 컨텍스트 전파의 두 축과 ALS 필수성\n\n> Mastra 기반 워크플로우 플랫폼 코드베이스에서 \"observability ALS 평면과 DI 컨텍스트 평면이 왜 공존하는가?\"를 파고들다가 도달한 SW공학 일반론.\n\n---\n\n## 출발점 질문\n\n한 코드베이스에 per-request ambient 평면이 두 개 공존했다.\n\n- **로그 상관 ALS**: `AsyncLocalStorage` 기반, `requestId/runId/stepId/traceId` 등 관측성 필드 담당.\n- **DI 컨텍스트(Threaded)**: 프레임워크(Mastra) 실행 파라미터로 명시 전달되는 `tenantId/userId/workflowId/runId` 등 실행 정체성 담당.\n\n\"둘이 중복 아닌가? 하나로 합칠 수 있지 않나?\" — 이 질문에서 시작.\n\n---\n\n## 핵심 발견: Push ↔ Pull(Ambient) 쌍대(Dual)\n\n### 두 전파 방식의 본질\n\n| 구분 | 방식 | 대표 기술 | 특성 |\n|------|------|-----------|------|\n| **Push (Explicit)** | 호출자가 값을 직접 전달 | Go `context.Context`, 파라미터 스레딩, Reader 모나드, ZIO env, Mastra 실행 파라미터 | 순수성↑, 테스트성↑, **3rd-party 내부 관통 불가** |\n| **Pull (Ambient)** | 수신자가 공유 저장소에서 꺼냄 | `ThreadLocal+SLF4J MDC`, `AsyncLocalStorage`, FiberRef/Kotlin CoroutineContext, OTel Context+Baggage, (전역변수=깨진 baseline) | **3rd-party 내부 관통 가능**, 암묵적 |\n\n### 비유로 이해하기",
+    "metadata": {
+      "type": "als-ambient-context-propagation",
+      "title": "Push vs Pull: 횡단 컨텍스트 전파의 두 축과 ALS 필수성",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_als-ambient-context-propagation_1",
+    "content": "- **Push** = 쪽지를 손에서 손으로 전달. 직접 고용한 직원엔 전달되지만, 외부 용역(3rd-party 라이브러리 내부)에선 체인이 끊긴다.\n- **Pull/ALS** = 건물 전체 방송(천장 스피커). 브리핑을 받지 않은 외부 용역도 배경음악처럼 들을 수 있다.\n\n---\n\n## \"DI(threaded)로 로그 상관을 대체할 수 없다\" — 벽 3개\n\n로깅/트레이싱은 본질적으로 횡단(cross-cutting)이라 ambient pull이 필수. 구체적 이유:\n\n### 벽 1: Pino mixin의 인자 0개 콜백 구조\n```js\n// Pino mixin은 인자를 받지 않는 () => fields 형태\nlogger = pino({ mixin: () => requestScopeStorage.getStore() ?? {} })\n```\n`mixin`은 `() =>` 시그니처 — 외부에서 값을 push할 방법이 없다. **ambient에서 pull할 수밖에 없다.** DI로 넘겨받은 값은 이 콜백 안에서 보이지 않는다.\n\n### 벽 2: HTTP 엣지에는 DI 컨텍스트가 아직 없다\n`requestId`는 Mastra run이 생기기 전 HTTP 미들웨어 레이어에서 발급된다. 프레임워크 실행 파라미터는 그 이후에 존재한다. 엣지 로그를 위해서는 ALS가 필수.\n\n### 벽 3: 3rd-party 라이브러리 내부 로그\nMastra 같은 외부 프레임워크 내부에서 발생하는 로그는 자신의 threaded param만 닿는다. 라이브러리가 직접 쓰는 logger에 내 `requestId`를 주입하려면 ambient 채널뿐이다.\n\n---\n\n## \"DI를 ambient로 만들기\" = 다시 ALS\n\"DI 백(threaded)을 ambient처럼 만들면 합칠 수 있지 않나?\" → 결국 DI 백을 ALS로 감싸야 한다. **즉 ALS에서 못 도망간다. 선택지는 \"ALS에 뭘 담냐\"뿐.**\n\n---\n\n## 두 평면은 중복이 아니라 쌍대(Dual)",
+    "metadata": {
+      "type": "als-ambient-context-propagation",
+      "title": "Push vs Pull: 횡단 컨텍스트 전파의 두 축과 ALS 필수성",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_als-ambient-context-propagation_2",
+    "content": "| 평면 | 방향 | 책임 |\n|------|------|------|\n| 로그 상관 ALS | Pull (0-arg mixin, 3rd-party 내부) | Observability 상관 — requestId, traceId, runId |\n| DI 컨텍스트 (threaded) | Push (파라미터 명시 전달) | 실행 정체성, 인가 — tenantId, userId, workflowId |\n\n구조적으로 합병 불가. **혼동 해소책은 합치기가 아니라 rename** — ALS 평면의 이름을 `LogScope` / `CorrelationScope` 같은 목적 중심 이름으로 바꾸고 glossary에 각 평면의 책임 경계를 기록하는 것.\n\n---\n\n## 유일한 진짜 중복 후보: traceId\n\nOTel(`@opentelemetry/api`)은 자체 `Context` API로 `traceId/spanId`를 이미 ambient 제공한다. 따라서 로그 상관 ALS에 `traceId`를 별도로 담는 것은 실질적 중복. 검증 시 이 필드 1개 제거 가능 → OTel로 단일화.\n\n---\n\n## 업계 수렴 방향: MDC → ALS → OTel Context\n\n```\nJava ThreadLocal + SLF4J MDC\n    ↓  (async 환경 대응)\nNode.js AsyncLocalStorage\n    ↓  (서비스 경계 전파)\nOTel Context + Baggage\n```\n\nALS는 별난 선택이 아니라 **MDC의 async 포팅, 표준 계보의 Node 멤버**.\n\nOTel Context/Baggage로 격상하면 traceId 공짜 + 서비스 경계(프로세스 간) 전파까지 가능 — 단, 이건 혼동 해소가 아니라 기능 확장 별건.\n\n---\n\n## 업계 기술 지형 요약",
+    "metadata": {
+      "type": "als-ambient-context-propagation",
+      "title": "Push vs Pull: 횡단 컨텍스트 전파의 두 축과 ALS 필수성",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 4
+    }
+  },
+  {
+    "id": "cogni_als-ambient-context-propagation_3",
+    "content": "| 기술 | 분류 | 노트 |\n|------|------|------|\n| `SLF4J MDC` (Java) | Pull/Ambient | ThreadLocal 기반, 동기 only |\n| `AsyncLocalStorage` (Node.js) | Pull/Ambient | MDC의 async 버전 |\n| `FiberRef` (ZIO), `CoroutineContext` (Kotlin) | Pull/Ambient | 함수형/코루틴 버전 |\n| `OTel Context+Baggage` | Pull/Ambient | 분산 서비스 경계 전파 |\n| `Go context.Context` | Push/Explicit | 명시 전달, 표준 관용구 |\n| `Reader 모나드` / ZIO env | Push/Explicit | 순수함수형 DI |\n| Mastra 실행 파라미터 | Push/Explicit | 프레임워크 DI 백 |\n| 전역 변수 | Broken ambient | Anti-pattern (테스트 오염) |\n\n---\n\n## 핵심 요약 (3줄)\n\n1. 로깅/트레이싱은 본질적으로 횡단(cross-cutting) → 업계가 ambient(pull) 쪽으로 수렴.\n2. Push(DI/threaded)는 3rd-party 내부, HTTP 엣지, mixin 콜백 안을 관통 못함 → ALS는 회피 불가.\n3. Push ↔ Pull 두 평면은 쌍대(dual)라 합병 불가 — rename + glossary로 혼동 해소.\n\n---\n\n## 관련 노트\n- [[tech/langchain-vs-langgraph]] — 프레임워크 DI/컨텍스트 설계 차이\n",
+    "metadata": {
+      "type": "als-ambient-context-propagation",
+      "title": "Push vs Pull: 횡단 컨텍스트 전파의 두 축과 ALS 필수성",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 4
+    }
+  },
+  {
     "id": "cogni_resume_0",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n# 김동욱\n\nAI Agent Engineer & Product Lead | 멀티에이전트 시스템 설계부터 제품 출시까지\n\n- 이메일: dannyworks102@gmail.com\n- GitHub: github.com/domuk-k\n- 소개 페이지: https://domuk-k.vercel.app/",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n# 김동욱\n\nAgent Systems Engineer & Product Lead — 에이전트 시스템 설계부터 엔터프라이즈 납품까지\n\n- 이메일: dannyworks102@gmail.com\n- GitHub: github.com/domuk-k\n- 소개 페이지: https://domuk-k.vercel.app/",
     "metadata": {
       "type": "resume",
       "title": "김동욱 이력서",
       "source": "cogni",
       "chunkIndex": 0,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_1",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 소개\n\n6년간 SaaS 제품을 설계하고 출시한 소프트웨어 엔지니어입니다. 프론트엔드에서 시작해 SDK 아키텍처, LLM 파이프라인, 멀티에이전트 오케스트레이션으로 영역을 확장했습니다. 현재 콕스웨이브에서 Agent Builder Product Lead로서 4인 팀을 리드하며, AI 코딩 에이전트와의 협업으로 Workflow Studio를 24일 만에 설계·납품했습니다.\n\n### 핵심 역량\n\n- **AI-Assisted 개발 방법론**: AI 코딩 에이전트 협업으로 24일 만에 4앱+11패키지 시스템 설계·납품 — 병렬 세션 오케스트레이션, 다층 검증 체계 수립 후 팀 전파\n- **에이전트 시스템 설계**: LangGraph 기반 멀티에이전트 오케스트레이션, HITL interrupt 패턴 설계 및 납품\n- **기술 의사결정 문서화**: 주요 설계 결정마다 ADR 작성 — 대안 비교, 선택 근거, 트레이드오프 기록 후 팀 공유\n- **AI 워크플로우 전파**: 팀 내 AI 도구 표준화, 채용 평가 시스템에 AI 워크플로우 적용",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 소개\n\n6년 동안 SaaS를 만들었습니다. 프론트엔드로 시작해서 SDK, LLM 파이프라인, 에이전트 오케스트레이션까지 왔습니다.\n\n계속 돌아오는 문제가 하나 있었어요. **LLM 출력이 비결정적인데, 이걸 기업 업무 흐름에 어떻게 안전하게 끼워 넣느냐.** 이게 까다로운 건 에러를 던지지 않기 때문입니다. 호출은 성공하고, 값은 돌아오고, 결과가 틀립니다. 저는 그 조용한 실패 지점을 먼저 찾습니다.\n\n지금은 콕스웨이브에서 HITL·감사 중심의 멀티 에이전트 체인 빌더를 리드하고 있습니다. AI 코딩 에이전트와 역할을 나눠서 4앱·11패키지 규모를 혼자 설계하고 현대글로비스에 납품했습니다.",
     "metadata": {
       "type": "resume",
       "title": "소개",
       "source": "cogni",
       "chunkIndex": 1,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_2",
-    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 경력\n\n### 주식회사 콕스웨이브 (2025.09 - 현재)\n\n#### Agent Builder Product Lead (2026.03 ~ 현재)\n\n**AX팀 | 팀 구성: 엔지니어 2, PM 1, 디자이너 1**\n\nWorkflow Studio PoC 성과를 기반으로 Agent Builder 제품화를 리드. 제품 로드맵 수립, 기술 아키텍처 의사결정, 팀 빌딩을 담당.\n\n- Workflow Studio PoC → 정식 제품 전환을 위한 아키텍처 리팩토링 및 제품 로드맵 수립\n- 엔지니어 채용을 위한 Agentic Playbook 기반 FE 평가 시스템 설계\n  - Claude Code 활용 자동화 (setup.sh + PLAYBOOK.md + SCORECARD.md)\n  - 6단계 테이크홈 과제 포트폴리오: 상태관리, 비동기 데이터, 동적 렌더링, AI 투명성 프레임워크\n  - 객관 테스트(15%) + 주관 평가(85%) 혼합 루브릭\n\n#### Workflow Studio PoC (2025.11 ~ 2026.02)\n\n**Technical Lead | 현대글로비스 납품향 SaaS — 멀티에이전트 워크플로우 빌더**\n\nAI 코딩 에이전트(Claude Code)와의 협업으로 24일간 4개 앱(api, web, admin, portal) + 11개 패키지 + 13개 외부 서비스 통합 시스템을 설계·구현·납품.\n\nAI-Assisted 개발 방법론 — Steerer로서의 역할 (AI가 실행하고, 내가 설계·조율·검증):\n\n- **아키텍처 의사결정 (본인 판단)**: WinterTC 런타임 선택, DAG 실행 전략, 에이전트 간 상태 스키마 설계\n- **피드백 루프**: 아키텍처 규칙·실수 패턴·코딩 컨벤션을 프로젝트 컨텍스트로 축적, PR마다 반영\n- **병렬 세션 오케스트레이션**: 모노레포 Subtree 기반으로 복수 AI 에이전트를 병렬 운영, Plan 모드로 설계 확정 후 자동 구현 전환\n- **다층 검증 체계**: 유닛/통합 테스트(결정론적 검증) + E2E 테스트(사용자 시나리오) + 코드베이스 오디트 사이클(아키텍처 정합성·보안·엣지 케이스)\n\n핵심 시스템 설계:\n\n- **멀티에이전트 오케스트레이션**: LangGraph StateGraph 기반 에이전트 시스템. Discovery, Builder, Step Agent로 역할 분리한 3-tier 구조\n- **HITL(Human-in-the-Loop)**: interrupt 패턴 설계 — 자동 실행 / 리뷰 요청 / 에스컬레이션 단계 분리\n- **크로스 런타임 호환**: Web Standards만 사용하는 WinterTC-compatible 워크플로우 엔진 (Bun, Node.js, Cloudflare Workers, Deno)\n- **DAG 실행 엔진**: Kahn's algorithm 기반 워크플로우 실행기, pause/resume 지원\n- **OSS 기여**: @ai-sdk/langchain 라이브러리 버그를 직접 패치하여 LangGraph 통합 완수\n\n성과:\n\n- PoC 성공 납품 → Agent Builder Product Lead 승진의 직접 근거\n- AI 코딩 에이전트 협업 방법론, HITL 패턴을 팀에 전파\n\n기술: LangGraph, Vercel AI SDK, Bun, Elysia, React 19, Zustand, SQLite, Turborepo\n\n#### edutap.ai SDK 설계/구현 (2025.09 ~ 2025.10)\n\n**SDK Engineer**\n\n프로토타입 코드를 프로덕션 SDK로 재설계. 고객사 환경 다양성(nodejs, php)과 빈번한 업데이트에 대응하는 아키텍처 구축.\n\n- Dynamic Loader 패턴: npm 패키지(~2.8KB) 경량 래퍼 + CDN 런타임 로드, 고객사 배포 없이 자동 업데이트\n- Stub + Queue Replay: SDK 로드 전 호출을 큐에 저장, 로드 후 순차 실행\n- iframe Bridge 통신: postMessage 기반 Request-Response, Nonce 매칭, TypeScript 제네릭 양방향 타입 안전\n- Turborepo 기반 8개 패키지 모노레포 단독 설계, Playwright E2E, 자동 배포/롤백\n- **결과**: 고객 연동 코드 3줄, npm/CDN 두 방식 지원, 핫픽스 배포 수일→수분 단축\n\n#### 팀 문화 기여\n\n- SDK-Web-API 통합 Playground 구축 → 팀 전체 테스트 도구로 확산\n- Good-to-know 공유 세션 → 정기 도구모임으로 발전\n- OpenAI 협력 해커톤 기술자문: LLM 기반 평가 에이전트 설계\n\n---\n\n### 주식회사 비에이치에스엔 (2024.01 - 2025.09, 1년 9개월)\n\n**Software Engineer** — allibee(앨리비) 클라우드 기반 계약생애주기(CLM) 솔루션\n\n- 조직 계층 구조 API 성능 최적화: Materialized Path, Nested Set, Recursive CTE 등 트리 구조 패턴 비교 분석 후 Materialized Path 선택, 80-90% 성능 개선 (Kotlin, Spring Boot)\n- SvelteKit + Turborepo 기반 CLM SaaS 웹앱 개발, PDF 전자서명 에디터 구현 — 오픈소스(documenso, tldraw) core 분석/적용으로 개발 일정 50% 단축\n- 프론트엔드 공통 코드 패키지 분리로 UI/utils 코드라인수 85% 감소\n- 배포 알림 UX 개선: vite-plugin-pwa 소스코드 분석하여 Service Worker 교체 버그 직접 수정, 불편 피드백 17→0건\n\n---\n\n### 주식회사 모두싸인 (2021.04 - 2023.12, 2년 9개월)\n\n**Frontend Engineer** — React/Next.js 기반 전자계약 엔터프라이즈 SaaS\n\n- 9인 팀 내 프론트엔드 기술결정 주도: 일정 산정, QA 범위, API 설계 논의 발제\n- 배포 파이프라인 개선: CloudFront 캐싱 이슈 해결로 사용자 에러 80% 감소, Datadog RUM 도입으로 Web Vitals/UX 지표 공유\n- 리액트 기반 디자인 시스템 설계/구현: Compound 컴포넌트, theme 타입으로 디자이너-개발자 간 커뮤니케이션 오류 해결\n- React 18 업그레이드 길드 조직/수행(FE 3명), Playwright E2E 도입 제안, TS 4.2→5.1 업그레이드\n- '실용주의 프로그래머' 독서모임 진행(5인, 11회), 사내 개발 문화 기여\n\n---",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 경력\n\n### 주식회사 콕스웨이브 (2025.09 - 현재)\n\n멀티 에이전트 체인 빌더 Product Lead (2026.03–현재) / Workflow Studio Technical Lead (2025.11–2026.02) / SDK Engineer (2025.09–10)\n\n**문제** — LLM 출력이 비결정적인데, 이걸 엔터프라이즈 업무 흐름에 신뢰할 수 있게 끼워 넣어야 했습니다. 동시에 4개 앱·11패키지 규모 시스템을 혼자 설계해야 하는 상황이었습니다.\n\n> **어떻게** — LLM이 신뢰할 수 없다면 사람을 루프에 넣는 수밖에 없었습니다. 프롬프트 강화만으로는 비결정성을 없앨 수 없어서, LangGraph HITL interrupt로 중요 분기마다 사람이 확인하는 구조를 선택했습니다. AI 코딩 에이전트와의 협업도 의도적인 설계였습니다. 어떻게 쪼갤지(아키텍처 결정)는 직접, 쪼개진 단위 구현은 에이전트에 위임하고, 매 PR을 직접 검토하는 방식으로요.\n>\n> **결과** — 4앱 + 11패키지 + 13개 외부 서비스를 24일 만에 현대글로비스에 납품했습니다. 이게 Product Lead 승진으로 이어졌습니다.\n\n**문제** — LLM에게 \"이 형식으로 출력해라(outputSchema)\"는 지정과 외부 툴 호출을 동시에 요청하면, LLM이 툴을 무시하고 빈 텍스트를 반환했습니다. 원인을 알 수 없었습니다.\n\n> **어떻게** — Mastra 소스코드와 OpenAI/Anthropic/Gemini 스펙을 직접 읽었습니다. AI SDK가 매 step마다 LLM에게 \"이 형식으로 출력해라\"는 파라미터를 자동으로 주입하는데, 세 모델 모두 이 파라미터와 \"이 도구를 사용해라\"는 파라미터를 동시에 받으면 하나를 조용히 무시한다는 걸 발견했습니다. 선택지는 세 가지였습니다. 라이브러리 fork는 upstream 부담, 스펙 무시는 다음 LLM 업데이트에서 재발 가능. `submit_result`라는 내부 도구를 자동 삽입하는 방식이 호환성 파단 없는 유일한 경로였습니다.\n>\n> **결과** — 외부 툴 호출과 구조화 출력을 동시에 쓸 수 있게 됐습니다. Mastra GitHub에 같은 증상 이슈가 올라오기 전에 이미 해결한 상태였습니다.\n\n- **Web Standards 제약 설계**: 런타임 전용 API를 패키지 경계에서 막았습니다. 의도치 않은 부수효과로 DI 패턴이 자연스럽게 자리 잡혔고, 코드 한 벌로 Bun·Node.js·Cloudflare Workers·Deno 모두 지원합니다.\n- **SSE 재설계**: 실행 시간이 긴 워크플로우가 HTTP 연결 제한(timeout)에 걸렸습니다. SSE(서버→클라이언트 실시간 스트리밍 방식)로 전환하면서 Mastra 진입점 소스 3개를 직접 읽고 `run.stream()` + `tee()` 패턴을 선택했습니다. timeout 없이, 폴링 없이.\n- **tokenUsage=0 버그**: 에이전트 실행마다 LLM API 호출 비용(토큰)이 항상 0으로 집계됐습니다. LLM 호출이 실행 흐름 추적 트리와 분리된 별도 span에 기록되고 있었고, 추적 컨텍스트를 명시적으로 전파해 수정했습니다.\n- **MCP 서버**: FastMCP(Python)로 에이전트용 툴 서버를 구축했습니다. 에이전트가 표준 프로토콜로 외부 도구를 호출합니다.\n- @ai-sdk/langchain 버그를 직접 수정해 LangGraph 통합을 완수했습니다.\n- SDK-Web-API 통합 Playground 구축 → 팀 전체 테스트 도구로 확산\n- Good-to-know 공유 세션 → 정기 도구모임으로 발전\n\n기술: LangGraph, Vercel AI SDK, Mastra, Bun/Elysia, React 19, SQLite/Drizzle, FastMCP, AWS S3/CloudFront, ArgoCD\n\n#### edutap.ai SDK (2025.09 – 10)\n\nSDK Engineer (콕스웨이브 내부 — 프로토타입 → 프로덕션 재설계)\n\n**문제** — SDK를 npm에 배포하면 고객사 코드를 건드리지 않는 한 핫픽스가 불가능했습니다. 배포 사이클이 수일씩 걸렸습니다.\n\n> **어떻게** — 선택지는 두 가지였습니다. npm에 전체 번들을 넣으면 고객사 배포 없이 핫픽스 불가, CDN에서만 로드하면 SDK 로드 전 메서드 호출이 사라집니다. Stripe.js 패턴을 선택했습니다. npm 패키지(~2.8KB)는 loader만 담고 실제 번들은 CDN에서 런타임 로드하는 방식입니다. 버전 번들은 `max-age=1yr immutable`, loader는 `max-age=300s`로 분리했습니다. SDK 로드 전 메서드 호출은 큐에 쌓아뒀다가 순서대로 실행(Stub + Queue Replay)하고, UI는 postMessage 기반 iframe Bridge로 격리했습니다.\n>\n> **결과** — 고객 연동 코드 3줄. 핫픽스 배포 수일→수분. S3 server-side copy + CloudFront 무효화로 리빌드 없이 롤백 가능. Turborepo 8패키지 모노레포, Playwright E2E, 자동 배포까지 단독 설계했습니다.\n\n---\n\n### 주식회사 비에이치에스엔 (2024.01 - 2025.09)\n\nSoftware Engineer — allibee CLM(계약생애주기관리) SaaS\n\n**문제** — 조직 계층 구조 API가 트리 깊이에 따라 성능 병목이었습니다.\n\n> **어떻게** — Materialized Path, Nested Set, Recursive CTE 세 가지를 직접 비교했습니다. CLM은 트리 이동보다 읽기가 압도적으로 많아서 Materialized Path를 선택했습니다.\n>\n> **결과** — API 응답 80-90% 개선. (Kotlin, Spring Boot)\n\n**문제** — Service Worker 교체 시 일부 사용자에게 이상한 동작이 나타났습니다. 에러는 없었고, 재현도 안 됐고, 피드백만 17건 쌓였습니다.\n\n> **어떻게** — vite-plugin-pwa 소스를 직접 읽어서 Service Worker 라이프사이클 타이밍의 버그를 찾아 수정했습니다.\n>\n> **결과** — 불편 피드백 17→0건.\n\n- PDF 전자서명 에디터: documenso, tldraw 소스를 직접 읽고 핵심 구조를 가져와 적용했습니다. 개발 일정 50% 단축.\n- 프론트엔드 공통 코드를 패키지로 분리했습니다. UI/utils 코드라인 85% 감소.\n\n기술: SvelteKit, Turborepo, Kotlin/Spring Boot, PostgreSQL\n\n---\n\n### 주식회사 모두싸인 (2021.04 - 2023.12)\n\nFrontend Engineer — React/Next.js 전자계약 엔터프라이즈 SaaS\n\n- CloudFront 캐싱 이슈로 사용자 에러가 80%였는데 원인을 알 수 없었습니다. Datadog RUM을 도입해서 캐싱 레이어를 눈에 보이게 만들고 문제 구간을 찾아 고쳤습니다. 에러 80% 감소.\n- React 디자인 시스템 설계: Compound 컴포넌트 + typed theme. 디자이너와 개발자 사이의 커뮤니케이션 오류가 줄었습니다.\n- 9인 팀에서 프론트엔드 기술 결정을 주도했습니다. 일정 산정, QA 범위, API 설계 논의를 발제하는 역할이었습니다.\n- React 18 업그레이드 길드 조직(FE 3명), Playwright E2E 도입, TS 4.2→5.1 업그레이드.\n- '실용주의 프로그래머' 독서모임 진행(5인, 11회) — 사내 개발 문화 기여\n\n---",
     "metadata": {
       "type": "resume",
       "title": "경력",
       "source": "cogni",
       "chunkIndex": 2,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_3",
-    "content": "[컨텍스트: 김동욱의 연락처, 기본 정보]\n\n## 기술 스택\n\n**AI & Agent Systems**\nLangGraph (StateGraph, 멀티에이전트), Vercel AI SDK, OpenAI/Anthropic/Gemini API, MCP (Model Context Protocol), RAG (Qdrant Hybrid Search), HITL Patterns, AI Coding Agent 협업 방법론, Eval 설계\n\n**Frontend & SDK**\nReact, Next.js, Svelte/SvelteKit, TypeScript, Dynamic Loader, iframe Bridge, Turborepo, Zustand, Playwright, Storybook\n\n**Backend & Infra**\nBun, Elysia, Node.js, Kotlin/Spring Boot, PostgreSQL, MySQL, SQLite, Redis, Qdrant, AWS (S3, CloudFront), Docker, Vercel, Fly.io, GitHub Actions, ArgoCD",
-    "metadata": {
-      "type": "resume",
-      "title": "기술 스택",
-      "source": "cogni",
-      "chunkIndex": 3,
-      "totalChunks": 9
-    }
-  },
-  {
-    "id": "cogni_resume_4",
-    "content": "[컨텍스트: 김동욱의 기술 스택, 사용 기술]\n\n## 사이드 프로젝트 & 오픈소스\n\n**dwkim CLI** (`npx dwkim`)\n터미널에서 실행하는 개인 AI 에이전트. LangGraph RAG 백엔드 + TUI 클라이언트 + Astro 블로그 모노레포.\n\n- Qdrant Hybrid Search (Dense + BM25 RRF), SEU 불확실성 측정, SSE 스트리밍\n- npm 배포, Fly.io 운영, semantic-release 자동화\n\n**오픈소스 기여**\n\n- @ai-sdk/langchain: LangGraph 통합 패치\n- react-hook-form, svelte-toast 타입 정의 개선\n- svelte.dev 공식문서 파싱 로직 개선",
+    "content": "[컨텍스트: 김동욱의 재직 회사, 경력, 직장 경험]\n\n## 사이드 프로젝트 & 오픈소스\n\n### OpenAI × 콕스웨이브 해커톤 운영 (2026.01)\n\n기술 총괄 — 50명, 16팀, 당일 행사\n\n- 심사 기준을 사전에 전부 공개했습니다 (기술 40%/아이디어 30%/완성도 20%/문서화 10%, \"오버엔지니어링 감점\" 명시). Google Forms+Sheets+Apps Script로 점수 집계부터 순위까지 자동화.\n- OpenAI Singapore 엔지니어 피드백: \"여러 나라 해커톤을 경험했는데 이런 열린 구조는 처음\". 우승팀은 Krafton 본사 발표로 이어졌습니다.\n\n### dwkim CLI + Persona API\n\n`npx dwkim` — 터미널 AI 에이전트 · RAG 백엔드 · Astro 블로그 모노레포 · Fly.io 운영 중\n\n- **RAG 시스템 직접 구축**: Qdrant를 직접 운영하면서 Dense vector + BM25 하이브리드 검색을 실험했습니다. RRF(Reciprocal Rank Fusion) 재랭킹까지 적용해 검색 품질을 높였습니다. CS 챗봇 구축 때도 같은 하이브리드 서치 접근을 적용해봤습니다.\n- **Persona API**: 내 노트 ~400개를 벡터 인덱싱해서 RAG 챗봇이 컨텍스트를 검색하는 API를 설계·운영 중입니다.\n- LangGraph 에이전트 백엔드, SSE 스트리밍, semantic-release 자동화\n\n**오픈소스 기여**: Mastra 버그 수정 PR 2건 merged / Ark UI Svelte Frame·Portal merged / svelte.dev AST 파싱 수정 merged / svelte-toast 타입 노출 merged / react-hook-form 문서 예제 수정 merged. `@ai-sdk/langchain`은 LangGraph HITL 버그를 분석해 upstream PR을 제출했고, 실무에서는 패치 파일로 적용했습니다.\n\n---",
     "metadata": {
       "type": "resume",
       "title": "사이드 프로젝트 & 오픈소스",
       "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "cogni_resume_4",
+    "content": "[컨텍스트: 김동욱의 기술 스택, 사용 기술]\n\n## 기술 스택\n\n| 분야 | 기술 |\n|------|------|\n| AI & Agents | LangGraph, Vercel AI SDK, MCP (FastMCP), RAG · Hybrid Search (Qdrant), HITL 패턴, AI Coding Agent 협업 |\n| Frontend & SDK | React, Next.js, SvelteKit, TypeScript, Dynamic Loader, iframe Bridge, Turborepo, Zustand, Playwright |\n| Backend & Infra | Bun/Elysia, Node.js, Python, Kotlin/Spring Boot, PostgreSQL, SQLite, AWS, Docker, ArgoCD, Fly.io |\n\n---",
+    "metadata": {
+      "type": "resume",
+      "title": "기술 스택",
+      "source": "cogni",
       "chunkIndex": 4,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_5",
-    "content": "## 교육 & 멘토링\n\n- (주)코드잇 스프린트 FE 과정 멘토 (2023.12 - 2025.09): 주간 화상 멘토링, 코드리뷰\n- (주)데이원컴퍼니 FE 스쿨 매니저 (2020.10 - 2021.04): 수강생 20명 리드, 해커톤 주관, 기술 세션 진행\n- OpenAI 협력 해커톤 기술자문: LLM 기반 평가 에이전트 설계",
+    "content": "## 교육 & 멘토링\n\n- 코드잇 스프린트 FE 멘토 (2023–2025): 주간 화상 멘토링, 코드리뷰\n- 데이원컴퍼니 FE 스쿨 매니저 (2020.10–2021.04): 수강생 20명 리드, 해커톤 주관, 기술 세션 진행\n- OpenAI 협력 해커톤 기술자문: LLM 기반 평가 에이전트 설계",
     "metadata": {
       "type": "resume",
       "title": "교육 & 멘토링",
       "source": "cogni",
       "chunkIndex": 5,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_6",
-    "content": "## 학력\n\n- 홍익대학교 경영학과 학사 (2012.03 - 2018.08)\n- 서울대학교 데이터사이언스 대학원 빅데이터-핀테크 과정 수료 (2019.06 - 2020.06)\n  - 기초통계학, 선형대수학, 파이썬 ML, SQL\n\n**비기술 배경**\n\n- SparkLabs 인턴 (2018): 스타트업 엑셀러레이팅 전 과정 지원, 투자심의 참여 → 제품-시장 적합성 평가 관점 형성\n- 백지장 (2017-2018): 문화공간 대여 사업 운영, 4개 지점 확장, 연 6,600명 방문자 달성",
+    "content": "## 학력\n\n- 홍익대학교 경영학과 학사 (2012–2018)\n- 서울대학교 빅데이터-핀테크 과정 수료 (2019–2020): 기초통계학, 선형대수학, 파이썬 ML",
     "metadata": {
       "type": "resume",
       "title": "학력",
       "source": "cogni",
       "chunkIndex": 6,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_7",
-    "content": "## 수상\n\n- 홍익대학교 창업경진대회 창업실행부문 우수상 (2017.05)",
+    "content": "## 비기술 배경\n\n- SparkLabs 인턴 (2018): 스타트업 액셀러레이팅 전 과정 지원, 투자심의 참여 → PMF 평가 관점 형성\n- 백지장 (2017–2018): 문화공간 대여 사업 운영, 4개 지점 확장, 연 6,600명 방문자 달성",
     "metadata": {
       "type": "resume",
-      "title": "수상",
+      "title": "비기술 배경",
       "source": "cogni",
       "chunkIndex": 7,
-      "totalChunks": 9
+      "totalChunks": 10
     }
   },
   {
     "id": "cogni_resume_8",
-    "content": "## 언어\n\n- 영어: 일상 회화 (토익 910점)",
+    "content": "## 수상\n\n- 홍익대 창업경진대회 우수상 (2017)",
+    "metadata": {
+      "type": "resume",
+      "title": "수상",
+      "source": "cogni",
+      "chunkIndex": 8,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "cogni_resume_9",
+    "content": "## 언어\n\n- 영어: 업무 가능 (토익 910, 뉴질랜드 유학)",
     "metadata": {
       "type": "resume",
       "title": "언어",
       "source": "cogni",
-      "chunkIndex": 8,
-      "totalChunks": 9
+      "chunkIndex": 9,
+      "totalChunks": 10
     }
   },
   {
@@ -11428,6 +11839,127 @@
       "source": "cogni",
       "chunkIndex": 0,
       "totalChunks": 1
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_0",
+    "content": "\n# Dongwook Kim\n\n**AI / Agent Engineer**\n\ndannyworks102@gmail.com · github.com/domuk-k · Seoul, South Korea · Coxwave\n\n---\n\n## Summary\n\nSoftware engineer with 6+ years of experience, currently building production AI agent infrastructure at Coxwave. Led a product from 0→1 prototype to production re-architecture: built the initial multi-agent workflow platform solo in 24 days (345 commits, ~70K LOC, LangGraph-based orchestration, DAG engine, HITL, Self-Healing loops, 13 external integrations), then re-architected it into a Mastra-backed multi-tenant enterprise platform with a custom workflow DSL, typed ID system, SSE-streamed run lifecycle, and GitOps deployment. Equally comfortable deep in agent substrate (engine, state machine, tool contracts) and product surface (Builder UI, Portal UX). Seeking a role where agent reliability and developer experience are first-class concerns.\n\n---\n\n## Core Competencies",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_1",
+    "content": "**Agent & LLM Systems** — Multi-agent orchestration · DAG workflow engine · LangGraph StateGraph · Mastra workflows · HITL interrupt/resume · Self-Healing retry loops · Confidence-based routing · Tool-use / Function Calling · MCP (Model Context Protocol) · Structured output validation · Agentic RAG · Prompt engineering\n\n**Backend & Platform** — TypeScript (strict) · Node.js / Bun · Hono · Elysia · Drizzle ORM · PostgreSQL · SQLite · REST + SSE · DSL design · Branded types · Service-layer architecture\n\n**Frontend** — React 19 · Next.js · Zustand · React Flow · Tailwind CSS · Vite · SvelteKit · Design systems · SDK architecture\n\n**Infrastructure** — Docker · ArgoCD · AWS (S3, CloudFront, ECR) · Fly.io · GitHub Actions CI/CD · Kubernetes · Pino + ALS observability · Vercel\n\n---\n\n## Selected Work\n\n### Enterprise AI Agent Workflow Platform *(Coxwave)*",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_2",
+    "content": "*Business workflow delegation platform: teams hand off repeatable work to AI agents, with tunable autonomy via confidence-based routing. Progressed from a solo prototype to a multi-tenant production platform.*\n\n**Phase 1 — Prototype (solo)**\n\nValidated the core product concept from scratch:",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_3",
+    "content": "- **Built end-to-end alone**: 345 commits · 501 TypeScript files · ~70K LOC · 4 apps (api, web, admin, portal) · 11 packages\n- Designed a **DAG workflow execution engine**: Kahn's algorithm topology sort for execution ordering; parallel execution of independent nodes, sequential for dependents; DI pattern for execution backend swap; **zero Node.js-specific module dependencies** — runs on Bun / Node / Cloudflare Workers / Deno\n- Implemented **4 LangGraph-based AI pipelines**, each with a distinct orchestration pattern:\n  - *Codegen*: `architect → coder (per-file loop) → fixer` with Self-Healing Loop (tsc compiler as external oracle; halts if error count increases; max 3 retries)\n  - *Discovery*: `interviewer ⇄ tool_executor` 3-level state machine; converts unstructured business knowledge into a structured Task Catalog via tool calls\n  - *Copilot*: ReAct agent + **HITL interrupt** — fires before any write tool, frontend awaits approval, resumes on confirmation; patched an upstream library bug in the LangGraph/AI SDK adapter's interrupt-key mismatch directly\n  - *Step Agent*: per-node specialist agents with autonomous / collaborative / supervised modes\n- Built **Confidence-based Routing**: 95%+ → auto-execute; 80–95% → human review; <80% → escalate; threshold encodes business policy, not a config knob\n- Shipped **21-type Artifact System** (`Table, Chart, Form, ComparisonTable, ApprovalCard, Diff, Timeline, Report` …): design-time/runtime split (LLM designs structure only; agent fills data at runtime); Open/Closed extension — adding a type auto-wires LLM hint, renderer, and validation\n- Integrated **13 external tools** via a plugin registry (Slack, Google Sheets, Google Drive, Postgres, HTTP, SAP RFC, EDMS, GLOVE, Resend, Mailgun, SMTP, Web Scraper, RSS Reader)\n- Built **Hybrid RAG pipeline**: Qdrant vector + BM25 / RRF fusion; semantic chunking by code-block vs. prose; docstring metadata to reduce variable-name overfitting",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_4",
+    "content": "**Phase 2 — Production Re-architecture**\n\nRe-architected the prototype into a production-grade multi-tenant platform:",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_5",
+    "content": "- **Core / Builder / Portal service boundaries** with a custom workflow DSL as single source of truth; step kinds are `agent` or `tool` exclusively — no ad-hoc code paths\n- **Mastra workflow integration**: single registry as the sole handle-acquisition path; architecture boundary enforced via Biome lint rules — `@mastra/core` workflow-execution imports restricted to four whitelisted entry points\n- **Run lifecycle SSE streaming**: Mastra step events streamed to the Portal UI in real time; dual-store consistency — DB authoritative at terminal state, Mastra snapshot live during execution\n- **Typed workflow DSL + branded ID system**: cross-service IDs are branded strings; silent mis-routing caught at compile time\n- **File subsystem**: S3-backed versioned file store, 2-phase upload intent, automatic presigned URL emission, step-provenance tracking\n- **Python tool layer**: Mastra custom tool provider bridges the TypeScript engine to Python subprocesses via UV; MRP scenario processes 10K+ row ERP exports → normalized flat tables\n- **AWS ECR + ArgoCD GitOps**: image-updater triggers on CI-pushed SHA tags; staging/prod promotion via pull request; CI: lint → typecheck → test → Docker build → ECR push → ArgoCD sync",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 5,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_6",
+    "content": "**Stack:** Bun · Elysia / Hono · LangGraph · Mastra · AI SDK v6 · OpenRouter · Drizzle ORM · PostgreSQL · React 19 · Zustand · React Flow · Tailwind v4 · AWS ECR/S3 · ArgoCD · Vitest · Biome\n\n---\n\n### Personal RAG Chatbot *(Side project)*\n\n- Indexes **370+ Markdown notes** (personal knowledge base) into Qdrant; AI assistant retrieves and synthesizes across them\n- **Graph-augmented RAG**: backlinks between notes form an adjacency graph; query expands to linked neighbors before ranking, improving cross-topic recall\n- RAG security levels 0–5 (access-control gating on retrieved context); streaming response filtering to prevent context leakage\n\n---\n\n### edutap.ai SDK — Frontend Monorepository *(Coxwave)*",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 6,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_7",
+    "content": "- Designed **8-package Turborepo monorepository**: Web Component + React Hooks + legacy Class API, iframe messenger, design tokens, API client, E2E tests\n- **Dynamic Loader pattern**: 2.8 KB npm package loads actual SDK from CDN at runtime — decouples versioning from hotfix deployment; Stub + Queue Replay makes async loading transparent to callers\n- **iframe messenger**: postMessage Request-Response with nonce-matched correlation, AbortController support, zero external dependencies, bidirectional TypeScript generics\n- Release pipeline: Changesets → CDN deploy (S3/CloudFront + SRI hash) → Playwright E2E; emergency rollback script included\n\n---\n\n### Modusign — Enterprise e-Signature SaaS *(Frontend Engineer, 2 yr 9 mo)*",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 7,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_8",
+    "content": "- Led frontend architecture for a **9-person team**: `sx`-prop design system, yarn workspace monorepo, permission model (workspace + document + seal resources)\n- Resolved a **CloudFront cache invalidation bug** → user-facing error rate down **80%**\n- Introduced **Playwright E2E test suite**; applied Lighthouse + Datadog RUM (Web Vitals, Frustration Signals)\n- Drove React 18 + TypeScript 5.1 upgrades; esbuild/swc adoption reduced build time\n\n---\n\n### BHSN — SaaS Admin Dashboard + e-Signature Editor *(Software Engineer, 1 yr 9 mo)*\n\n- SvelteKit admin app in Turborepo; shared components extracted into independent packages → **85% reduction in duplicated code**\n- Organization-hierarchy API: O(N×M) recursive → **Materialized Path, 80–90% latency reduction** (Kotlin / Spring Boot / JPA / MySQL)\n- PDF form builder (drag-and-drop + SVG-path pen signature); OSS analysis cut delivery by **50%**\n\n---\n\n## Tech Stack",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 8,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_9",
+    "content": "| Domain | Technologies |\n|---|---|\n| Agent / LLM | LangGraph · Mastra · AI SDK v5/v6 · OpenRouter · Qdrant · LLM tool-use · MCP |\n| Languages | TypeScript (strict) · Python · Kotlin |\n| Backend | Bun · Node.js · Hono · Elysia · Drizzle · PostgreSQL · SQLite |\n| Frontend | React 19 · Next.js · SvelteKit · Zustand · React Flow · Tailwind · Vite |\n| Infra / DevOps | Docker · ArgoCD · AWS ECR/S3/CloudFront · Fly.io · Vercel · GitHub Actions |\n| Observability | Pino + ALS · SigNoz · Datadog RUM |\n| Testing | Vitest · Playwright · Testing Library |\n\n---\n\n## Writing & Open Source",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 9,
+      "totalChunks": 11
+    }
+  },
+  {
+    "id": "cogni_resume-en-agent-2026_10",
+    "content": "- **\"Web Standards Constraints Force Good Architecture\"** — how eliminating Node.js-specific dependencies drove better DI patterns in a workflow engine (published)\n- **\"Configuration to Conversation\"** — industry essay on agent-driven enterprise software (published)\n- **typed-event-bus** — OSS TS library: discriminated union event bus with exhaustiveness checking\n- OSS contributions: `Mastra` #17140/#15698 (merged), `Ark UI` #3171 (merged), `svelte.dev` #1018, `svelte-toast` #107, `react-hook-form` #11005; `vercel/ai` #12798 submitted for an `@ai-sdk/langchain` HITL bug and applied as a production patch.\n\n## Education\n\n- **Hongik University** — B.A. Business Administration (2012–2018)\n- **Seoul National University Big Data Institute** — Big Data & Fintech Program (2019–2020)\n",
+    "metadata": {
+      "type": "resume-en-agent-2026",
+      "title": "Dongwook Kim - Resume (AI/Agent Engineer, 2026)",
+      "source": "cogni",
+      "chunkIndex": 10,
+      "totalChunks": 11
     }
   },
   {
@@ -12038,6 +12570,126 @@
       "source": "cogni",
       "chunkIndex": 11,
       "totalChunks": 12
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_0",
+    "content": "## 핵심 한 줄\n\n\"변하는 것을 변치 않는 것에서 분리\"하되, 분리 방향이 **공간(코드→데이터)** 과 **시간(런타임→author-time)** 두 축임을 동시에 인식해야 설계가 완성된다.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 0,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_1",
+    "content": "## 맥락 (어디서 재발명됐나)\n\n글로비스 8공장 이질 엑셀 → 고정 28열 표준 출력을 단일 `dsl.json`으로 푸는 설계를 백지에서 1차원칙으로 탐색하는 과정에서 수렴. 원칙을 위에서 적용한 것이 아니라, 문제 구조가 원칙을 재발명했다.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 1,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_2",
+    "content": "## 공간 축: 코드 → 데이터\n\n`if(factory == X)` 제어흐름을 제거하고, 이질성을 **팩(pack) 레지스트리** 라는 데이터로 빼는 것.\n\n- 엔진은 공장을 모른다. `factoryCode`로 팩을 런업하는 Strategy만 안다.\n- 팩은 \"이 공장에서 이것은 다르다\"는 판단만 담는다. 공통 기본값은 제네릭 팩.\n- 새 공장 = 팩 하나 추가. 엔진 수정 0.\n\n매핑: GoF `encapsulate-what-varies`, OCP(Open/Closed), Strategy/플러그인 패턴, table-driven/\"data dominates\"(Rob Pike), config-over-code.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 2,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_3",
+    "content": "## 시간 축: 런타임 → author-time\n\nAI 추론을 핫패스(매 run)에 두지 않고, **추론→사람 비준→굳히기** 로 author-time(빌드 단계)에 해결한 뒤 결과를 그대로 재생(frozen-replay)하는 것.\n\n- 비결정성이 핫패스에서 사라진다. 출력이 결정론적.\n- \"기존 같은 고민\" 반복(매 run 재추론)이 사라진다.\n- 유사 개념: 컴파일 vs 런타임, record-replay, Singer `discover→catalog→sync`.\n\n```\n[author-time]  infer →  human-approve  →  freeze (팩에 저장)\n[run-time]     팩 로드  →  결정론적 재생\n```",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 3,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_4",
+    "content": "## AI 파이프라인 특유의 확장: infer-then-freeze\n\n일반 SW에는 없는 패턴. LLM의 비결정성을 \"write-once, read-many\"로 격리.\n\n- infer = LLM이 draft 생성 (한 번만)\n- approve = 도메인 전문가(또는 고객) 비준\n- freeze = 팩 또는 catalog 파일에 저장\n- replay = 매 run은 frozen 결과만 읽음\n\n비용, 지연, 품질 모두 개선. 특히 \"어려운 20% 룰링\"(숨김시트가 데이터인 공장 등)은 사람이 비준하기 때문에 자동탐지 실패가 조용히 운영을 망치지 않는다.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 4,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_5",
+    "content": "## 도메인 판단은 팩에, 수학은 엔진에\n\n품질 병목 = reshape 수학이 아니라 \"어느 시트를 쓰나(union/drop)\". 이 판단을 엔진에 두면 엔진이 도메인에 오염된다.\n\n- 엔진: 도메인 중립, 수학/변환 루틴\n- 팩: 정책, \"이 공장의 이 시트는 skip\", \"WOH = 이 열\"\n\nconta 아키텍처에서는 `INV-RT4` 불변식(mechanism vs policy)으로 존재.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 5,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_6",
+    "content": "## 원칙 매핑 요약\n\n| 구현 선택 | 원칙 이름 |\n|---|---|\n| 공장별 이질성 → 팩(데이터) | GoF encapsulate-what-varies, OCP |\n| 엔진 수정 0, 팩 추가만 | OCP |\n| 엔진=도메인 중립, 팩=정책 | mechanism vs policy |\n| `if(factory)` → 레지스트리 | table-driven, config-over-code |\n| 공통 기본값 + 팩은 다른 것만 | convention over configuration (dbt) |\n| 보편층 한 곳에만 | DRY / SSOT |\n| factoryCode로 런타임 선택 | Strategy / 플러그인 (클래스 아닌 데이터) |\n| 추론 → 비준 → freeze → replay | infer-then-freeze (AI-파이프라인 특유) |",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 6,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_7",
+    "content": "## 1차원칙 탐색 방법론\n\n\"진짜 제약 vs 우연한 제약 / 안정 vs 가변\"을 가르면 설계가 강제된다. 원칙은 결과에 사후적으로 붙는 이름이다. 원칙을 먼저 적용해서 설계를 유도하면 맞는 문제에 맞는 원칙이 아닐 수 있다.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 7,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_8",
+    "content": "## 고객 커뮤니케이션 = 도메인 팩 콘텐츠의 1차 원천\n\n팩이 담아야 할 \"어려운 20% 룰링\"의 출처는 코드가 아니라 고객 메일/미팅. Gmail 발굴이 결정타가 된 사례: ETD Busan 배너=무시, HMMA 첫3주 일자별, CW=1월시작 52주 등이 이메일에서 공인된 사실.\n\n도메인 룰링을 추정으로 채우지 말고, 고객 커뮤니케이션 아카이브를 먼저 발굴할 것.",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 8,
+      "totalChunks": 10
+    }
+  },
+  {
+    "id": "blog_externalizing-variance-data-and-time_9",
+    "content": "## 연결 노트\n\n- [[axc-design-principles-moc]] — mechanism vs policy, INV-RT4\n- [[agent-outcome-structured-signal-pattern]] — AI 출력 결정론화 패턴",
+    "metadata": {
+      "type": "blog",
+      "title": "분기를 데이터+시간으로 외부화 — 이질성 흡수의 두 축",
+      "category": "general",
+      "source": "cogni",
+      "chunkIndex": 9,
+      "totalChunks": 10
     }
   },
   {
@@ -13024,7 +13676,7 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 0,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
@@ -13048,7 +13700,7 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 1,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
@@ -13072,7 +13724,7 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 2,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
@@ -13096,7 +13748,7 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 3,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
@@ -13120,7 +13772,7 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 4,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
@@ -13144,12 +13796,12 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 5,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
     "id": "blog_c0-open-source-pipeline-rebuild_6",
-    "content": "## 출처\n\n[^1]: Cloudflare, [\"How we rebuilt Next.js with AI in one week\"](https://blog.cloudflare.com/vinext/), 2026-02-24. GitHub: [cloudflare/vinext](https://github.com/cloudflare/vinext).\n[^2]: Sebastien Lorber, Hacker News 코멘트, Vinext 토론 스레드, 2026-02-24.",
+    "content": "## 직접 써보기\n\nC0는 npm에 출시돼 있다. MIT 라이선스, BYOK — OpenAI 호환 API key만 있으면 된다.\n\n```bash\npnpm add @c0-ui/protocol @c0-ui/server @c0-ui/react\n```\n\n- **GitHub**: [github.com/domuk-k/c0](https://github.com/domuk-k/c0) — 파이프라인 전체가 공개돼 있다.\n- **npm**: [@c0-ui/protocol](https://www.npmjs.com/package/@c0-ui/protocol) · [@c0-ui/server](https://www.npmjs.com/package/@c0-ui/server) · [@c0-ui/react](https://www.npmjs.com/package/@c0-ui/react)\n\n이 글에서 걸어간 `createStreamParser()`·`makeC0Response()`·`DEFAULT_RENDERERS`가 그대로 들어 있다. 이슈·PR 환영.\n\n---",
     "metadata": {
       "type": "blog",
       "title": "블랙박스를 오픈소스로: C0 파이프라인 재구현기",
@@ -13168,12 +13820,12 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 6,
-      "totalChunks": 8
+      "totalChunks": 9
     }
   },
   {
     "id": "blog_c0-open-source-pipeline-rebuild_7",
-    "content": "## 관련 노트\n\n- [[c1-anatomy-xml-dsl-streaming]]\n- [[generative-ui-conversation-output]]\n- [[genui-oss-prd]]\n- [[competitor-code-xray-learnings]]",
+    "content": "## 출처\n\n[^1]: Cloudflare, [\"How we rebuilt Next.js with AI in one week\"](https://blog.cloudflare.com/vinext/), 2026-02-24. GitHub: [cloudflare/vinext](https://github.com/cloudflare/vinext).\n[^2]: Sebastien Lorber, Hacker News 코멘트, Vinext 토론 스레드, 2026-02-24.",
     "metadata": {
       "type": "blog",
       "title": "블랙박스를 오픈소스로: C0 파이프라인 재구현기",
@@ -13192,7 +13844,31 @@
         "Gen UI pipeline"
       ],
       "chunkIndex": 7,
-      "totalChunks": 8
+      "totalChunks": 9
+    }
+  },
+  {
+    "id": "blog_c0-open-source-pipeline-rebuild_8",
+    "content": "## 관련 노트\n\n- [[c1-anatomy-xml-dsl-streaming]]\n- [[generative-ui-conversation-output]]\n- [[genui-oss-prd]]\n- [[competitor-code-xray-learnings]]",
+    "metadata": {
+      "type": "blog",
+      "title": "블랙박스를 오픈소스로: C0 파이프라인 재구현기",
+      "category": "philosophy",
+      "source": "cogni",
+      "keywords": [
+        "C0",
+        "createStreamParser",
+        "makeC0Response",
+        "DEFAULT_RENDERERS",
+        "htmlparser2",
+        "immer",
+        "BYOK",
+        "Vinext",
+        "open source",
+        "Gen UI pipeline"
+      ],
+      "chunkIndex": 8,
+      "totalChunks": 9
     }
   },
   {
