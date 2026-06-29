@@ -22,7 +22,7 @@
   "scripts": {
     "build": "bun script/build.js",
     "dev": "sh script/dev-tty.sh",
-    "smoke:cli": "bun src/index.ts --version && bun run build && node dist/index.js --version && ! rg -q \"iVBOR|profileImage|assets/profile\" dist/index.js",
+    "smoke:cli": "bun src/index.ts --version && bun run build && node dist/index.js --version && node -e \"const s=require('node:fs').readFileSync('dist/index.js','utf8'); if (/iVBOR|profileImage|assets\\\\/profile/.test(s)) process.exit(1)\"",
     "qa:tui": "bun test src/__tests__ && bun run type-check && bun run smoke:cli",
     "test": "bun test",
     "type-check": "tsc --noEmit"
