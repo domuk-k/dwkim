@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/dwkim"><img src="https://img.shields.io/npm/v/dwkim?style=flat-square&color=cba6f7&labelColor=1e1e2e" alt="npm"></a>
   <a href="https://persona-api.fly.dev/health"><img src="https://img.shields.io/badge/api-live-a6e3a1?style=flat-square&labelColor=1e1e2e" alt="API"></a>
-  <a href="https://dwkim.net"><img src="https://img.shields.io/badge/blog-dwkim.net-89b4fa?style=flat-square&labelColor=1e1e2e" alt="Blog"></a>
+  <a href="https://domuk-k.vercel.app"><img src="https://img.shields.io/badge/site-domuk--k.vercel.app-89b4fa?style=flat-square&labelColor=1e1e2e" alt="Site"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f5c2e7?style=flat-square&labelColor=1e1e2e" alt="License"></a>
 </p>
 
@@ -37,7 +37,7 @@ Profile card → ask anything about Dongwook. No install, no config.
 |---------|------|------|
 | [`dwkim`](./packages/dwkim) | Terminal UI (pi-tui, SSE streaming) | [npm](https://www.npmjs.com/package/dwkim) |
 | [`persona-api`](./packages/persona-api) | LangGraph RAG backend | [Fly.io](https://persona-api.fly.dev) |
-| [`blog`](./packages/blog) | Astro static site | [dwkim.net](https://dwkim.net) |
+| [`blog`](./packages/blog) | Astro static site | [domuk-k.vercel.app](https://domuk-k.vercel.app) |
 
 The CLI is the product surface; the API is where retrieval, rewriting, and generation live.
 
